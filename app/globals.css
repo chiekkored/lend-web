@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 24% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 25 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 18% 92%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 25 100% 95%;
+    --accent-foreground: 222 47% 11%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 25 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 25 100% 95%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 18% 84%;
+    --sidebar-ring: 25 100% 50%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 18% 84%;
+    --input: 214 18% 84%;
+    --ring: 25 100% 50%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+@layer components {
+  .admin-page-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
