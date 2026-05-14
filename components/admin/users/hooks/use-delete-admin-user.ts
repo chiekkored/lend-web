@@ -13,9 +13,14 @@ import { userDirectoryQueryKeys } from "../data/user-directory-queries";
 
 const deleteAdminUrl = process.env.NEXT_PUBLIC_ADMIN_DELETE_ADMIN_FUNCTION_URL;
 
-export function useDeleteAdminUser({ uid }: { uid: string }) {
+export function useDeleteAdminUser({
+  onOpenChange,
+  uid,
+}: {
+  onOpenChange: (open: boolean) => void;
+  uid: string;
+}) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -60,7 +65,7 @@ export function useDeleteAdminUser({ uid }: { uid: string }) {
         return;
       }
 
-      setOpen(false);
+      onOpenChange(false);
       await queryClient.invalidateQueries({
         queryKey: userDirectoryQueryKeys.adminUsers,
       });
@@ -76,8 +81,6 @@ export function useDeleteAdminUser({ uid }: { uid: string }) {
   return {
     deleteAdminUser,
     error,
-    open,
-    setOpen,
     submitting,
   };
 }

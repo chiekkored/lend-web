@@ -3,13 +3,14 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 const successStatuses = new Set([
   "Active",
   "Approved",
+  "Available",
   "Completed",
   "Healthy",
   "Resolved",
   "Improving",
   "Yes",
 ]);
-const warningStatuses = new Set(["Pending", "Under Review", "Open"]);
+const warningStatuses = new Set(["Pending", "Under Maintenance", "Under Review", "Open", "Reported"]);
 const dangerStatuses = new Set(["Critical", "Suspended", "Rejected", "Disputed"]);
 
 export function isStatusValue(value: string) {
@@ -19,6 +20,7 @@ export function isStatusValue(value: string) {
     dangerStatuses.has(value) ||
     value === "Banned" ||
     value === "Archived" ||
+    value === "Hidden" ||
     value === "Verified" ||
     value === "No"
   );

@@ -35,18 +35,12 @@ function SidebarProvider({
   const [open, setOpen] = React.useState(defaultOpen);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  const value = React.useMemo(
-    () => ({ open, setOpen, mobileOpen, setMobileOpen }),
-    [mobileOpen, open],
-  );
+  const value = React.useMemo(() => ({ open, setOpen, mobileOpen, setMobileOpen }), [mobileOpen, open]);
 
   return (
     <SidebarContext.Provider value={value}>
       <div
-        className={cn(
-          "group/sidebar-wrapper flex min-h-screen w-full bg-background text-foreground",
-          className,
-        )}
+        className={cn("group/sidebar-wrapper flex min-h-screen w-full bg-background text-foreground", className)}
         data-sidebar-open={open}
         {...props}
       >
@@ -56,11 +50,7 @@ function SidebarProvider({
   );
 }
 
-function Sidebar({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function Sidebar({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { open, mobileOpen, setMobileOpen } = useSidebar();
 
   return (
@@ -89,10 +79,7 @@ function Sidebar({
   );
 }
 
-function SidebarInset({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarInset({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { open } = useSidebar();
 
   return (
@@ -107,10 +94,7 @@ function SidebarInset({
   );
 }
 
-function SidebarTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof Button>) {
+function SidebarTrigger({ className, ...props }: React.ComponentProps<typeof Button>) {
   const { open, setOpen, setMobileOpen } = useSidebar();
 
   return (
@@ -126,7 +110,7 @@ function SidebarTrigger({
       }}
       size="icon"
       type="button"
-      variant="outline"
+      variant="ghost"
       {...props}
     >
       <PanelLeft />
@@ -134,38 +118,23 @@ function SidebarTrigger({
   );
 }
 
-function SidebarHeader({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex h-14 items-center px-4", className)} {...props} />;
 }
 
-function SidebarContent({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex-1 overflow-y-auto p-4", className)} {...props} />;
 }
 
-function SidebarFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("border-t p-4", className)} {...props} />;
 }
 
-function SidebarGroup({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarGroup({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("space-y-2", className)} {...props} />;
 }
 
-function SidebarGroupLabel({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarGroupLabel({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
@@ -177,24 +146,15 @@ function SidebarGroupLabel({
   );
 }
 
-function SidebarGroupContent({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function SidebarGroupContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("space-y-1", className)} {...props} />;
 }
 
-function SidebarMenu({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLUListElement>) {
+function SidebarMenu({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
   return <ul className={cn("space-y-1", className)} {...props} />;
 }
 
-function SidebarMenuItem({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLLIElement>) {
+function SidebarMenuItem({ className, ...props }: React.HTMLAttributes<HTMLLIElement>) {
   return <li className={cn("group/menu-item relative list-none", className)} {...props} />;
 }
 
@@ -214,9 +174,7 @@ function SidebarMenuButton({
       className={cn(
         "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0",
-        isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-          : "text-sidebar-foreground/75",
+        isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/75",
         className,
       )}
       data-active={isActive}
@@ -225,10 +183,7 @@ function SidebarMenuButton({
   );
 }
 
-function SidebarMenuSub({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLUListElement>) {
+function SidebarMenuSub({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
   return (
     <ul
       className={cn(
@@ -240,10 +195,7 @@ function SidebarMenuSub({
   );
 }
 
-function SidebarMenuSubItem({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLLIElement>) {
+function SidebarMenuSubItem({ className, ...props }: React.HTMLAttributes<HTMLLIElement>) {
   return <li className={cn("list-none", className)} {...props} />;
 }
 
@@ -263,9 +215,7 @@ function SidebarMenuSubButton({
       className={cn(
         "flex min-h-8 items-center rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0",
-        isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/70",
+        isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70",
         className,
       )}
       data-active={isActive}
@@ -274,10 +224,7 @@ function SidebarMenuSubButton({
   );
 }
 
-function SidebarMenuAction({
-  className,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function SidebarMenuAction({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className={cn(

@@ -1,4 +1,4 @@
-import { Download, Filter, MoreHorizontal, Search } from "lucide-react";
+import { Download, ExternalLink, Filter, MoreVerticalIcon, Search } from "lucide-react";
 
 import { isStatusValue, StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,13 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -86,9 +93,20 @@ export function ManagementSection({ section }: { section: AdminSection }) {
                     </TableCell>
                   ))}
                   <TableCell className="text-right">
-                    <Button aria-label="Open row actions" size="icon" variant="ghost">
-                      <MoreHorizontal />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-label="Open row actions" size="icon" variant="ghost">
+                          <MoreVerticalIcon />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>
+                          <ExternalLink />
+                          View details
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Loader2, Pencil } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { getUserDisplayName, type AdminUser } from "@/lib/admin-users";
 
@@ -31,11 +30,15 @@ import {
 
 type UpdateAdminUserSheetProps = {
   callerAdminType: string | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
   user: AdminUser;
 };
 
 export function UpdateAdminUserSheet({
   callerAdminType,
+  onOpenChange,
+  open,
   user,
 }: UpdateAdminUserSheetProps) {
   const displayName = getUserDisplayName(user);
@@ -44,12 +47,12 @@ export function UpdateAdminUserSheet({
     error,
     form,
     onSubmit,
-    open,
-    setOpen,
   } = useUpdateAdminUser({
     callerAdminType,
     defaultAdminType: user.adminType,
     defaultDisplayName: displayName,
+    onOpenChange,
+    open,
     uid: user.uid,
   });
   const {
@@ -60,12 +63,7 @@ export function UpdateAdminUserSheet({
   } = form;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button aria-label={`Edit ${displayName}`} size="icon" variant="ghost">
-          <Pencil />
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Update admin user</SheetTitle>

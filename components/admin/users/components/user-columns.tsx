@@ -6,12 +6,7 @@ import { UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  formatUserDate,
-  getUserDisplayName,
-  type AdminUser,
-  type UserDirectorySection,
-} from "@/lib/admin-users";
+import { formatUserDate, getUserDisplayName, type AdminUser, type UserDirectorySection } from "@/lib/admin-users";
 
 import { AdminUserRowActions } from "./admin-user-row-actions";
 import { UserRowActions } from "./user-row-actions";
@@ -22,11 +17,7 @@ type UserColumnsOptions = {
   section: UserDirectorySection;
 };
 
-export function useUserColumns({
-  callerAdminType,
-  callerUid,
-  section,
-}: UserColumnsOptions) {
+export function useUserColumns({ callerAdminType, callerUid, section }: UserColumnsOptions) {
   return React.useMemo<ColumnDef<AdminUser>[]>(() => {
     const nameColumn: ColumnDef<AdminUser> = {
       id: "name",
@@ -45,15 +36,11 @@ export function useUserColumns({
         return (
           <div className="flex min-w-56 items-center gap-3">
             <Avatar className="size-9">
-              <AvatarFallback>
-                {initials || <UserRound className="size-4" />}
-              </AvatarFallback>
+              <AvatarFallback>{initials || <UserRound className="size-4" />}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <p className="truncate font-medium">{displayName}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.uid}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{user.uid}</p>
             </div>
           </div>
         );
@@ -90,11 +77,7 @@ export function useUserColumns({
           enableSorting: false,
           header: () => <span className="sr-only">Actions</span>,
           cell: ({ row }) => (
-            <AdminUserRowActions
-              callerAdminType={callerAdminType}
-              callerUid={callerUid}
-              user={row.original}
-            />
+            <AdminUserRowActions callerAdminType={callerAdminType} callerUid={callerUid} user={row.original} />
           ),
         },
       ];
@@ -119,30 +102,22 @@ export function useUserColumns({
       {
         id: "listingEligibility",
         accessorFn: (user) => user.isListingEligible ?? "",
-        header: "Listing Eligibility",
+        header: "Listing",
         cell: ({ row }) =>
-          row.original.isListingEligible ? (
-            <StatusBadge value={row.original.isListingEligible} />
-          ) : (
-            "Not set"
-          ),
+          row.original.isListingEligible ? <StatusBadge value={row.original.isListingEligible} /> : "Not set",
       },
       {
         id: "rentingEligibility",
         accessorFn: (user) => user.isRentingEligible ?? "",
-        header: "Renting Eligibility",
+        header: "Renting",
         cell: ({ row }) =>
-          row.original.isRentingEligible ? (
-            <StatusBadge value={row.original.isRentingEligible} />
-          ) : (
-            "Not set"
-          ),
+          row.original.isRentingEligible ? <StatusBadge value={row.original.isRentingEligible} /> : "Not set",
       },
       createdAtColumn,
       {
         id: "userMetadataVersion",
         accessorFn: (user) => user.userMetadataVersion,
-        header: "Metadata Version",
+        header: "MVersion",
         cell: ({ row }) => row.original.userMetadataVersion,
       },
       {

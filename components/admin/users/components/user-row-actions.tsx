@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, ExternalLink, Mail, MoreHorizontal } from "lucide-react";
+import { Copy, ExternalLink, Mail, MoreVerticalIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +25,7 @@ export function UserRowActions({ user }: UserRowActionsProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button aria-label="Open user actions" size="icon" variant="ghost">
-            <MoreHorizontal />
+            <MoreVerticalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">

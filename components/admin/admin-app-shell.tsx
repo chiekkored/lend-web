@@ -9,11 +9,7 @@ import { ChevronRight, LogOut, ShieldAlert } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -35,11 +31,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { adminNavItems, adminUsersNavGroup } from "@/lib/admin-data";
-import {
-  getFirebaseAuth,
-  hasFirebaseConfig,
-  missingFirebaseConfig,
-} from "@/lib/firebase";
+import { getFirebaseAuth, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
 type AdminState =
@@ -50,8 +42,7 @@ type AdminState =
 export function AdminAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isPublicAdminRoute =
-    pathname === "/admin/sign-in" || pathname === "/admin/register";
+  const isPublicAdminRoute = pathname === "/admin/sign-in" || pathname === "/admin/register";
   const [state, setState] = useState<AdminState>({
     status: "loading",
     user: null,
@@ -106,9 +97,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-sm">
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Checking admin access...
-          </CardContent>
+          <CardContent className="p-6 text-sm text-muted-foreground">Checking admin access...</CardContent>
         </Card>
       </main>
     );
@@ -146,7 +135,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
       <AdminSidebar />
       <SidebarInset>
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
-          <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 lg:px-6">
+          <div className="flex h-14 items-center justify-between gap-4 px-2">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
             </div>
@@ -172,7 +161,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="px-4 py-6 sm:px-6 lg:px-6">{children}</main>
+        <main className="px-2 py-6 sm:px-4 lg:px-4">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
@@ -189,10 +178,7 @@ function AdminSidebar() {
     <Sidebar>
       <SidebarHeader>
         <Link
-          className={cn(
-            "flex min-w-0 items-center gap-3",
-            !open && "lg:w-full lg:justify-center",
-          )}
+          className={cn("flex min-w-0 items-center gap-3", !open && "lg:w-full lg:justify-center")}
           href="/admin"
           onClick={onNavigate}
         >
@@ -212,18 +198,13 @@ function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNavItems.map((item) => {
-                const active =
-                  item.href === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(item.href);
+                const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active}>
                       <Link href={item.href} onClick={onNavigate}>
                         <item.icon className="size-4" />
-                        <span className={cn(!open && "lg:hidden")}>
-                          {item.title}
-                        </span>
+                        <span className={cn(!open && "lg:hidden")}>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -237,18 +218,12 @@ function AdminSidebar() {
           <SidebarGroupLabel>{adminUsersNavGroup.title}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <Collapsible
-                asChild
-                className="group/collapsible"
-                defaultOpen={usersActive}
-              >
+              <Collapsible asChild className="group/collapsible" defaultOpen={usersActive}>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton isActive={usersActive}>
                       <adminUsersNavGroup.icon className="size-4" />
-                      <span className={cn(!open && "lg:hidden")}>
-                        {adminUsersNavGroup.title}
-                      </span>
+                      <span className={cn(!open && "lg:hidden")}>{adminUsersNavGroup.title}</span>
                       <ChevronRight
                         className={cn(
                           "ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90",
@@ -259,20 +234,20 @@ function AdminSidebar() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                    {adminUsersNavGroup.items.map((item) => (
-                      <SidebarMenuSubItem key={item.href}>
-                        <SidebarMenuSubButton
-                          asChild
-                          className={cn(!open && "lg:[&>span]:hidden")}
-                          isActive={pathname === item.href}
-                        >
-                          <Link href={item.href} onClick={onNavigate}>
-                            <item.icon className="mr-2 size-4 lg:hidden" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
+                      {adminUsersNavGroup.items.map((item) => (
+                        <SidebarMenuSubItem key={item.href}>
+                          <SidebarMenuSubButton
+                            asChild
+                            className={cn(!open && "lg:[&>span]:hidden")}
+                            isActive={pathname === item.href}
+                          >
+                            <Link href={item.href} onClick={onNavigate}>
+                              <item.icon className="mr-2 size-4 lg:hidden" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>

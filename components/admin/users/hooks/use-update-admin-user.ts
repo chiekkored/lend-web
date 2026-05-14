@@ -46,15 +46,18 @@ export function useUpdateAdminUser({
   callerAdminType,
   defaultAdminType,
   defaultDisplayName,
+  onOpenChange,
+  open,
   uid,
 }: {
   callerAdminType: string | null;
   defaultAdminType: string | null;
   defaultDisplayName: string;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
   uid: string;
 }) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const form = useForm<UpdateAdminValues>({
     resolver: zodResolver(updateAdminSchema),
@@ -129,7 +132,7 @@ export function useUpdateAdminUser({
         return;
       }
 
-      setOpen(false);
+      onOpenChange(false);
       await queryClient.invalidateQueries({
         queryKey: userDirectoryQueryKeys.adminUsers,
       });
@@ -145,8 +148,6 @@ export function useUpdateAdminUser({
     error,
     form,
     onSubmit: form.handleSubmit(onSubmit),
-    open,
-    setOpen,
   };
 }
 

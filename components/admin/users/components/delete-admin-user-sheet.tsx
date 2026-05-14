@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { getUserDisplayName, type AdminUser } from "@/lib/admin-users";
 
@@ -19,34 +18,26 @@ import { useDeleteAdminUser } from "../hooks/use-delete-admin-user";
 
 type DeleteAdminUserSheetProps = {
   disabled?: boolean;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
   user: AdminUser;
 };
 
 export function DeleteAdminUserSheet({
   disabled = false,
+  onOpenChange,
+  open,
   user,
 }: DeleteAdminUserSheetProps) {
   const displayName = getUserDisplayName(user);
   const {
     deleteAdminUser,
     error,
-    open,
-    setOpen,
     submitting,
-  } = useDeleteAdminUser({ uid: user.uid });
+  } = useDeleteAdminUser({ onOpenChange, uid: user.uid });
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          aria-label={`Delete ${displayName}`}
-          disabled={disabled}
-          size="icon"
-          variant="ghost"
-        >
-          <Trash2 />
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open && !disabled} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Delete admin user</SheetTitle>

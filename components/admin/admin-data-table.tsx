@@ -14,23 +14,9 @@ import {
 import { ChevronDown, ChevronsUpDown, ChevronUp, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type AdminDataTableProps<TData> = {
@@ -74,8 +60,8 @@ export function AdminDataTable<TData>({
   const filteredCount = table.getFilteredRowModel().rows.length;
 
   return (
-    <Card>
-      <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4">
+      <div className="flex gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -86,8 +72,8 @@ export function AdminDataTable<TData>({
           />
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         <div className="overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
@@ -99,18 +85,12 @@ export function AdminDataTable<TData>({
                       <TableHead key={header.id}>
                         {header.isPlaceholder ? null : header.column.getCanSort() ? (
                           <Button
-                            className={cn(
-                              "-ml-3 h-8 px-3",
-                              sortState && "text-foreground",
-                            )}
+                            className={cn("-ml-3 h-8 px-3", sortState && "text-foreground")}
                             onClick={header.column.getToggleSortingHandler()}
                             size="sm"
                             variant="ghost"
                           >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                            {flexRender(header.column.columnDef.header, header.getContext())}
                             {sortState === "asc" ? (
                               <ChevronUp />
                             ) : sortState === "desc" ? (
@@ -120,10 +100,7 @@ export function AdminDataTable<TData>({
                             )}
                           </Button>
                         ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )
+                          flexRender(header.column.columnDef.header, header.getContext())
                         )}
                       </TableHead>
                     );
@@ -134,19 +111,13 @@ export function AdminDataTable<TData>({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={columns.length}
-                  >
+                  <TableCell className="h-24 text-center text-muted-foreground" colSpan={columns.length}>
                     Loading records...
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-destructive"
-                    colSpan={columns.length}
-                  >
+                  <TableCell className="h-24 text-center text-destructive" colSpan={columns.length}>
                     {error}
                   </TableCell>
                 </TableRow>
@@ -154,21 +125,13 @@ export function AdminDataTable<TData>({
                 visibleRows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    className="h-24 text-center text-muted-foreground"
-                    colSpan={columns.length}
-                  >
+                  <TableCell className="h-24 text-center text-muted-foreground" colSpan={columns.length}>
                     {emptyMessage}
                   </TableCell>
                 </TableRow>
@@ -199,8 +162,7 @@ export function AdminDataTable<TData>({
               </SelectContent>
             </Select>
             <span>
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {Math.max(table.getPageCount(), 1)}
+              Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
             </span>
             <Button
               disabled={!table.getCanPreviousPage()}
@@ -210,17 +172,12 @@ export function AdminDataTable<TData>({
             >
               Previous
             </Button>
-            <Button
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-              size="sm"
-              variant="outline"
-            >
+            <Button disabled={!table.getCanNextPage()} onClick={() => table.nextPage()} size="sm" variant="outline">
               Next
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
