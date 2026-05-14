@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,13 +47,6 @@ export function ManagementSection({ section }: { section: AdminSection }) {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>{content.title} table</CardTitle>
-              <CardDescription>
-                Temporary operational data shaped for filters, drawers, and
-                row actions.
-              </CardDescription>
-            </div>
             <div className="relative w-full lg:w-80">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input className="pl-9" placeholder={`Search ${content.title.toLowerCase()}`} />

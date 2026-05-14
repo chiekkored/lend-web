@@ -14,7 +14,7 @@ import {
 import { ChevronDown, ChevronsUpDown, ChevronUp, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -34,23 +34,23 @@ import {
 import { cn } from "@/lib/utils";
 
 type AdminDataTableProps<TData> = {
+  actions?: React.ReactNode;
   columns: ColumnDef<TData>[];
   data: TData[];
   emptyMessage?: string;
   error?: string | null;
   loading?: boolean;
   searchPlaceholder?: string;
-  title?: string;
 };
 
 export function AdminDataTable<TData>({
+  actions,
   columns,
   data,
   emptyMessage = "No records found.",
   error,
   loading = false,
   searchPlaceholder = "Search",
-  title = "Records",
 }: AdminDataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -76,7 +76,6 @@ export function AdminDataTable<TData>({
   return (
     <Card>
       <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <CardTitle>{title}</CardTitle>
         <div className="relative w-full lg:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -86,6 +85,7 @@ export function AdminDataTable<TData>({
             value={globalFilter}
           />
         </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-md border">

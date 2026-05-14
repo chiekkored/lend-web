@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { ChevronRight, LogOut, ShieldAlert } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -176,6 +181,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
 function AdminSidebar() {
   const pathname = usePathname();
   const { open, setMobileOpen } = useSidebar();
+  const usersActive = pathname.startsWith("/admin/users");
 
   const onNavigate = () => setMobileOpen(false);
 
@@ -231,37 +237,46 @@ function AdminSidebar() {
           <SidebarGroupLabel>{adminUsersNavGroup.title}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith("/admin/users")}
-                >
-                  <Link href="/admin/users/all-users" onClick={onNavigate}>
-                    <adminUsersNavGroup.icon className="size-4" />
-                    <span className={cn(!open && "lg:hidden")}>
-                      {adminUsersNavGroup.title}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  {adminUsersNavGroup.items.map((item) => {
-                    const active = pathname === item.href;
-                    return (
+              <Collapsible
+                asChild
+                className="group/collapsible"
+                defaultOpen={usersActive}
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={usersActive}>
+                      <adminUsersNavGroup.icon className="size-4" />
+                      <span className={cn(!open && "lg:hidden")}>
+                        {adminUsersNavGroup.title}
+                      </span>
+                      <ChevronRight
+                        className={cn(
+                          "ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90",
+                          !open && "lg:hidden",
+                        )}
+                      />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                    {adminUsersNavGroup.items.map((item) => (
                       <SidebarMenuSubItem key={item.href}>
                         <SidebarMenuSubButton
+                          asChild
                           className={cn(!open && "lg:[&>span]:hidden")}
-                          href={item.href}
-                          isActive={active}
-                          onClick={onNavigate}
+                          isActive={pathname === item.href}
                         >
-                          <item.icon className="mr-2 size-4 lg:hidden" />
-                          <span>{item.title}</span>
+                          <Link href={item.href} onClick={onNavigate}>
+                            <item.icon className="mr-2 size-4 lg:hidden" />
+                            <span>{item.title}</span>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                    );
-                  })}
-                </SidebarMenuSub>
-              </SidebarMenuItem>
+                    ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

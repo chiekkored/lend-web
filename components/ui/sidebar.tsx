@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { Menu } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -129,7 +129,7 @@ function SidebarTrigger({
       variant="outline"
       {...props}
     >
-      <Menu />
+      <PanelLeft />
     </Button>
   );
 }
@@ -195,7 +195,7 @@ function SidebarMenuItem({
   className,
   ...props
 }: React.HTMLAttributes<HTMLLIElement>) {
-  return <li className={cn("list-none", className)} {...props} />;
+  return <li className={cn("group/menu-item relative list-none", className)} {...props} />;
 }
 
 function SidebarMenuButton({
@@ -250,10 +250,16 @@ function SidebarMenuSubItem({
 function SidebarMenuSubButton({
   className,
   isActive,
+  asChild = false,
   ...props
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { isActive?: boolean }) {
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  asChild?: boolean;
+  isActive?: boolean;
+}) {
+  const Comp = asChild ? Slot : "a";
+
   return (
-    <a
+    <Comp
       className={cn(
         "flex min-h-8 items-center rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0",
@@ -263,6 +269,23 @@ function SidebarMenuSubButton({
         className,
       )}
       data-active={isActive}
+      {...props}
+    />
+  );
+}
+
+function SidebarMenuAction({
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      className={cn(
+        "absolute right-1 top-1.5 flex size-7 items-center justify-center rounded-md text-sidebar-foreground/70 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        "group-data-[collapsed=true]/sidebar:lg:hidden",
+        className,
+      )}
+      type="button"
       {...props}
     />
   );
@@ -282,6 +305,7 @@ export {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,

@@ -14,11 +14,18 @@ The admin console uses Firebase Auth email/password sign-in. The signed-in Fireb
 
 ```json
 {
-  "admin": true
+  "admin": true,
+  "adminType": "superadmin"
 }
 ```
 
-Copy `.env.example` to `.env.local` and fill in the Firebase public web config before running locally.
+Copy `.env.example` to `.env.local` and fill in the Firebase public web config before running locally. Admin user management also expects these function URLs:
+
+```bash
+NEXT_PUBLIC_ADMIN_CREATE_ADMIN_FUNCTION_URL=
+NEXT_PUBLIC_ADMIN_UPDATE_ADMIN_FUNCTION_URL=
+NEXT_PUBLIC_ADMIN_DELETE_ADMIN_FUNCTION_URL=
+```
 
 ## Commands
 

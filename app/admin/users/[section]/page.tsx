@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { UserDirectoryPage } from "@/components/admin/users/user-directory-page";
+import { UserDirectoryPage } from "@/components/admin/users";
 import { isUserDirectorySection } from "@/lib/admin-users";
 
 export default async function AdminUsersSectionPage({

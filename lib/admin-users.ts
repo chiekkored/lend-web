@@ -6,13 +6,18 @@ export type AdminUser = {
   uid: string;
   firstName: string | null;
   lastName: string | null;
+  displayName: string | null;
   dateOfBirth: Date | null;
   location: unknown;
   photoUrl: string | null;
   createdAt: Date | null;
+  updatedAt: Date | null;
+  deletedAt: Date | null;
   email: string | null;
   phone: string | null;
   type: string | null;
+  adminType: string | null;
+  status: string | null;
   isListingEligible: EligibilityLabel | null;
   isRentingEligible: EligibilityLabel | null;
   userMetadataVersion: number;
@@ -37,7 +42,7 @@ export const userDirectoryContent: Record<
   },
   "admin-users": {
     title: "Admin Users",
-    description: "Firestore user profiles marked with the Admin user type.",
+    description: "Admin profiles from the dedicated admin users collection.",
   },
   "all-users": {
     title: "All Users",
@@ -60,13 +65,18 @@ export function mapAdminUser(
     uid: asString(data.uid) ?? snapshot.id,
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
+    displayName: asString(data.displayName),
     dateOfBirth: toDate(data.dateOfBirth),
     location: data.location ?? null,
     photoUrl: asString(data.photoUrl),
     createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+    deletedAt: toDate(data.deletedAt),
     email: asString(data.email),
     phone: asString(data.phone),
     type: asString(data.type),
+    adminType: asString(data.adminType),
+    status: asString(data.status),
     isListingEligible: asString(data.isListingEligible),
     isRentingEligible: asString(data.isRentingEligible),
     userMetadataVersion: asNumber(data.userMetadataVersion) ?? 1,
@@ -78,7 +88,7 @@ export function filterUsersBySection(
   section: UserDirectorySection,
 ) {
   if (section === "admin-users") {
-    return users.filter((user) => user.type === "Admin");
+    return users.filter((user) => user.status !== "Deleted");
   }
 
   if (section === "verifications") {
@@ -93,8 +103,26 @@ export function filterUsersBySection(
 }
 
 export function getUserDisplayName(user: AdminUser) {
+  if (user.displayName) {
+    return user.displayName;
+  }
+
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
   return name || "No name";
+}
+
+export function canManageAdminUser({
+  callerAdminType,
+  targetAdminType,
+}: {
+  callerAdminType: string | null;
+  targetAdminType: string | null;
+}) {
+  if (callerAdminType === "superadmin") {
+    return true;
+  }
+
+  return callerAdminType === "admin" && targetAdminType !== "superadmin";
 }
 
 export function formatUserDate(value: Date | null) {
