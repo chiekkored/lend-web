@@ -10,6 +10,7 @@ import { formatUserDate, getUserDisplayName, type AdminUser, type UserDirectoryS
 
 import { AdminUserRowActions } from "./admin-user-row-actions";
 import { UserRowActions } from "./user-row-actions";
+import { VerificationRowActions } from "./verification-row-actions";
 
 type UserColumnsOptions = {
   callerAdminType: string | null;
@@ -80,6 +81,27 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
           cell: ({ row }) => (
             <AdminUserRowActions callerAdminType={callerAdminType} callerUid={callerUid} user={row.original} />
           ),
+        },
+      ];
+    }
+
+    if (section === "verifications") {
+      return [
+        nameColumn,
+        emailColumn,
+        {
+          id: "verified",
+          accessorFn: (user) => user.verified,
+          header: "Verified",
+          cell: ({ row }) => <StatusBadge value={row.original.verified} />,
+        },
+        {
+          id: "actions",
+          enableGlobalFilter: false,
+          enableHiding: false,
+          enableSorting: false,
+          header: () => <span className="sr-only">Actions</span>,
+          cell: ({ row }) => <VerificationRowActions user={row.original} />,
         },
       ];
     }
