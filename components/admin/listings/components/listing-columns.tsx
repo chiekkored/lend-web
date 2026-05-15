@@ -103,6 +103,7 @@ export function useListingColumns() {
       {
         id: "actions",
         enableGlobalFilter: false,
+        enableHiding: false,
         enableSorting: false,
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => <ListingRowActions listing={row.original} />,

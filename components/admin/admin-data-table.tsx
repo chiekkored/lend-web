@@ -10,10 +10,19 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronsUpDown, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, ChevronUp, Columns3, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +47,8 @@ export function AdminDataTable<TData>({
   loading = false,
   searchPlaceholder = "Search",
 }: AdminDataTableProps<TData>) {
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
@@ -48,9 +59,11 @@ export function AdminDataTable<TData>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     state: {
+      columnVisibility,
       globalFilter,
       sorting,
     },
@@ -58,10 +71,13 @@ export function AdminDataTable<TData>({
 
   const visibleRows = table.getRowModel().rows;
   const filteredCount = table.getFilteredRowModel().rows.length;
+  const hideableColumns = table
+    .getAllLeafColumns()
+    .filter((column) => column.getCanHide());
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -71,7 +87,32 @@ export function AdminDataTable<TData>({
             value={globalFilter}
           />
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        <div className="flex flex-wrap gap-2">
+          {hideableColumns.length ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Columns3 />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {hideableColumns.map((column) => (
+                  <DropdownMenuCheckboxItem
+                    checked={column.getIsVisible()}
+                    key={column.id}
+                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  >
+                    {getColumnLabel(column.id)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+          {actions}
+        </div>
       </div>
       <div>
         <div className="overflow-x-auto rounded-md border">
@@ -180,4 +221,11 @@ export function AdminDataTable<TData>({
       </div>
     </div>
   );
+}
+
+function getColumnLabel(columnId: string) {
+  return columnId
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[-_]/g, " ")
+    .replace(/^./, (value) => value.toUpperCase());
 }

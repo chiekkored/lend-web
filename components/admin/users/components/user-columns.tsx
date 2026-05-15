@@ -74,6 +74,7 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
         {
           id: "actions",
           enableGlobalFilter: false,
+          enableHiding: false,
           enableSorting: false,
           header: () => <span className="sr-only">Actions</span>,
           cell: ({ row }) => (
@@ -123,6 +124,7 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
       {
         id: "actions",
         enableGlobalFilter: false,
+        enableHiding: false,
         enableSorting: false,
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => <UserRowActions user={row.original} />,

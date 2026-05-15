@@ -5,13 +5,16 @@ const successStatuses = new Set([
   "Approved",
   "Available",
   "Completed",
+  "Confirmed",
+  "HandedOver",
   "Healthy",
   "Resolved",
+  "Returned",
   "Improving",
   "Yes",
 ]);
 const warningStatuses = new Set(["Pending", "Under Maintenance", "Under Review", "Open", "Reported"]);
-const dangerStatuses = new Set(["Critical", "Suspended", "Rejected", "Disputed"]);
+const dangerStatuses = new Set(["Cancelled", "Critical", "Declined", "Suspended", "Rejected", "Disputed"]);
 
 export function isStatusValue(value: string) {
   return (
