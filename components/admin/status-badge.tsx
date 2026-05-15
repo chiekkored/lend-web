@@ -6,6 +6,7 @@ const successStatuses = new Set([
   "Available",
   "Completed",
   "Confirmed",
+  "Done",
   "HandedOver",
   "Healthy",
   "Resolved",

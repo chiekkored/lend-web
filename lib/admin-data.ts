@@ -3,9 +3,11 @@ import {
   BarChart3,
   CalendarClock,
   CircleDollarSign,
+  ClipboardList,
   Flag,
   LayoutDashboard,
   ListChecks,
+  MessageSquareText,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -18,12 +20,38 @@ export const adminNavItems = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { title: "Listings", href: "/admin/listings", icon: ShoppingBag },
   { title: "Bookings", href: "/admin/bookings", icon: CalendarClock },
-  { title: "Reports", href: "/admin/reports", icon: Flag },
   { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { title: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
-export const adminUsersNavGroup = {
+const adminReportsNavGroup = {
+  title: "Reports",
+  icon: Flag,
+  items: [
+    {
+      title: "User Reports",
+      href: "/admin/reports/users",
+      icon: Users,
+    },
+    {
+      title: "Listing Reports",
+      href: "/admin/reports/listings",
+      icon: ShoppingBag,
+    },
+    {
+      title: "Message Reports",
+      href: "/admin/reports/messages",
+      icon: MessageSquareText,
+    },
+    {
+      title: "Other Reports",
+      href: "/admin/reports/other",
+      icon: ClipboardList,
+    },
+  ],
+} as const;
+
+const adminUsersNavGroup = {
   title: "Users",
   icon: Users,
   items: [
@@ -44,6 +72,35 @@ export const adminUsersNavGroup = {
     },
   ],
 } as const;
+
+export const adminSidebarGroups = [
+  {
+    title: "General",
+    items: [
+      { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Assets",
+    items: [
+      { title: "Listings", href: "/admin/listings", icon: ShoppingBag },
+      { title: "Bookings", href: "/admin/bookings", icon: CalendarClock },
+    ],
+  },
+  {
+    title: "Moderation",
+    groups: [adminReportsNavGroup],
+  },
+  {
+    title: "Accounts",
+    groups: [adminUsersNavGroup],
+  },
+  {
+    title: "System",
+    items: [{ title: "Settings", href: "/admin/settings", icon: Settings }],
+  },
+] as const;
 
 export const summaryCards = [
   {
