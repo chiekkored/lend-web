@@ -1,4 +1,4 @@
-import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import type { DocumentData, DocumentSnapshot, QueryDocumentSnapshot } from "firebase/firestore";
 
 export type VerificationLevel = "None" | "Basic" | "Full" | string;
 
@@ -20,7 +20,19 @@ export type AdminUser = {
   status: string | null;
   verified: VerificationLevel;
   fullVerification: Record<string, unknown> | null;
+  fullVerificationSubmission: FullVerificationSubmission | null;
   userMetadataVersion: number;
+};
+
+export type FullVerificationSubmission = {
+  id: string;
+  userId: string;
+  phone: string | null;
+  address: string | null;
+  faceKycStatus: string | null;
+  status: string | null;
+  submittedAt: Date | null;
+  reviewedAt: Date | null;
 };
 
 export type UserDirectorySection =
@@ -78,7 +90,25 @@ export function mapAdminUser(
     status: asString(data.status),
     verified: asString(data.verified) ?? "None",
     fullVerification: asRecord(data.fullVerification),
+    fullVerificationSubmission: null,
     userMetadataVersion: asNumber(data.userMetadataVersion) ?? 1,
+  };
+}
+
+export function mapFullVerificationSubmission(
+  snapshot: DocumentSnapshot<DocumentData>,
+): FullVerificationSubmission {
+  const data = snapshot.data() ?? {};
+
+  return {
+    id: asString(data.id) ?? snapshot.id,
+    userId: asString(data.userId) ?? "",
+    phone: asString(data.phone),
+    address: asString(data.address),
+    faceKycStatus: asString(data.faceKycStatus),
+    status: asString(data.status),
+    submittedAt: toDate(data.submittedAt),
+    reviewedAt: toDate(data.reviewedAt),
   };
 }
 

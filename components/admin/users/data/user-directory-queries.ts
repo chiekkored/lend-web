@@ -2,6 +2,7 @@ import { collection, doc, getDoc, getDocs, query, where, type DocumentData, type
 
 import {
   mapAdminUser,
+  mapFullVerificationSubmission,
   type AdminUser,
   type UserDirectorySection,
 } from "@/lib/admin-users";
@@ -53,7 +54,16 @@ export async function fetchAdminUsers() {
 
 export async function fetchAllUsers() {
   const snapshot = await getDocs(collection(getFirebaseFirestore(), "users"));
-  return snapshot.docs.map(mapAdminUser);
+  const users = snapshot.docs.map(mapAdminUser);
+  const submissions = await fetchPendingVerificationSubmissions();
+  const submissionsByUserId = new Map(
+    submissions.map((submission) => [submission.userId, submission]),
+  );
+
+  return users.map((user) => ({
+    ...user,
+    fullVerificationSubmission: submissionsByUserId.get(user.uid) ?? null,
+  }));
 }
 
 export async function fetchAdminUser(uid: string): Promise<AdminUser | null> {
@@ -68,5 +78,35 @@ export async function fetchAdminUser(uid: string): Promise<AdminUser | null> {
     return null;
   }
 
-  return mapAdminUser(snapshot as QueryDocumentSnapshot<DocumentData>);
+  const user = mapAdminUser(snapshot as QueryDocumentSnapshot<DocumentData>);
+  const activeSubmissionId =
+    typeof user.fullVerification?.activeSubmissionId === "string"
+      ? user.fullVerification.activeSubmissionId
+      : null;
+
+  if (!activeSubmissionId) {
+    return user;
+  }
+
+  const submissionSnapshot = await getDoc(
+    doc(getFirebaseFirestore(), "verificationSubmissions", activeSubmissionId),
+  );
+
+  return {
+    ...user,
+    fullVerificationSubmission: submissionSnapshot.exists()
+      ? mapFullVerificationSubmission(submissionSnapshot)
+      : null,
+  };
+}
+
+async function fetchPendingVerificationSubmissions() {
+  const snapshot = await getDocs(
+    query(
+      collection(getFirebaseFirestore(), "verificationSubmissions"),
+      where("status", "==", "Pending"),
+    ),
+  );
+
+  return snapshot.docs.map(mapFullVerificationSubmission);
 }

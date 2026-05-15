@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
 import { CalendarClock, ListChecks, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -128,10 +128,26 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
                   )
                 }
               />
-              <DetailRow label="Phone" value={formatVerificationValue(user.fullVerification?.phone)} />
-              <DetailRow label="Address" value={formatVerificationValue(user.fullVerification?.address)} />
-              <DetailRow label="Face KYC" value={formatVerificationValue(user.fullVerification?.faceKycStatus)} />
-              <DetailRow label="Submitted" value={formatVerificationValue(user.fullVerification?.submittedAt)} />
+              <DetailRow
+                label="Phone"
+                value={formatVerificationValue(user.fullVerificationSubmission?.phone ?? user.fullVerification?.phone)}
+              />
+              <DetailRow
+                label="Address"
+                value={formatVerificationValue(user.fullVerificationSubmission?.address ?? user.fullVerification?.address)}
+              />
+              <DetailRow
+                label="Face KYC"
+                value={formatVerificationValue(
+                  user.fullVerificationSubmission?.faceKycStatus ?? user.fullVerification?.faceKycStatus,
+                )}
+              />
+              <DetailRow
+                label="Submitted"
+                value={formatVerificationValue(
+                  user.fullVerificationSubmission?.submittedAt ?? user.fullVerification?.submittedAt,
+                )}
+              />
               {verificationMutation.error ? (
                 <p className="text-sm text-destructive">{verificationMutation.error}</p>
               ) : null}
@@ -468,12 +484,29 @@ function useFullVerificationMutation(user: AdminUser) {
 
     setSubmitting(true);
     try {
-      await updateDoc(doc(getFirebaseFirestore(), "users", user.uid), {
+      const db = getFirebaseFirestore();
+      const submissionId =
+        typeof user.fullVerification?.activeSubmissionId === "string"
+          ? user.fullVerification.activeSubmissionId
+          : user.fullVerificationSubmission?.id;
+
+      if (!submissionId) {
+        setError("Missing active verification submission.");
+        return;
+      }
+
+      const batch = writeBatch(db);
+      batch.update(doc(db, "verificationSubmissions", submissionId), {
+        reviewedAt: serverTimestamp(),
+        status: "Approved",
+      });
+      batch.update(doc(db, "users", user.uid), {
         "fullVerification.reviewedAt": serverTimestamp(),
         "fullVerification.status": "Approved",
         userMetadataVersion: increment(1),
         verified: "Full",
       });
+      await batch.commit();
       await queryClient.invalidateQueries({ queryKey: userDirectoryQueryKeys.users });
       await queryClient.invalidateQueries({ queryKey: userDirectoryQueryKeys.user(user.uid) });
     } catch (err) {
