@@ -12,10 +12,29 @@ const successStatuses = new Set([
   "Resolved",
   "Returned",
   "Improving",
+  "Listing Eligible",
+  "Renting Eligible",
   "Yes",
 ]);
-const warningStatuses = new Set(["Pending", "Under Maintenance", "Under Review", "Open", "Reported"]);
-const dangerStatuses = new Set(["Cancelled", "Critical", "Declined", "Suspended", "Rejected", "Disputed"]);
+const warningStatuses = new Set([
+  "Listing Pending",
+  "Open",
+  "Pending",
+  "Renting Pending",
+  "Reported",
+  "Under Maintenance",
+  "Under Review",
+]);
+const dangerStatuses = new Set([
+  "Cancelled",
+  "Critical",
+  "Declined",
+  "Disputed",
+  "Listing Ineligible",
+  "Rejected",
+  "Renting Ineligible",
+  "Suspended",
+]);
 
 export function isStatusValue(value: string) {
   return (

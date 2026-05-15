@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Copy, ExternalLink, Mail, MoreVerticalIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,14 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getUserDisplayName, type AdminUser } from "@/lib/admin-users";
+import type { AdminUser } from "@/lib/admin-users";
+
+import { UserViewSheet } from "./user-view-sheet";
 
 type UserRowActionsProps = {
   user: AdminUser;
 };
 
 export function UserRowActions({ user }: UserRowActionsProps) {
-  const displayName = getUserDisplayName(user);
+  const [viewOpen, setViewOpen] = React.useState(false);
 
   return (
     <div className="text-right">
@@ -31,18 +34,9 @@ export function UserRowActions({ user }: UserRowActionsProps) {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
-            onSelect={() => {
-              window.alert(
-                [
-                  displayName,
-                  `UID: ${user.uid}`,
-                  `Email: ${user.email ?? "Not set"}`,
-                  `Phone: ${user.phone ?? "Not set"}`,
-                  `Type: ${user.type ?? "Not set"}`,
-                  `Listing: ${user.isListingEligible ?? "Not set"}`,
-                  `Renting: ${user.isRentingEligible ?? "Not set"}`,
-                ].join("\n"),
-              );
+            onSelect={(event) => {
+              event.preventDefault();
+              setViewOpen(true);
             }}
           >
             <ExternalLink />
@@ -72,6 +66,11 @@ export function UserRowActions({ user }: UserRowActionsProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <UserViewSheet
+        onOpenChange={setViewOpen}
+        open={viewOpen}
+        user={user}
+      />
     </div>
   );
 }

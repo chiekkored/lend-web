@@ -5,7 +5,11 @@ import type { DocumentData } from "firebase/firestore";
 import { ExternalLink, MessageSquareText } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { StatusBadge } from "@/components/admin/status-badge";
+import {
+  CachedBookingViewSheet,
+  CachedListingViewSheet,
+  CachedUserViewSheet,
+} from "@/components/admin/entity-detail-sheets";
 import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
@@ -15,30 +19,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  formatBookingDate,
   formatBookingDateTime,
-  formatBookingMoney,
-  getBookingAssetTitle,
-  getBookingOwnerName,
-  getBookingRenterName,
-  type AdminBooking,
   type AdminBookingMessage,
 } from "@/lib/admin-bookings";
-import {
-  formatListingDate,
-  formatListingPrice,
-  formatLocation,
-  getListingOwnerName,
-  type AdminListing,
-} from "@/lib/admin-listings";
-import { getUserDisplayName, type AdminUser } from "@/lib/admin-users";
 
 import {
-  fetchAdminReportAsset,
-  fetchAdminReportBooking,
   fetchAdminReportChat,
   fetchAdminReportMessages,
-  fetchAdminReportUser,
   reportQueryKeys,
 } from "../data/report-queries";
 
@@ -50,35 +37,9 @@ type SheetProps = {
 export function ReportUserSheet({
   onOpenChange,
   open,
-  role,
   uid,
 }: SheetProps & { role: string; uid: string | null }) {
-  const userQuery = useQuery({
-    enabled: open && Boolean(uid),
-    queryFn: () => fetchAdminReportUser(uid ?? ""),
-    queryKey: reportQueryKeys.user(uid),
-  });
-
-  return (
-    <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="sm:max-w-lg">
-        <SheetHeader className="pr-12">
-          <SheetTitle>{role}</SheetTitle>
-          <SheetDescription>{uid ?? "No user ID"}</SheetDescription>
-        </SheetHeader>
-        <EntityBody
-          emptyText="No user is linked to this report."
-          errorText={getQueryError(userQuery.error, "Unable to load user.")}
-          loading={userQuery.isLoading}
-          missingText="User record was not found."
-          present={Boolean(userQuery.data)}
-          requested={Boolean(uid)}
-        >
-          {userQuery.data ? <UserDetails user={userQuery.data} /> : null}
-        </EntityBody>
-      </SheetContent>
-    </Sheet>
-  );
+  return <CachedUserViewSheet onOpenChange={onOpenChange} open={open} uid={uid} />;
 }
 
 export function ReportAssetSheet({
@@ -86,32 +47,7 @@ export function ReportAssetSheet({
   onOpenChange,
   open,
 }: SheetProps & { assetId: string | null }) {
-  const assetQuery = useQuery({
-    enabled: open && Boolean(assetId),
-    queryFn: () => fetchAdminReportAsset(assetId ?? ""),
-    queryKey: reportQueryKeys.asset(assetId),
-  });
-
-  return (
-    <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="sm:max-w-xl">
-        <SheetHeader className="pr-12">
-          <SheetTitle>Asset</SheetTitle>
-          <SheetDescription>{assetId ?? "No asset ID"}</SheetDescription>
-        </SheetHeader>
-        <EntityBody
-          emptyText="No asset is linked to this report."
-          errorText={getQueryError(assetQuery.error, "Unable to load asset.")}
-          loading={assetQuery.isLoading}
-          missingText="Asset record was not found."
-          present={Boolean(assetQuery.data)}
-          requested={Boolean(assetId)}
-        >
-          {assetQuery.data ? <AssetDetails listing={assetQuery.data} /> : null}
-        </EntityBody>
-      </SheetContent>
-    </Sheet>
-  );
+  return <CachedListingViewSheet assetId={assetId} onOpenChange={onOpenChange} open={open} />;
 }
 
 export function ReportBookingSheet({
@@ -120,35 +56,13 @@ export function ReportBookingSheet({
   onOpenChange,
   open,
 }: SheetProps & { assetId: string | null; bookingId: string | null }) {
-  const bookingQuery = useQuery({
-    enabled: open && Boolean(bookingId),
-    queryFn: () =>
-      fetchAdminReportBooking({
-        assetId,
-        bookingId: bookingId ?? "",
-      }),
-    queryKey: reportQueryKeys.booking(bookingId, assetId),
-  });
-
   return (
-    <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="sm:max-w-xl">
-        <SheetHeader className="pr-12">
-          <SheetTitle>Booking</SheetTitle>
-          <SheetDescription>{bookingId ?? "No booking ID"}</SheetDescription>
-        </SheetHeader>
-        <EntityBody
-          emptyText="No booking is linked to this report."
-          errorText={getQueryError(bookingQuery.error, "Unable to load booking.")}
-          loading={bookingQuery.isLoading}
-          missingText="Booking record was not found."
-          present={Boolean(bookingQuery.data)}
-          requested={Boolean(bookingId)}
-        >
-          {bookingQuery.data ? <BookingDetails booking={bookingQuery.data} /> : null}
-        </EntityBody>
-      </SheetContent>
-    </Sheet>
+    <CachedBookingViewSheet
+      assetId={assetId}
+      bookingId={bookingId}
+      onOpenChange={onOpenChange}
+      open={open}
+    />
   );
 }
 
@@ -194,66 +108,6 @@ export function ReportChatSheet({
         </EntityBody>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function UserDetails({ user }: { user: AdminUser }) {
-  return (
-    <div className="grid gap-3 rounded-md border p-4 text-sm">
-      <DetailRow label="Name" value={getUserDisplayName(user)} />
-      <DetailRow label="UID" value={user.uid} />
-      <DetailRow label="Email" value={user.email ?? "Not set"} />
-      <DetailRow label="Phone" value={user.phone ?? "Not set"} />
-      <DetailRow label="Type" value={user.type ?? "Not set"} />
-      <DetailRow
-        label="Status"
-        value={user.status ? <StatusBadge value={user.status} /> : "Not set"}
-      />
-    </div>
-  );
-}
-
-function AssetDetails({ listing }: { listing: AdminListing }) {
-  return (
-    <div className="grid gap-4">
-      <div className="grid gap-3 rounded-md border p-4 text-sm">
-        <DetailRow label="Title" value={listing.title ?? "Untitled listing"} />
-        <DetailRow label="Asset ID" value={listing.id} />
-        <DetailRow label="Owner" value={getListingOwnerName(listing)} />
-        <DetailRow label="Owner ID" value={listing.ownerId ?? "Not set"} />
-        <DetailRow label="Category" value={listing.category ?? "Not set"} />
-        <DetailRow
-          label="Status"
-          value={listing.status ? <StatusBadge value={listing.status} /> : "Not set"}
-        />
-        <DetailRow label="Daily" value={formatListingPrice(listing.rates.daily)} />
-        <DetailRow label="Created" value={formatListingDate(listing.createdAt)} />
-        <DetailRow label="Location" value={formatLocation(listing.location)} />
-      </div>
-      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-        {listing.description ?? "No description"}
-      </p>
-    </div>
-  );
-}
-
-function BookingDetails({ booking }: { booking: AdminBooking }) {
-  return (
-    <div className="grid gap-3 rounded-md border p-4 text-sm">
-      <DetailRow label="Booking ID" value={booking.id} />
-      <DetailRow label="Asset" value={getBookingAssetTitle(booking)} />
-      <DetailRow label="Owner" value={getBookingOwnerName(booking)} />
-      <DetailRow label="Renter" value={getBookingRenterName(booking)} />
-      <DetailRow
-        label="Status"
-        value={booking.status ? <StatusBadge value={booking.status} /> : "Not set"}
-      />
-      <DetailRow label="Start" value={formatBookingDate(booking.startDate)} />
-      <DetailRow label="End" value={formatBookingDate(booking.endDate)} />
-      <DetailRow label="Total" value={formatBookingMoney(booking.totalPrice)} />
-      <DetailRow label="Chat ID" value={booking.chatId ?? "Not set"} />
-      <DetailRow label="Created" value={formatBookingDateTime(booking.createdAt)} />
-    </div>
   );
 }
 

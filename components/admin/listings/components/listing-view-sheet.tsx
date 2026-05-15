@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -8,14 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
+  fetchAdminUser,
+  userDirectoryQueryKeys,
+} from "@/components/admin/users/data/user-directory-queries";
+import {
   formatListingDate,
   formatListingPrice,
   formatLocation,
   getListingOwnerName,
   type AdminListing,
 } from "@/lib/admin-listings";
+import type { AdminUser } from "@/lib/admin-users";
 
 import { ListingAuditHistorySheet } from "./listing-audit-history-sheet";
+
+const UserViewSheet = dynamic(
+  () => import("@/components/admin/users/components/user-view-sheet").then((mod) => mod.UserViewSheet),
+  { ssr: false },
+);
 
 type ListingViewSheetProps = {
   listing: AdminListing;
@@ -25,6 +37,15 @@ type ListingViewSheetProps = {
 
 export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewSheetProps) {
   const [auditOpen, setAuditOpen] = React.useState(false);
+  const [ownerOpen, setOwnerOpen] = React.useState(false);
+  const queryClient = useQueryClient();
+  const ownerUid = listing.ownerId ?? listing.owner?.uid ?? null;
+  const ownerQuery = useQuery({
+    enabled: ownerOpen && Boolean(ownerUid),
+    initialData: () => findCachedUser(queryClient, ownerUid),
+    queryFn: () => fetchAdminUser(ownerUid ?? ""),
+    queryKey: userDirectoryQueryKeys.user(ownerUid),
+  });
   const photos = uniquePhotos(listing.images);
   const showcasePhotos = uniquePhotos(listing.showcase);
 
@@ -68,6 +89,15 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
           <div className="grid gap-3 rounded-md border p-4 text-sm">
             <DetailRow label="Owner" value={getListingOwnerName(listing)} />
             <DetailRow label="Owner ID" value={listing.ownerId ?? "Not set"} />
+            <Button
+              className="w-full justify-center"
+              disabled={!ownerUid}
+              onClick={() => setOwnerOpen(true)}
+              type="button"
+              variant="outline"
+            >
+              View owner
+            </Button>
             <DetailRow label="Category" value={listing.category ?? "Not set"} />
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Status</span>
@@ -118,6 +148,13 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
         </div>
       </SheetContent>
       <ListingAuditHistorySheet listing={listing} onOpenChange={setAuditOpen} open={auditOpen} />
+      {ownerQuery.data ? (
+        <UserViewSheet
+          onOpenChange={setOwnerOpen}
+          open={ownerOpen}
+          user={ownerQuery.data}
+        />
+      ) : null}
     </Sheet>
   );
 }
@@ -157,6 +194,19 @@ function PhotoCarousel({ altPrefix, photos, size }: { altPrefix: string; photos:
 
 function uniquePhotos(photos: string[]) {
   return Array.from(new Set(photos));
+}
+
+function findCachedUser(
+  queryClient: ReturnType<typeof useQueryClient>,
+  uid: string | null,
+) {
+  if (!uid) {
+    return undefined;
+  }
+
+  const allUsers = queryClient.getQueryData<AdminUser[]>(userDirectoryQueryKeys.users);
+  const adminUsers = queryClient.getQueryData<AdminUser[]>(userDirectoryQueryKeys.adminUsers);
+  return [...(allUsers ?? []), ...(adminUsers ?? [])].find((user) => user.uid === uid);
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

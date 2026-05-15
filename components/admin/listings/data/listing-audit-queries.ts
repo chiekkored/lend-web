@@ -43,7 +43,7 @@ export async function fetchListingAudits(listingId: string) {
     "audits",
   );
   const snapshot = await getDocs(
-    query(auditsCollection, orderBy("createdAt", "asc")),
+    query(auditsCollection, orderBy("createdAt", "desc")),
   );
 
   return snapshot.docs.map(mapListingAudit);

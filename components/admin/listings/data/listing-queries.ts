@@ -1,4 +1,4 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
 
 import {
   mapAdminListing,
@@ -12,6 +12,8 @@ import {
 
 export const listingQueryKeys = {
   root: ["admin", "listings"] as const,
+  detail: (assetId: string | null | undefined) =>
+    ["admin", "listings", assetId ?? "missing"] as const,
 };
 
 export async function fetchAdminListings(): Promise<AdminListing[]> {
@@ -25,4 +27,20 @@ export async function fetchAdminListings(): Promise<AdminListing[]> {
   return snapshot.docs
     .map(mapAdminListing)
     .filter((listing) => !listing.isDeleted);
+}
+
+export async function fetchAdminListing(assetId: string): Promise<AdminListing | null> {
+  if (!hasFirebaseConfig) {
+    throw new Error(
+      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+    );
+  }
+
+  const snapshot = await getDoc(doc(getFirebaseFirestore(), "assets", assetId));
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const listing = mapAdminListing(snapshot as QueryDocumentSnapshot<DocumentData>);
+  return listing.isDeleted ? null : listing;
 }

@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDoc, getDocs, orderBy, query, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
 
 import {
   mapAdminBooking,
@@ -14,6 +14,10 @@ import {
 
 export const bookingQueryKeys = {
   root: ["admin", "bookings"] as const,
+  detail: (
+    bookingId: string | null | undefined,
+    assetId: string | null | undefined,
+  ) => [...bookingQueryKeys.root, assetId ?? "missing", bookingId ?? "missing"] as const,
   messages: (chatId: string | null | undefined) =>
     [...bookingQueryKeys.root, "messages", chatId ?? "missing"] as const,
 };
@@ -42,6 +46,45 @@ export async function fetchAdminBookings(): Promise<AdminBooking[]> {
   );
 
   return bookingGroups.flat();
+}
+
+export async function fetchAdminBooking({
+  assetId,
+  bookingId,
+}: {
+  assetId: string | null;
+  bookingId: string;
+}): Promise<AdminBooking | null> {
+  if (!hasFirebaseConfig) {
+    throw new Error(
+      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+    );
+  }
+
+  const db = getFirebaseFirestore();
+
+  if (assetId) {
+    const snapshot = await getDoc(doc(db, "assets", assetId, "bookings", bookingId));
+    if (snapshot.exists()) {
+      return mapAdminBooking({
+        assetId,
+        snapshot: snapshot as QueryDocumentSnapshot<DocumentData>,
+      });
+    }
+  }
+
+  const byFieldSnapshot = await getDocs(
+    query(collectionGroup(db, "bookings"), where("id", "==", bookingId)),
+  );
+  const byFieldMatch = byFieldSnapshot.docs[0];
+  if (byFieldMatch) {
+    return mapAdminBooking({
+      assetId: byFieldMatch.ref.parent.parent?.id ?? assetId ?? "unknown",
+      snapshot: byFieldMatch,
+    });
+  }
+
+  return null;
 }
 
 export async function fetchAdminBookingMessages(

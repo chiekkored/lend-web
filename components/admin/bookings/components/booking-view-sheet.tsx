@@ -1,11 +1,22 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { ArrowRight, CalendarDays, MessageSquareText, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  fetchAdminListing,
+  listingQueryKeys,
+} from "@/components/admin/listings/data/listing-queries";
+import { ListingViewSheet } from "@/components/admin/listings/components/listing-view-sheet";
+import {
+  fetchAdminUser,
+  userDirectoryQueryKeys,
+} from "@/components/admin/users/data/user-directory-queries";
 import {
   formatBookingDate,
   formatBookingDateTime,
@@ -18,8 +29,15 @@ import {
   type AdminBooking,
   type BookingPerson,
 } from "@/lib/admin-bookings";
+import type { AdminListing } from "@/lib/admin-listings";
+import type { AdminUser } from "@/lib/admin-users";
 
 import { BookingChatSheet } from "./booking-chat-sheet";
+
+const UserViewSheet = dynamic(
+  () => import("@/components/admin/users/components/user-view-sheet").then((mod) => mod.UserViewSheet),
+  { ssr: false },
+);
 
 type BookingViewSheetProps = {
   booking: AdminBooking;
@@ -29,6 +47,33 @@ type BookingViewSheetProps = {
 
 export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewSheetProps) {
   const [chatOpen, setChatOpen] = React.useState(false);
+  const [assetOpen, setAssetOpen] = React.useState(false);
+  const [ownerOpen, setOwnerOpen] = React.useState(false);
+  const [renterOpen, setRenterOpen] = React.useState(false);
+  const queryClient = useQueryClient();
+  const ownerUid = getBookingOwnerId(booking);
+  const renterUid = getBookingRenterId(booking);
+  const listingQuery = useQuery({
+    enabled: assetOpen,
+    initialData: () =>
+      queryClient
+        .getQueryData<AdminListing[]>(listingQueryKeys.root)
+        ?.find((listing) => listing.id === booking.assetId),
+    queryFn: () => fetchAdminListing(booking.assetId),
+    queryKey: listingQueryKeys.detail(booking.assetId),
+  });
+  const ownerQuery = useQuery({
+    enabled: ownerOpen && Boolean(ownerUid),
+    initialData: () => findCachedUser(queryClient, ownerUid),
+    queryFn: () => fetchAdminUser(ownerUid ?? ""),
+    queryKey: userDirectoryQueryKeys.user(ownerUid),
+  });
+  const renterQuery = useQuery({
+    enabled: renterOpen && Boolean(renterUid),
+    initialData: () => findCachedUser(queryClient, renterUid),
+    queryFn: () => fetchAdminUser(renterUid ?? ""),
+    queryKey: userDirectoryQueryKeys.user(renterUid),
+  });
 
   return (
     <>
@@ -51,8 +96,9 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                 <PersonCard
                   label="Owner"
                   name={getBookingOwnerName(booking)}
+                  onView={() => setOwnerOpen(true)}
                   person={booking.asset?.owner}
-                  uid={getBookingOwnerId(booking)}
+                  uid={ownerUid}
                 />
                 <div className="hidden items-center justify-center text-muted-foreground sm:flex">
                   <ArrowRight className="size-5" />
@@ -60,8 +106,9 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                 <PersonCard
                   label="Renter"
                   name={getBookingRenterName(booking)}
+                  onView={() => setRenterOpen(true)}
                   person={booking.renter}
-                  uid={getBookingRenterId(booking)}
+                  uid={renterUid}
                 />
               </div>
             </Section>
@@ -97,6 +144,14 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                 label="Status"
                 value={booking.status ? <StatusBadge value={booking.status} /> : "Not set"}
               />
+              <Button
+                className="w-full justify-center"
+                onClick={() => setAssetOpen(true)}
+                type="button"
+                variant="outline"
+              >
+                View asset
+              </Button>
             </Section>
 
             <Section title="Payment and totals">
@@ -131,6 +186,27 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
         onOpenChange={setChatOpen}
         open={chatOpen}
       />
+      {listingQuery.data ? (
+        <ListingViewSheet
+          listing={listingQuery.data}
+          onOpenChange={setAssetOpen}
+          open={assetOpen}
+        />
+      ) : null}
+      {ownerQuery.data ? (
+        <UserViewSheet
+          onOpenChange={setOwnerOpen}
+          open={ownerOpen}
+          user={ownerQuery.data}
+        />
+      ) : null}
+      {renterQuery.data ? (
+        <UserViewSheet
+          onOpenChange={setRenterOpen}
+          open={renterOpen}
+          user={renterQuery.data}
+        />
+      ) : null}
     </>
   );
 }
@@ -153,11 +229,13 @@ function Section({
 function PersonCard({
   label,
   name,
+  onView,
   person,
   uid,
 }: {
   label: string;
   name: string;
+  onView: () => void;
   person: BookingPerson | null | undefined;
   uid: string | null;
 }) {
@@ -177,6 +255,16 @@ function PersonCard({
         <DetailRow label="Email" value={person?.email ?? "Not set"} />
         <DetailRow label="Phone" value={person?.phone ?? "Not set"} />
       </div>
+      <Button
+        className="w-full justify-center"
+        disabled={!uid}
+        onClick={onView}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        View user
+      </Button>
     </div>
   );
 }
@@ -216,4 +304,17 @@ function DetailRow({
       </span>
     </div>
   );
+}
+
+function findCachedUser(
+  queryClient: ReturnType<typeof useQueryClient>,
+  uid: string | null,
+) {
+  if (!uid) {
+    return undefined;
+  }
+
+  const allUsers = queryClient.getQueryData<AdminUser[]>(userDirectoryQueryKeys.users);
+  const adminUsers = queryClient.getQueryData<AdminUser[]>(userDirectoryQueryKeys.adminUsers);
+  return [...(allUsers ?? []), ...(adminUsers ?? [])].find((user) => user.uid === uid);
 }
