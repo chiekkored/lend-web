@@ -12,15 +12,12 @@ const successStatuses = new Set([
   "Resolved",
   "Returned",
   "Improving",
-  "Listing Eligible",
-  "Renting Eligible",
-  "Yes",
+  "Basic",
+  "Full",
 ]);
 const warningStatuses = new Set([
-  "Listing Pending",
   "Open",
   "Pending",
-  "Renting Pending",
   "Reported",
   "Under Maintenance",
   "Under Review",
@@ -30,10 +27,9 @@ const dangerStatuses = new Set([
   "Critical",
   "Declined",
   "Disputed",
-  "Listing Ineligible",
   "Rejected",
-  "Renting Ineligible",
   "Suspended",
+  "None",
 ]);
 
 export function isStatusValue(value: string) {
@@ -44,8 +40,7 @@ export function isStatusValue(value: string) {
     value === "Banned" ||
     value === "Archived" ||
     value === "Hidden" ||
-    value === "Verified" ||
-    value === "No"
+    value === "Verified"
   );
 }
 

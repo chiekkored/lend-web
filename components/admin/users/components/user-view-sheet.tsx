@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
 import { CalendarClock, ListChecks, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -22,6 +23,9 @@ import {
 } from "@/lib/admin-bookings";
 import { formatListingDate, formatListingPrice, type AdminListing } from "@/lib/admin-listings";
 import { formatUserDate, getUserDisplayName, type AdminUser } from "@/lib/admin-users";
+import { getFirebaseFirestore, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
+
+import { userDirectoryQueryKeys } from "../data/user-directory-queries";
 
 type UserViewSheetProps = {
   onOpenChange: (open: boolean) => void;
@@ -32,6 +36,7 @@ type UserViewSheetProps = {
 export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) {
   const [listingsOpen, setListingsOpen] = React.useState(false);
   const [bookingsOpen, setBookingsOpen] = React.useState(false);
+  const verificationMutation = useFullVerificationMutation(user);
   const displayName = getUserDisplayName(user);
   const initials = displayName
     .split(" ")
@@ -65,12 +70,8 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
               </div>
               <div className="flex flex-wrap gap-2">
                 {user.status ? <StatusBadge value={user.status} /> : null}
-                {user.isListingEligible ? (
-                  <StatusBadge value={formatEligibilityBadge("Listing", user.isListingEligible)} />
-                ) : null}
-                {user.isRentingEligible ? (
-                  <StatusBadge value={formatEligibilityBadge("Renting", user.isRentingEligible)} />
-                ) : null}
+                <StatusBadge value={user.verified} />
+                {user.fullVerification?.status ? <StatusBadge value={String(user.fullVerification.status)} /> : null}
               </div>
             </div>
           </SheetHeader>
@@ -112,30 +113,37 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
               <DetailRow label="Phone" value={user.phone ?? "Not set"} />
               <DetailRow label="Type" value={user.type ?? "Not set"} />
               <DetailRow label="Admin type" value={user.adminType ?? "Not set"} />
+              <DetailRow label="Verified" value={<StatusBadge value={user.verified} />} />
               <DetailRow label="Metadata version" value={String(user.userMetadataVersion)} />
             </Section>
 
-            <Section title="Eligibility">
+            <Section title="Full verification">
               <DetailRow
-                label="Listing"
+                label="Status"
                 value={
-                  user.isListingEligible ? (
-                    <StatusBadge value={formatEligibilityBadge("Listing", user.isListingEligible)} />
+                  user.fullVerification?.status ? (
+                    <StatusBadge value={String(user.fullVerification.status)} />
                   ) : (
-                    "Not set"
+                    "No request"
                   )
                 }
               />
-              <DetailRow
-                label="Renting"
-                value={
-                  user.isRentingEligible ? (
-                    <StatusBadge value={formatEligibilityBadge("Renting", user.isRentingEligible)} />
-                  ) : (
-                    "Not set"
-                  )
-                }
-              />
+              <DetailRow label="Phone" value={formatVerificationValue(user.fullVerification?.phone)} />
+              <DetailRow label="Address" value={formatVerificationValue(user.fullVerification?.address)} />
+              <DetailRow label="Face KYC" value={formatVerificationValue(user.fullVerification?.faceKycStatus)} />
+              <DetailRow label="Submitted" value={formatVerificationValue(user.fullVerification?.submittedAt)} />
+              {verificationMutation.error ? (
+                <p className="text-sm text-destructive">{verificationMutation.error}</p>
+              ) : null}
+              {user.fullVerification?.status === "Pending" && user.verified !== "Full" ? (
+                <Button
+                  disabled={verificationMutation.submitting}
+                  onClick={verificationMutation.approveFullVerification}
+                  type="button"
+                >
+                  Approve Full verification
+                </Button>
+              ) : null}
             </Section>
 
             <Section title="Dates">
@@ -399,18 +407,6 @@ function getUserBookingRole(booking: AdminBooking, uid: string) {
   return null;
 }
 
-function formatEligibilityBadge(label: "Listing" | "Renting", value: string) {
-  if (value === "Yes") {
-    return `${label} Eligible`;
-  }
-
-  if (value === "No") {
-    return `${label} Ineligible`;
-  }
-
-  return `${label} ${value}`;
-}
-
 function formatLocationValue(value: unknown) {
   if (!value) {
     return "Not set";
@@ -429,4 +425,63 @@ function formatLocationValue(value: unknown) {
   }
 
   return String(value);
+}
+
+function formatVerificationValue(value: unknown) {
+  if (!value) {
+    return "Not set";
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return formatUserDate(value.toDate());
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "_seconds" in value &&
+    typeof value._seconds === "number"
+  ) {
+    return formatUserDate(new Date(value._seconds * 1000));
+  }
+
+  return typeof value === "string" && value.trim() ? value : String(value);
+}
+
+function useFullVerificationMutation(user: AdminUser) {
+  const queryClient = useQueryClient();
+  const [error, setError] = React.useState<string | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+
+  async function approveFullVerification() {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(`Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateDoc(doc(getFirebaseFirestore(), "users", user.uid), {
+        "fullVerification.reviewedAt": serverTimestamp(),
+        "fullVerification.status": "Approved",
+        userMetadataVersion: increment(1),
+        verified: "Full",
+      });
+      await queryClient.invalidateQueries({ queryKey: userDirectoryQueryKeys.users });
+      await queryClient.invalidateQueries({ queryKey: userDirectoryQueryKeys.user(user.uid) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to approve verification.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return { approveFullVerification, error, submitting };
 }

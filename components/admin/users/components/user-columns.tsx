@@ -101,18 +101,10 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
       },
       adminTypeColumn,
       {
-        id: "listingEligibility",
-        accessorFn: (user) => user.isListingEligible ?? "",
-        header: "Listing",
-        cell: ({ row }) =>
-          row.original.isListingEligible ? <StatusBadge value={row.original.isListingEligible} /> : "Not set",
-      },
-      {
-        id: "rentingEligibility",
-        accessorFn: (user) => user.isRentingEligible ?? "",
-        header: "Renting",
-        cell: ({ row }) =>
-          row.original.isRentingEligible ? <StatusBadge value={row.original.isRentingEligible} /> : "Not set",
+        id: "verified",
+        accessorFn: (user) => user.verified,
+        header: "Verified",
+        cell: ({ row }) => <StatusBadge value={row.original.verified} />,
       },
       createdAtColumn,
       {

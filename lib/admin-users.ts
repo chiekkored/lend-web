@@ -1,6 +1,6 @@
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
-export type EligibilityLabel = "No" | "Pending" | "Yes" | string;
+export type VerificationLevel = "None" | "Basic" | "Full" | string;
 
 export type AdminUser = {
   uid: string;
@@ -18,8 +18,8 @@ export type AdminUser = {
   type: string | null;
   adminType: string | null;
   status: string | null;
-  isListingEligible: EligibilityLabel | null;
-  isRentingEligible: EligibilityLabel | null;
+  verified: VerificationLevel;
+  fullVerification: Record<string, unknown> | null;
   userMetadataVersion: number;
 };
 
@@ -37,8 +37,7 @@ export const userDirectoryContent: Record<
 > = {
   verifications: {
     title: "Verifications List",
-    description:
-      "Users waiting on listing or renting eligibility review.",
+    description: "Users waiting for full verification review.",
   },
   "admin-users": {
     title: "Admin Users",
@@ -77,8 +76,8 @@ export function mapAdminUser(
     type: asString(data.type),
     adminType: asString(data.adminType),
     status: asString(data.status),
-    isListingEligible: asString(data.isListingEligible),
-    isRentingEligible: asString(data.isRentingEligible),
+    verified: asString(data.verified) ?? "None",
+    fullVerification: asRecord(data.fullVerification),
     userMetadataVersion: asNumber(data.userMetadataVersion) ?? 1,
   };
 }
@@ -93,9 +92,7 @@ export function filterUsersBySection(
 
   if (section === "verifications") {
     return users.filter(
-      (user) =>
-        user.isListingEligible === "Pending" ||
-        user.isRentingEligible === "Pending",
+      (user) => user.fullVerification?.status === "Pending",
     );
   }
 
@@ -143,6 +140,12 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function toDate(value: unknown): Date | null {
