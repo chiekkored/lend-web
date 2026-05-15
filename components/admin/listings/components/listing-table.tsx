@@ -21,7 +21,9 @@ export function ListingTable({ data, error, loading }: ListingTableProps) {
       emptyMessage="No listings match this view."
       error={error}
       loading={loading}
+      primaryColumnId="asset"
       searchPlaceholder="Search listings"
+      storageKey="admin:listings:column-visibility"
     />
   );
 }

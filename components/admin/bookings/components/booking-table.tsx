@@ -21,7 +21,9 @@ export function BookingTable({ data, error, loading }: BookingTableProps) {
       emptyMessage="No bookings match this view."
       error={error}
       loading={loading}
+      primaryColumnId="booking"
       searchPlaceholder="Search bookings"
+      storageKey="admin:bookings:column-visibility"
     />
   );
 }

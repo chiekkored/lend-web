@@ -1,6 +1,11 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
-import { mapAdminBooking, type AdminBooking } from "@/lib/admin-bookings";
+import {
+  mapAdminBooking,
+  mapAdminBookingMessage,
+  type AdminBooking,
+  type AdminBookingMessage,
+} from "@/lib/admin-bookings";
 import {
   getFirebaseFirestore,
   hasFirebaseConfig,
@@ -9,6 +14,8 @@ import {
 
 export const bookingQueryKeys = {
   root: ["admin", "bookings"] as const,
+  messages: (chatId: string | null | undefined) =>
+    [...bookingQueryKeys.root, "messages", chatId ?? "missing"] as const,
 };
 
 export async function fetchAdminBookings(): Promise<AdminBooking[]> {
@@ -35,4 +42,24 @@ export async function fetchAdminBookings(): Promise<AdminBooking[]> {
   );
 
   return bookingGroups.flat();
+}
+
+export async function fetchAdminBookingMessages(
+  chatId: string,
+): Promise<AdminBookingMessage[]> {
+  if (!hasFirebaseConfig) {
+    throw new Error(
+      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+    );
+  }
+
+  const db = getFirebaseFirestore();
+  const messagesSnapshot = await getDocs(
+    query(
+      collection(db, "chats", chatId, "messages"),
+      orderBy("createdAt", "asc"),
+    ),
+  );
+
+  return messagesSnapshot.docs.map(mapAdminBookingMessage);
 }

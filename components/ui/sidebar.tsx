@@ -40,7 +40,10 @@ function SidebarProvider({
   return (
     <SidebarContext.Provider value={value}>
       <div
-        className={cn("group/sidebar-wrapper flex min-h-screen w-full bg-background text-foreground", className)}
+        className={cn(
+          "group/sidebar-wrapper flex min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground",
+          className,
+        )}
         data-sidebar-open={open}
         {...props}
       >
@@ -85,7 +88,7 @@ function SidebarInset({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   return (
     <div
       className={cn(
-        "flex min-h-screen min-w-0 flex-1 flex-col transition-[padding] duration-200",
+        "flex min-h-screen min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden transition-[padding] duration-200",
         open ? "lg:pl-72" : "lg:pl-20",
         className,
       )}

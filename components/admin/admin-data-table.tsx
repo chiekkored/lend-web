@@ -7,6 +7,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  functionalUpdate,
   useReactTable,
   type ColumnDef,
   type SortingState,
@@ -35,7 +36,9 @@ type AdminDataTableProps<TData> = {
   emptyMessage?: string;
   error?: string | null;
   loading?: boolean;
+  primaryColumnId?: string;
   searchPlaceholder?: string;
+  storageKey?: string;
 };
 
 export function AdminDataTable<TData>({
@@ -45,12 +48,42 @@ export function AdminDataTable<TData>({
   emptyMessage = "No records found.",
   error,
   loading = false,
+  primaryColumnId,
   searchPlaceholder = "Search",
+  storageKey,
 }: AdminDataTableProps<TData>) {
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>(() =>
+      readColumnVisibilityState(storageKey, primaryColumnId),
+    );
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
+
+  const handleColumnVisibilityChange = React.useCallback(
+    (updater: React.SetStateAction<VisibilityState>) => {
+      setColumnVisibility((current) => {
+        const next = functionalUpdate(updater, current);
+
+        if (!primaryColumnId) {
+          return next;
+        }
+
+        return {
+          ...next,
+          [primaryColumnId]: true,
+        };
+      });
+    },
+    [primaryColumnId],
+  );
+
+  React.useEffect(() => {
+    if (!storageKey || typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, JSON.stringify(columnVisibility));
+  }, [columnVisibility, storageKey]);
 
   const table = useReactTable({
     columns,
@@ -59,7 +92,7 @@ export function AdminDataTable<TData>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     state: {
@@ -73,12 +106,12 @@ export function AdminDataTable<TData>({
   const filteredCount = table.getFilteredRowModel().rows.length;
   const hideableColumns = table
     .getAllLeafColumns()
-    .filter((column) => column.getCanHide());
+    .filter((column) => column.getCanHide() && column.id !== primaryColumnId);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:w-80">
+    <div className="min-w-0 w-full max-w-full space-y-4">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full min-w-0 lg:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
@@ -87,7 +120,7 @@ export function AdminDataTable<TData>({
             value={globalFilter}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {hideableColumns.length ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -114,9 +147,9 @@ export function AdminDataTable<TData>({
           {actions}
         </div>
       </div>
-      <div>
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
+      <div className="min-w-0 w-full max-w-full">
+        <div className="min-w-0 w-full max-w-full overflow-x-auto rounded-md border">
+          <Table className="w-max min-w-full" wrapperClassName="overflow-visible">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -228,4 +261,33 @@ function getColumnLabel(columnId: string) {
     .replace(/([A-Z])/g, " $1")
     .replace(/[-_]/g, " ")
     .replace(/^./, (value) => value.toUpperCase());
+}
+
+function readColumnVisibilityState(
+  storageKey: string | undefined,
+  primaryColumnId: string | undefined,
+): VisibilityState {
+  if (!storageKey || typeof window === "undefined") {
+    return primaryColumnId ? { [primaryColumnId]: true } : {};
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(storageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : {};
+    const visibilityState =
+      parsedValue && typeof parsedValue === "object"
+        ? (parsedValue as VisibilityState)
+        : {};
+
+    if (!primaryColumnId) {
+      return visibilityState;
+    }
+
+    return {
+      ...visibilityState,
+      [primaryColumnId]: true,
+    };
+  } catch {
+    return primaryColumnId ? { [primaryColumnId]: true } : {};
+  }
 }

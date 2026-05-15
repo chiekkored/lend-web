@@ -42,7 +42,9 @@ export function UserDirectoryTable({
       emptyMessage="No users match this view."
       error={error}
       loading={loading}
+      primaryColumnId="name"
       searchPlaceholder={searchPlaceholder}
+      storageKey={`admin:users:${section}:column-visibility`}
     />
   );
 }

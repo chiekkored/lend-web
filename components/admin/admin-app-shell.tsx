@@ -161,7 +161,9 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="px-2 py-6 sm:px-4 lg:px-4">{children}</main>
+        <main className="min-w-0 w-full max-w-full overflow-x-hidden px-2 py-6 sm:px-4 lg:px-4">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

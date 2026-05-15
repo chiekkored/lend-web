@@ -42,6 +42,15 @@ export type AdminBooking = {
   totalPrice: number | null;
 };
 
+export type AdminBookingMessage = {
+  id: string;
+  createdAt: Date | null;
+  mediaUrl: string | null;
+  senderId: string | null;
+  text: string | null;
+  type: string | null;
+};
+
 export const bookingStatuses = [
   "Pending",
   "Confirmed",
@@ -88,6 +97,21 @@ export function mapAdminBooking({
     renter: mapBookingPerson(data.renter),
     status: asString(data.status),
     totalPrice: asNumber(data.totalPrice),
+  };
+}
+
+export function mapAdminBookingMessage(
+  snapshot: QueryDocumentSnapshot<DocumentData>,
+): AdminBookingMessage {
+  const data = snapshot.data();
+
+  return {
+    id: asString(data.id) ?? snapshot.id,
+    createdAt: toDate(data.createdAt),
+    mediaUrl: asString(data.mediaUrl),
+    senderId: asString(data.senderId),
+    text: asString(data.text),
+    type: asString(data.type),
   };
 }
 
