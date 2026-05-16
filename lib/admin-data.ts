@@ -70,6 +70,11 @@ const adminUsersNavGroup = {
       href: "/admin/users/all-users",
       icon: Users,
     },
+    {
+      title: "Account Feedback",
+      href: "/admin/account-feedback",
+      icon: ClipboardList,
+    },
   ],
 } as const;
 
