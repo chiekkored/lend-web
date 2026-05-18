@@ -17,6 +17,7 @@ import {
   formatListingDate,
   formatListingPrice,
   formatLocation,
+  formatLocationScope,
   getListingOwnerName,
   type AdminListing,
 } from "@/lib/admin-listings";
@@ -145,6 +146,17 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
               </span>
             </div>
           </div>
+
+          <div className="grid gap-2 text-sm">
+            <h3 className="font-medium">Recommendations</h3>
+            <div className="grid gap-1 text-muted-foreground">
+              <span>Location scope: {formatLocationScope(listing.location)}</span>
+              <span>Suppressed: {listing.suppressFromRecommendations ? "Yes" : "No"}</span>
+              <span>Popularity score: {formatScore(listing.popularityScore)}</span>
+              <span>Quality score: {formatScore(listing.qualityScore)}</span>
+              <span>Recommendation score: {formatScore(listing.recommendationScore)}</span>
+            </div>
+          </div>
         </div>
       </SheetContent>
       <ListingAuditHistorySheet listing={listing} onOpenChange={setAuditOpen} open={auditOpen} />
@@ -157,6 +169,10 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
       ) : null}
     </Sheet>
   );
+}
+
+function formatScore(value: number | null) {
+  return value == null ? "Not set" : value.toFixed(2);
 }
 
 function PhotoCarousel({ altPrefix, photos, size }: { altPrefix: string; photos: string[]; size: "large" | "small" }) {

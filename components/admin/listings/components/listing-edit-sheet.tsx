@@ -49,6 +49,7 @@ type ListingFormState = {
   inclusions: string;
   images: string[];
   showcase: string[];
+  suppressFromRecommendations: boolean;
 };
 
 export function ListingEditSheet({
@@ -208,6 +209,26 @@ export function ListingEditSheet({
               urls={form.showcase}
             />
 
+            <label className="flex items-start gap-3 rounded-md border p-3 text-sm">
+              <input
+                checked={form.suppressFromRecommendations}
+                className="mt-1"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    suppressFromRecommendations: event.target.checked,
+                  }))
+                }
+                type="checkbox"
+              />
+              <span>
+                <span className="block font-medium">Suppress from recommendations</span>
+                <span className="text-muted-foreground">
+                  Hide this listing from Recommended and Popular feeds without changing its listing status.
+                </span>
+              </span>
+            </label>
+
             {error ? (
               <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -313,6 +334,7 @@ function buildInitialForm(listing: AdminListing): ListingFormState {
     inclusions: listing.inclusions.join("\n"),
     images: listing.images,
     showcase: listing.showcase,
+    suppressFromRecommendations: listing.suppressFromRecommendations,
   };
 }
 
@@ -340,6 +362,7 @@ function toListingUpdateValues(
       .filter(Boolean),
     images: form.images,
     showcase: form.showcase,
+    suppressFromRecommendations: form.suppressFromRecommendations,
   };
 }
 

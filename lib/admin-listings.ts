@@ -35,6 +35,10 @@ export type AdminListing = {
   averageRating: number | null;
   reviewCount: number | null;
   pendingBookingCount: number;
+  popularityScore: number | null;
+  qualityScore: number | null;
+  recommendationScore: number | null;
+  suppressFromRecommendations: boolean;
 };
 
 export type ListingUpdateValues = {
@@ -46,6 +50,7 @@ export type ListingUpdateValues = {
   inclusions: string[];
   images: string[];
   showcase: string[];
+  suppressFromRecommendations: boolean;
 };
 
 export const listingCategories = [
@@ -100,6 +105,10 @@ export function mapAdminListing(
     averageRating: asNumber(data.averageRating),
     reviewCount: asNumber(data.reviewCount),
     pendingBookingCount: asNumber(data.pendingBookingCount) ?? 0,
+    popularityScore: asNumber(data.popularityScore),
+    qualityScore: asNumber(data.qualityScore),
+    recommendationScore: asNumber(data.recommendationScore),
+    suppressFromRecommendations: data.suppressFromRecommendations === true,
   };
 }
 
@@ -160,6 +169,17 @@ export function formatLocation(location: Record<string, unknown> | null) {
   ].filter(Boolean);
 
   return parts.join(", ") || "Location set";
+}
+
+export function formatLocationScope(location: Record<string, unknown> | null) {
+  if (!location) {
+    return "Not set";
+  }
+
+  const country = asString(location.country);
+  const cityState = asString(location.cityState);
+
+  return [country, cityState].filter(Boolean).join(" / ") || "Not set";
 }
 
 export function buildListingSearchText(listing: AdminListing) {

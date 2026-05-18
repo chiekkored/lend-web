@@ -168,6 +168,7 @@ async function updateListingDocs({
     rates: values.rates,
     showcase: values.showcase,
     status: values.status,
+    suppressFromRecommendations: values.suppressFromRecommendations,
     title: values.title,
     updatedAt: serverTimestamp(),
   });
@@ -248,6 +249,11 @@ function buildEditAuditNotes(
     compareField("Inclusions", listing.inclusions, values.inclusions),
     compareField("Photos", listing.images, values.images),
     compareField("Showcase photos", listing.showcase, values.showcase),
+    compareField(
+      "Suppress from recommendations",
+      listing.suppressFromRecommendations,
+      values.suppressFromRecommendations,
+    ),
   ].filter(Boolean);
 
   return changes.length ? changes.join("\n") : "No field changes detected.";
