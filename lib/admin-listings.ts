@@ -163,8 +163,8 @@ export function formatLocation(location: Record<string, unknown> | null) {
   }
 
   const parts = [
-    asString(location.description),
-    asString(location.cityState),
+    asString(location.formattedAddress) ?? asString(location.description),
+    asString(location.locality) ?? asString(location.cityState),
     asString(location.country),
   ].filter(Boolean);
 
@@ -177,7 +177,7 @@ export function formatLocationScope(location: Record<string, unknown> | null) {
   }
 
   const country = asString(location.country);
-  const cityState = asString(location.cityState);
+  const cityState = asString(location.locality) ?? asString(location.cityState);
 
   return [country, cityState].filter(Boolean).join(" / ") || "Not set";
 }

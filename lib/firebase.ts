@@ -21,6 +21,7 @@ export const missingFirebaseConfig = Object.entries(firebaseConfig)
 
 export const hasFirebaseConfig = missingFirebaseConfig.length === 0;
 export const useFirebaseEmulators =
+  process.env.NODE_ENV !== "production" &&
   process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
 
 let app: FirebaseApp | null = null;
