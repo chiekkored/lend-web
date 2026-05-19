@@ -23,9 +23,13 @@ import {
 } from "@/lib/admin-bookings";
 import { formatListingDate, formatListingPrice, type AdminListing } from "@/lib/admin-listings";
 import { formatUserDate, getUserDisplayName, type AdminUser } from "@/lib/admin-users";
+import { buildApprovedVerificationUserUpdate } from "@/lib/admin-verification";
 import { getFirebaseFirestore, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
 
-import { userDirectoryQueryKeys } from "../data/user-directory-queries";
+import {
+  fetchFullVerificationSubmission,
+  userDirectoryQueryKeys,
+} from "../data/user-directory-queries";
 
 type UserViewSheetProps = {
   onOpenChange: (open: boolean) => void;
@@ -495,6 +499,9 @@ function useFullVerificationMutation(user: AdminUser) {
         return;
       }
 
+      const submission =
+        user.fullVerificationSubmission ??
+        (await fetchFullVerificationSubmission(submissionId));
       const batch = writeBatch(db);
       batch.update(doc(db, "verificationSubmissions", submissionId), {
         reviewedAt: serverTimestamp(),
@@ -504,7 +511,7 @@ function useFullVerificationMutation(user: AdminUser) {
         "fullVerification.reviewedAt": serverTimestamp(),
         "fullVerification.status": "Approved",
         userMetadataVersion: increment(1),
-        verified: "Full",
+        ...buildApprovedVerificationUserUpdate(submission),
       });
       await batch.commit();
       await queryClient.invalidateQueries({ queryKey: userDirectoryQueryKeys.users });

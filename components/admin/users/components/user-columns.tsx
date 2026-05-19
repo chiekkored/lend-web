@@ -90,6 +90,27 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
         nameColumn,
         emailColumn,
         {
+          id: "requestType",
+          accessorFn: (user) => user.fullVerificationSubmission?.requestType ?? "",
+          header: "Request Type",
+          cell: ({ row }) => formatRequestType(row.original.fullVerificationSubmission?.requestType),
+        },
+        {
+          id: "submittedAt",
+          accessorFn: (user) => {
+            const submittedAt =
+              user.fullVerificationSubmission?.submittedAt ??
+              dateFromUnknown(user.fullVerification?.submittedAt);
+            return submittedAt?.getTime() ?? 0;
+          },
+          header: "Submitted",
+          cell: ({ row }) =>
+            formatUserDate(
+              row.original.fullVerificationSubmission?.submittedAt ??
+                dateFromUnknown(row.original.fullVerification?.submittedAt),
+            ),
+        },
+        {
           id: "verified",
           accessorFn: (user) => user.verified,
           header: "Verified",
@@ -145,4 +166,28 @@ export function useUserColumns({ callerAdminType, callerUid, section }: UserColu
       },
     ];
   }, [callerAdminType, callerUid, section]);
+}
+
+function formatRequestType(value: string | null | undefined) {
+  switch (value) {
+    case "upgrade_verification":
+      return "Upgrade Verification";
+    case "account_information_update":
+      return "Account Information Update";
+    default:
+      return "Legacy Request";
+  }
+}
+
+function dateFromUnknown(value: unknown) {
+  if (value instanceof Date) return value;
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate() as Date;
+  }
+  return null;
 }

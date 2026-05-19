@@ -5,6 +5,11 @@ import {
   getFirestore,
   type Firestore,
 } from "firebase/firestore";
+import {
+  connectStorageEmulator,
+  getStorage,
+  type FirebaseStorage,
+} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -27,8 +32,10 @@ export const useFirebaseEmulators =
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let firestore: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 let authEmulatorConnected = false;
 let firestoreEmulatorConnected = false;
+let storageEmulatorConnected = false;
 
 export function getFirebaseApp() {
   if (!hasFirebaseConfig) {
@@ -68,4 +75,17 @@ export function getFirebaseFirestore() {
   }
 
   return firestore;
+}
+
+export function getFirebaseStorage() {
+  if (!storage) {
+    storage = getStorage(getFirebaseApp());
+  }
+
+  if (useFirebaseEmulators && !storageEmulatorConnected) {
+    connectStorageEmulator(storage, "127.0.0.1", 9199);
+    storageEmulatorConnected = true;
+  }
+
+  return storage;
 }

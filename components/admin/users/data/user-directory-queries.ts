@@ -81,7 +81,26 @@ export async function fetchPendingVerificationUsers() {
     ),
   );
 
-  return snapshot.docs.map(mapAdminUser);
+  const users = snapshot.docs.map(mapAdminUser);
+  const usersWithSubmissions = await Promise.all(
+    users.map(async (user) => {
+      const submissionId =
+        typeof user.fullVerification?.activeSubmissionId === "string"
+          ? user.fullVerification.activeSubmissionId
+          : null;
+      if (!submissionId) {
+        return user;
+      }
+
+      return {
+        ...user,
+        fullVerificationSubmission:
+          await fetchFullVerificationSubmission(submissionId),
+      };
+    }),
+  );
+
+  return usersWithSubmissions;
 }
 
 export async function fetchAdminUser(uid: string): Promise<AdminUser | null> {
