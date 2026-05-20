@@ -7,7 +7,31 @@ export function buildApprovedVerificationUserUpdate(
     verified: "Full",
   };
 
-  if (submission?.requestType !== "account_information_update") {
+  if (!submission) {
+    return update;
+  }
+
+  if (submission.requestType !== "account_information_update") {
+    update.firstName = submission.firstName ?? "";
+    update.lastName = submission.lastName ?? "";
+
+    if (submission.dateOfBirth) {
+      update.dateOfBirth = submission.dateOfBirth;
+    }
+
+    if (submission.email) {
+      update.email = submission.email;
+    }
+
+    if (submission.phone) {
+      update.phone = submission.phone;
+    }
+
+    if (submission.location) {
+      update.location = submission.location;
+    }
+
+    update.photoUrl = submission.photoUrl ?? null;
     return update;
   }
 
