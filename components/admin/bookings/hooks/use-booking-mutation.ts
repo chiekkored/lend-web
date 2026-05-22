@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { doc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
 import {
   getBookingOwnerId,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/admin-bookings";
 import {
   getFirebaseFirestore,
+  getFirebaseFunctions,
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
@@ -97,9 +99,57 @@ export function useBookingMutation(booking: AdminBooking) {
     }
   }
 
+  async function reviewCancellation(
+    decision: "approve" | "reject",
+    notes?: string,
+    refundOptions?: { refundAmount?: number | null; refundType?: "full" | "partial" | "none" },
+  ) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    const renterId = getBookingRenterId(booking);
+    if (!renterId) {
+      setError("Booking is missing renter details.");
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "reviewBookingCancellation",
+      );
+      await callable({
+        assetId: booking.assetId,
+        bookingId: booking.id,
+        renterId,
+        decision,
+        notes: notes?.trim() || null,
+        refundAmount: refundOptions?.refundAmount ?? null,
+        refundType: refundOptions?.refundType ?? null,
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to review cancellation.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     cancelBooking: () => updateStatus("Cancelled"),
     error,
+    reviewCancellation,
     resetError,
     submitting,
     updateStatus,

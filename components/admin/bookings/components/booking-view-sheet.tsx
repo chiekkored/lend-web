@@ -158,7 +158,43 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
               <DetailRow label="Total" value={formatBookingMoney(booking.totalPrice)} />
               <DetailRow label="Payment method" value={booking.payment?.method ?? "Not set"} />
               <DetailRow label="Transaction ID" value={booking.payment?.transactionId ?? "Not set"} />
+              <DetailRow label="Refund status" value={booking.payment?.refundStatus ?? "Not set"} />
+              <DetailRow label="Refund ID" value={booking.payment?.paymongoRefundId ?? "Not set"} />
+              <DetailRow label="Refund error" value={booking.payment?.refundError ?? "Not set"} />
             </Section>
+
+            {booking.cancellationRequest ? (
+              <Section title="Cancellation request">
+                <DetailRow
+                  label="Status"
+                  value={
+                    booking.cancellationRequest.status ? (
+                      <StatusBadge value={booking.cancellationRequest.status} />
+                    ) : (
+                      "Not set"
+                    )
+                  }
+                />
+                <DetailRow label="Reason" value={booking.cancellationRequest.reason ?? "Not set"} />
+                <DetailRow
+                  label="Previous status"
+                  value={booking.cancellationRequest.previousStatus ?? "Not set"}
+                />
+                <DetailRow
+                  label="Requested"
+                  value={formatBookingDateTime(booking.cancellationRequest.requestedAt)}
+                />
+                <DetailRow label="Requested by" value={booking.cancellationRequest.requestedBy ?? "Not set"} />
+                <DetailRow label="Reviewed by" value={booking.cancellationRequest.reviewedBy ?? "Not set"} />
+                <DetailRow
+                  label="Reviewed"
+                  value={formatBookingDateTime(booking.cancellationRequest.reviewedAt)}
+                />
+                <DetailRow label="Admin notes" value={booking.cancellationRequest.adminNotes ?? "Not set"} />
+                <DetailRow label="Refund status" value={booking.cancellationRequest.refundStatus ?? "Not set"} />
+                <DetailRow label="Refund error" value={booking.cancellationRequest.refundError ?? "Not set"} />
+              </Section>
+            ) : null}
 
             <Section title="Chat">
               <DetailRow label="Chat ID" value={booking.chatId ?? "Not set"} />

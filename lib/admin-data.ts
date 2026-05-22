@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BarChart3,
   CalendarClock,
+  CalendarX,
   CircleDollarSign,
   ClipboardList,
   Flag,
@@ -78,6 +79,23 @@ const adminUsersNavGroup = {
   ],
 } as const;
 
+const adminBookingsNavGroup = {
+  title: "Bookings",
+  icon: CalendarClock,
+  items: [
+    {
+      title: "Cancellations",
+      href: "/admin/bookings/cancellations",
+      icon: CalendarX,
+    },
+    {
+      title: "All Bookings",
+      href: "/admin/bookings/all",
+      icon: CalendarClock,
+    },
+  ],
+} as const;
+
 export const adminSidebarGroups = [
   {
     title: "General",
@@ -88,10 +106,8 @@ export const adminSidebarGroups = [
   },
   {
     title: "Assets",
-    items: [
-      { title: "Listings", href: "/admin/listings", icon: ShoppingBag },
-      { title: "Bookings", href: "/admin/bookings", icon: CalendarClock },
-    ],
+    items: [{ title: "Listings", href: "/admin/listings", icon: ShoppingBag }],
+    groups: [adminBookingsNavGroup],
   },
   {
     title: "Moderation",

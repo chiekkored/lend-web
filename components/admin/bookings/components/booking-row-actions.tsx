@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Ban, Eye, MoreVerticalIcon, RefreshCcw } from "lucide-react";
+import { Ban, CheckCircle2, Eye, MoreVerticalIcon, RefreshCcw, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
 import type { AdminBooking } from "@/lib/admin-bookings";
 
 import { BookingCancelDialog } from "./booking-cancel-dialog";
+import { BookingCancellationReviewDialog } from "./booking-cancellation-review-dialog";
 import { BookingStatusSheet } from "./booking-status-sheet";
 import { BookingViewSheet } from "./booking-view-sheet";
 
@@ -26,6 +27,11 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
   const [viewOpen, setViewOpen] = React.useState(false);
   const [statusOpen, setStatusOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [approveCancellationOpen, setApproveCancellationOpen] =
+    React.useState(false);
+  const [rejectCancellationOpen, setRejectCancellationOpen] =
+    React.useState(false);
+  const hasCancellationRequest = booking.status === "Cancellation Requested";
 
   return (
     <div className="text-right">
@@ -55,10 +61,33 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
             <RefreshCcw />
             Update status
           </DropdownMenuItem>
+          {hasCancellationRequest ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setApproveCancellationOpen(true);
+                }}
+              >
+                <CheckCircle2 />
+                Approve cancellation
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setRejectCancellationOpen(true);
+                }}
+              >
+                <XCircle />
+                Reject cancellation
+              </DropdownMenuItem>
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            disabled={booking.status === "Cancelled"}
+            disabled={booking.status === "Cancelled" || hasCancellationRequest}
             onSelect={(event) => {
               event.preventDefault();
               setCancelOpen(true);
@@ -83,6 +112,18 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
         booking={booking}
         onOpenChange={setCancelOpen}
         open={cancelOpen}
+      />
+      <BookingCancellationReviewDialog
+        booking={booking}
+        decision="approve"
+        onOpenChange={setApproveCancellationOpen}
+        open={approveCancellationOpen}
+      />
+      <BookingCancellationReviewDialog
+        booking={booking}
+        decision="reject"
+        onOpenChange={setRejectCancellationOpen}
+        open={rejectCancellationOpen}
       />
     </div>
   );

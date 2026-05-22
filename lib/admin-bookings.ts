@@ -8,6 +8,7 @@ export type BookingStatus =
   | "Completed"
   | "Declined"
   | "Cancelled"
+  | "Cancellation Requested"
   | string;
 
 export type BookingPerson = {
@@ -35,7 +36,24 @@ export type AdminBooking = {
   numDays: number | null;
   payment: {
     method: string | null;
+    details: Record<string, unknown>;
     transactionId: string | null;
+    refundStatus: string | null;
+    refundError: string | null;
+    refundAmount: number | null;
+    paymongoRefundId: string | null;
+  } | null;
+  cancellationRequest: {
+    status: string | null;
+    reason: string | null;
+    previousStatus: string | null;
+    requestedBy: string | null;
+    requestedAt: Date | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+    adminNotes: string | null;
+    refundStatus: string | null;
+    refundError: string | null;
   } | null;
   renter: BookingPerson | null;
   status: BookingStatus | null;
@@ -59,6 +77,7 @@ export const bookingStatuses = [
   "Completed",
   "Declined",
   "Cancelled",
+  "Cancellation Requested",
 ] as const;
 
 export function mapAdminBooking({
@@ -71,6 +90,7 @@ export function mapAdminBooking({
   const data = snapshot.data();
   const asset = asRecord(data.asset);
   const payment = asRecord(data.payment);
+  const cancellationRequest = asRecord(data.cancellationRequest);
 
   return {
     id: asString(data.id) ?? snapshot.id,
@@ -91,7 +111,26 @@ export function mapAdminBooking({
     payment: payment
       ? {
           method: asString(payment.method),
+          details: asRecord(payment.details) ?? {},
           transactionId: asString(payment.transactionId),
+          refundStatus: asString(payment.refundStatus),
+          refundError: asString(payment.refundError),
+          refundAmount: asNumber(payment.refundAmount),
+          paymongoRefundId: asString(payment.paymongoRefundId),
+        }
+      : null,
+    cancellationRequest: cancellationRequest
+      ? {
+          status: asString(cancellationRequest.status),
+          reason: asString(cancellationRequest.reason),
+          previousStatus: asString(cancellationRequest.previousStatus),
+          requestedBy: asString(cancellationRequest.requestedBy),
+          requestedAt: toDate(cancellationRequest.requestedAt),
+          reviewedBy: asString(cancellationRequest.reviewedBy),
+          reviewedAt: toDate(cancellationRequest.reviewedAt),
+          adminNotes: asString(cancellationRequest.adminNotes),
+          refundStatus: asString(cancellationRequest.refundStatus),
+          refundError: asString(cancellationRequest.refundError),
         }
       : null,
     renter: mapBookingPerson(data.renter),

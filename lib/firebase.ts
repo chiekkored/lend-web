@@ -6,6 +6,11 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import {
+  connectFunctionsEmulator,
+  getFunctions,
+  type Functions,
+} from "firebase/functions";
+import {
   connectStorageEmulator,
   getStorage,
   type FirebaseStorage,
@@ -32,9 +37,11 @@ export const useFirebaseEmulators =
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let firestore: Firestore | null = null;
+let functions: Functions | null = null;
 let storage: FirebaseStorage | null = null;
 let authEmulatorConnected = false;
 let firestoreEmulatorConnected = false;
+let functionsEmulatorConnected = false;
 let storageEmulatorConnected = false;
 
 export function getFirebaseApp() {
@@ -75,6 +82,19 @@ export function getFirebaseFirestore() {
   }
 
   return firestore;
+}
+
+export function getFirebaseFunctions() {
+  if (!functions) {
+    functions = getFunctions(getFirebaseApp());
+  }
+
+  if (useFirebaseEmulators && !functionsEmulatorConnected) {
+    connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+    functionsEmulatorConnected = true;
+  }
+
+  return functions;
 }
 
 export function getFirebaseStorage() {

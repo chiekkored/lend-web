@@ -18,6 +18,7 @@ const successStatuses = new Set([
 const warningStatuses = new Set([
   "Open",
   "Pending",
+  "Cancellation Requested",
   "Reported",
   "Under Maintenance",
   "Under Review",

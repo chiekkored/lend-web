@@ -9,9 +9,15 @@ type BookingTableProps = {
   data: AdminBooking[];
   error: string | null;
   loading: boolean;
+  storageKey?: string;
 };
 
-export function BookingTable({ data, error, loading }: BookingTableProps) {
+export function BookingTable({
+  data,
+  error,
+  loading,
+  storageKey = "admin:bookings:column-visibility",
+}: BookingTableProps) {
   const columns = useBookingColumns();
 
   return (
@@ -23,7 +29,7 @@ export function BookingTable({ data, error, loading }: BookingTableProps) {
       loading={loading}
       primaryColumnId="booking"
       searchPlaceholder="Search bookings"
-      storageKey="admin:bookings:column-visibility"
+      storageKey={storageKey}
     />
   );
 }
