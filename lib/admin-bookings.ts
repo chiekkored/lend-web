@@ -38,10 +38,32 @@ export type AdminBooking = {
     method: string | null;
     details: Record<string, unknown>;
     transactionId: string | null;
+    ownerPayoutAmount: number | null;
     refundStatus: string | null;
     refundError: string | null;
     refundAmount: number | null;
     paymongoRefundId: string | null;
+  } | null;
+  securityDeposit: {
+    enabled: boolean;
+    amount: number;
+  };
+  settlement: {
+    status: string | null;
+    depositStatus: string | null;
+    renterResponse: string | null;
+    approvedDamageDeductionAmount: number | null;
+    depositReturnAmount: number | null;
+    ownerPayoutAmount: number | null;
+  } | null;
+  damageDeductionRequest: {
+    requestedAmount: number | null;
+    approvedAmount: number | null;
+    reason: string | null;
+    notes: string | null;
+    renterResponse: string | null;
+    status: string | null;
+    adminNotes: string | null;
   } | null;
   cancellationRequest: {
     status: string | null;
@@ -91,10 +113,13 @@ export function mapAdminBooking({
   const asset = asRecord(data.asset);
   const payment = asRecord(data.payment);
   const cancellationRequest = asRecord(data.cancellationRequest);
+  const securityDeposit = asRecord(data.securityDeposit);
+  const settlement = asRecord(data.settlement);
+  const damageDeductionRequest = asRecord(data.damageDeductionRequest);
 
   return {
     id: asString(data.id) ?? snapshot.id,
-    assetId,
+    assetId: asString(asset?.id) ?? assetId,
     chatId: asString(data.chatId),
     asset: asset
       ? {
@@ -113,6 +138,7 @@ export function mapAdminBooking({
           method: asString(payment.method),
           details: asRecord(payment.details) ?? {},
           transactionId: asString(payment.transactionId),
+          ownerPayoutAmount: asNumber(payment.ownerPayoutAmount),
           refundStatus: asString(payment.refundStatus),
           refundError: asString(payment.refundError),
           refundAmount: asNumber(payment.refundAmount),
@@ -131,6 +157,33 @@ export function mapAdminBooking({
           adminNotes: asString(cancellationRequest.adminNotes),
           refundStatus: asString(cancellationRequest.refundStatus),
           refundError: asString(cancellationRequest.refundError),
+        }
+      : null,
+    securityDeposit: {
+      enabled: securityDeposit?.enabled === true,
+      amount: asNumber(securityDeposit?.amount) ?? 0,
+    },
+    settlement: settlement
+      ? {
+          status: asString(settlement.status),
+          depositStatus: asString(settlement.depositStatus),
+          renterResponse: asString(settlement.renterResponse),
+          approvedDamageDeductionAmount: asNumber(
+            settlement.approvedDamageDeductionAmount,
+          ),
+          depositReturnAmount: asNumber(settlement.depositReturnAmount),
+          ownerPayoutAmount: asNumber(settlement.ownerPayoutAmount),
+        }
+      : null,
+    damageDeductionRequest: damageDeductionRequest
+      ? {
+          requestedAmount: asNumber(damageDeductionRequest.requestedAmount),
+          approvedAmount: asNumber(damageDeductionRequest.approvedAmount),
+          reason: asString(damageDeductionRequest.reason),
+          notes: asString(damageDeductionRequest.notes),
+          renterResponse: asString(damageDeductionRequest.renterResponse),
+          status: asString(damageDeductionRequest.status),
+          adminNotes: asString(damageDeductionRequest.adminNotes),
         }
       : null,
     renter: mapBookingPerson(data.renter),

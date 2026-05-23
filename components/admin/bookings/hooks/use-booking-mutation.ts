@@ -55,12 +55,14 @@ export function useBookingMutation(booking: AdminBooking) {
         "bookings",
         booking.id,
       );
+      const rootBookingRef = doc(db, "bookings", booking.id);
       const userBookingRef = doc(db, "users", renterId, "bookings", booking.id);
       const updateData = {
         lastUpdated: now,
         status,
       };
 
+      batch.update(rootBookingRef, updateData);
       batch.update(assetBookingRef, updateData);
       batch.set(userBookingRef, updateData, { merge: true });
 
@@ -146,10 +148,54 @@ export function useBookingMutation(booking: AdminBooking) {
     }
   }
 
+  async function reviewDamageDeduction({
+    decision,
+    approvedAmount,
+    adminNotes,
+  }: {
+    decision: "approve_full" | "approve_adjusted" | "reject";
+    approvedAmount?: number | null;
+    adminNotes?: string;
+  }) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      await callable({
+        bookingId: booking.id,
+        action: "admin_resolve_damage_deduction",
+        decision,
+        approvedAmount: approvedAmount ?? null,
+        adminNotes: adminNotes?.trim() || null,
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to review damage request.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     cancelBooking: () => updateStatus("Cancelled"),
     error,
     reviewCancellation,
+    reviewDamageDeduction,
     resetError,
     submitting,
     updateStatus,

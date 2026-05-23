@@ -16,6 +16,7 @@ import type { AdminBooking } from "@/lib/admin-bookings";
 
 import { BookingCancelDialog } from "./booking-cancel-dialog";
 import { BookingCancellationReviewDialog } from "./booking-cancellation-review-dialog";
+import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { BookingStatusSheet } from "./booking-status-sheet";
 import { BookingViewSheet } from "./booking-view-sheet";
 
@@ -31,7 +32,11 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
     React.useState(false);
   const [rejectCancellationOpen, setRejectCancellationOpen] =
     React.useState(false);
+  const [damageReviewOpen, setDamageReviewOpen] = React.useState(false);
   const hasCancellationRequest = booking.status === "Cancellation Requested";
+  const hasDamageReview =
+    booking.settlement?.status === "admin_review_required" &&
+    Boolean(booking.damageDeductionRequest);
 
   return (
     <div className="text-right">
@@ -84,6 +89,20 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
               </DropdownMenuItem>
             </>
           ) : null}
+          {hasDamageReview ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setDamageReviewOpen(true);
+                }}
+              >
+                <CheckCircle2 />
+                Review damage fees
+              </DropdownMenuItem>
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
@@ -124,6 +143,11 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
         decision="reject"
         onOpenChange={setRejectCancellationOpen}
         open={rejectCancellationOpen}
+      />
+      <BookingDamageReviewDialog
+        booking={booking}
+        onOpenChange={setDamageReviewOpen}
+        open={damageReviewOpen}
       />
     </div>
   );

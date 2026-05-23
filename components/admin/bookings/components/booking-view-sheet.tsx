@@ -156,11 +156,48 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
 
             <Section title="Payment and totals">
               <DetailRow label="Total" value={formatBookingMoney(booking.totalPrice)} />
+              <DetailRow
+                label="Security deposit"
+                value={
+                  booking.securityDeposit.enabled
+                    ? formatBookingMoney(booking.securityDeposit.amount)
+                    : "Disabled"
+                }
+              />
               <DetailRow label="Payment method" value={booking.payment?.method ?? "Not set"} />
               <DetailRow label="Transaction ID" value={booking.payment?.transactionId ?? "Not set"} />
+              <DetailRow label="Owner payout amount" value={formatBookingMoney(booking.payment?.ownerPayoutAmount ?? null)} />
               <DetailRow label="Refund status" value={booking.payment?.refundStatus ?? "Not set"} />
               <DetailRow label="Refund ID" value={booking.payment?.paymongoRefundId ?? "Not set"} />
               <DetailRow label="Refund error" value={booking.payment?.refundError ?? "Not set"} />
+            </Section>
+
+            <Section title="Settlement">
+              <DetailRow
+                label="Settlement status"
+                value={booking.settlement?.status ? <StatusBadge value={booking.settlement.status} /> : "Not set"}
+              />
+              <DetailRow label="Deposit status" value={booking.settlement?.depositStatus ?? "Not set"} />
+              <DetailRow label="Renter response" value={booking.settlement?.renterResponse ?? "Not set"} />
+              <DetailRow
+                label="Approved damage deduction"
+                value={formatBookingMoney(booking.settlement?.approvedDamageDeductionAmount ?? null)}
+              />
+              <DetailRow
+                label="Deposit return amount"
+                value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)}
+              />
+              {booking.damageDeductionRequest ? (
+                <>
+                  <DetailRow
+                    label="Requested deduction"
+                    value={formatBookingMoney(booking.damageDeductionRequest.requestedAmount)}
+                  />
+                  <DetailRow label="Damage reason" value={booking.damageDeductionRequest.reason ?? "Not set"} />
+                  <DetailRow label="Owner notes" value={booking.damageDeductionRequest.notes ?? "Not set"} />
+                  <DetailRow label="Admin notes" value={booking.damageDeductionRequest.adminNotes ?? "Not set"} />
+                </>
+              ) : null}
             </Section>
 
             {booking.cancellationRequest ? (

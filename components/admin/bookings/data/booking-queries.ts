@@ -1,4 +1,4 @@
-import { collection, collectionGroup, doc, getDoc, getDocs, orderBy, query, where, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
 
 import {
   mapAdminBooking,
@@ -30,22 +30,16 @@ export async function fetchAdminBookings(): Promise<AdminBooking[]> {
   }
 
   const db = getFirebaseFirestore();
-  const assetsSnapshot = await getDocs(collection(db, "assets"));
-  const bookingGroups = await Promise.all(
-    assetsSnapshot.docs
-      .filter((assetDoc) => assetDoc.data().isDeleted !== true)
-      .map(async (assetDoc) => {
-        const bookingsSnapshot = await getDocs(
-          collection(db, "assets", assetDoc.id, "bookings"),
-        );
-
-        return bookingsSnapshot.docs.map((snapshot) =>
-          mapAdminBooking({ assetId: assetDoc.id, snapshot }),
-        );
-      }),
+  const bookingsSnapshot = await getDocs(
+    query(collection(db, "bookings"), orderBy("createdAt", "desc")),
   );
 
-  return bookingGroups.flat();
+  return bookingsSnapshot.docs.map((snapshot) =>
+    mapAdminBooking({
+      assetId: snapshot.data().asset?.id ?? "unknown",
+      snapshot,
+    }),
+  );
 }
 
 export async function fetchAdminBooking({
@@ -63,24 +57,11 @@ export async function fetchAdminBooking({
 
   const db = getFirebaseFirestore();
 
-  if (assetId) {
-    const snapshot = await getDoc(doc(db, "assets", assetId, "bookings", bookingId));
-    if (snapshot.exists()) {
-      return mapAdminBooking({
-        assetId,
-        snapshot: snapshot as QueryDocumentSnapshot<DocumentData>,
-      });
-    }
-  }
-
-  const byFieldSnapshot = await getDocs(
-    query(collectionGroup(db, "bookings"), where("id", "==", bookingId)),
-  );
-  const byFieldMatch = byFieldSnapshot.docs[0];
-  if (byFieldMatch) {
+  const snapshot = await getDoc(doc(db, "bookings", bookingId));
+  if (snapshot.exists()) {
     return mapAdminBooking({
-      assetId: byFieldMatch.ref.parent.parent?.id ?? assetId ?? "unknown",
-      snapshot: byFieldMatch,
+      assetId: snapshot.data().asset?.id ?? assetId ?? "unknown",
+      snapshot: snapshot as QueryDocumentSnapshot<DocumentData>,
     });
   }
 
