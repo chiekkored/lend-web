@@ -34,7 +34,7 @@ type PricingPolicy = {
   checkout_lock_expiry_minutes_by_method: Record<string, number>;
   owner_return_action_timeout_hours: number;
   payment_method_fees: Record<string, MethodFeeNode>;
-  deposit_processing_fee: FeeRule;
+  platform_fee: FeeRule;
   wallet_transfer_fee: FeeRule;
 };
 
@@ -126,7 +126,7 @@ export function PricingPolicyPage() {
     });
   }
 
-  function updateTopLevelRule(key: "deposit_processing_fee" | "wallet_transfer_fee", patch: Partial<FeeRule>) {
+  function updateTopLevelRule(key: "platform_fee" | "wallet_transfer_fee", patch: Partial<FeeRule>) {
     setPolicy((current) => current ? { ...current, [key]: { ...current[key], ...patch } } : current);
   }
 
@@ -184,9 +184,9 @@ export function PricingPolicyPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <FeeRuleRow
-            label="Owner deposit processing fee"
-            rule={policy.deposit_processing_fee}
-            onChange={(patch) => updateTopLevelRule("deposit_processing_fee", patch)}
+            label="Security deposit platform fee"
+            rule={policy.platform_fee}
+            onChange={(patch) => updateTopLevelRule("platform_fee", patch)}
           />
           <FeeRuleRow
             label="Wallet transfer fee"
