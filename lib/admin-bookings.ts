@@ -60,6 +60,8 @@ export type AdminBooking = {
     supportStatus: string | null;
     renterSupportChatId: string | null;
     ownerSupportChatId: string | null;
+    damageBalancePaymentStatus: string | null;
+    ownerDamageBalancePayoutStatus: string | null;
   } | null;
   damageDeductionRequest: {
     requestedAmount: number | null;
@@ -190,6 +192,12 @@ export function mapAdminBooking({
           supportStatus: asString(settlement.supportStatus),
           renterSupportChatId: asString(settlement.renterSupportChatId),
           ownerSupportChatId: asString(settlement.ownerSupportChatId),
+          damageBalancePaymentStatus: asString(
+            settlement.damageBalancePaymentStatus,
+          ),
+          ownerDamageBalancePayoutStatus: asString(
+            settlement.ownerDamageBalancePayoutStatus,
+          ),
         }
       : null,
     damageDeductionRequest: damageDeductionRequest

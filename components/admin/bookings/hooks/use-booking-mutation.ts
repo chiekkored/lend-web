@@ -311,13 +311,95 @@ export function useBookingMutation(booking: AdminBooking) {
     }
   }
 
+  async function sendDamageBalancePaymentRequest({
+    chatId,
+    amount,
+  }: {
+    chatId: string;
+    amount: number;
+  }) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError("Enter a valid payment request amount.");
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      await callable({
+        bookingId: booking.id,
+        action: "admin_send_damage_balance_payment_request",
+        chatId,
+        amount,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: bookingQueryKeys.messages(chatId),
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to send payment request.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function releaseDamageBalancePayment() {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      await callable({
+        bookingId: booking.id,
+        action: "admin_release_damage_balance_payment",
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to release payment.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     cancelBooking: () => updateStatus("Cancelled"),
     createDamageSupportChat,
     error,
     reviewCancellation,
     reviewDamageDeduction,
+    releaseDamageBalancePayment,
     resetError,
+    sendDamageBalancePaymentRequest,
     sendDamageSupportMessage,
     submitting,
     updateDamageSupportRequest,

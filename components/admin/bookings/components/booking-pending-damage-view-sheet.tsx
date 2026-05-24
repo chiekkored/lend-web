@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { ExternalLink, ImageIcon, Loader2, MessageSquareText, SendHorizontal } from "lucide-react";
+import { ExternalLink, ImageIcon, Loader2, MessageSquareText, ReceiptText, SendHorizontal, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Sheet,
@@ -39,6 +40,7 @@ import {
 import { getFirebaseStorage } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
+import { CachedUserViewSheet } from "../../entity-detail-sheets";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { listenAdminBookingMessages } from "../data/booking-queries";
 import { useBookingMutation } from "../hooks/use-booking-mutation";
@@ -67,6 +69,10 @@ export function BookingPendingDamageViewSheet({
       booking.settlement?.supportStatus === "pending" ||
       booking.settlement?.supportStatus === "in_progress");
   const canManageSupportChats = isAdminReviewRequired || isSupportHandling;
+  const canReleaseDamageBalancePayment =
+    booking.settlement?.damageBalancePaymentStatus === "paid" &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "processing" &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
   const [updateOpen, setUpdateOpen] = React.useState(false);
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [chatTarget, setChatTarget] = React.useState<SupportChatTarget | null>(null);
@@ -88,6 +94,7 @@ export function BookingPendingDamageViewSheet({
     createDamageSupportChat,
     error,
     resetError,
+    releaseDamageBalancePayment,
     submitting,
     updateDamageSupportRequest,
   } = useBookingMutation(booking);
@@ -177,6 +184,26 @@ export function BookingPendingDamageViewSheet({
                 label="Deposit return"
                 value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)}
               />
+              <DetailRow
+                label="Balance payment"
+                value={
+                  booking.settlement?.damageBalancePaymentStatus ? (
+                    <StatusBadge value={booking.settlement.damageBalancePaymentStatus} />
+                  ) : (
+                    "Not paid"
+                  )
+                }
+              />
+              <DetailRow
+                label="Owner balance payout"
+                value={
+                  booking.settlement?.ownerDamageBalancePayoutStatus ? (
+                    <StatusBadge value={booking.settlement.ownerDamageBalancePayoutStatus} />
+                  ) : (
+                    "Not released"
+                  )
+                }
+              />
             </Section>
 
             <Section title="Booking">
@@ -223,6 +250,12 @@ export function BookingPendingDamageViewSheet({
             {isSupportHandling ? (
               <Button disabled={submitting} onClick={() => setUpdateOpen(true)} type="button">
                 Update request
+              </Button>
+            ) : null}
+            {canReleaseDamageBalancePayment ? (
+              <Button disabled={submitting} onClick={releaseDamageBalancePayment} type="button">
+                {submitting ? <Loader2 className="animate-spin" /> : null}
+                Release paid balance
               </Button>
             ) : null}
             <Button disabled={submitting} onClick={() => onOpenChange(false)} type="button" variant="outline">
@@ -429,14 +462,28 @@ function SupportChatSheet({
   const [messages, setMessages] = React.useState<AdminBookingMessage[]>([]);
   const [messagesError, setMessagesError] = React.useState<string | null>(null);
   const [messagesLoading, setMessagesLoading] = React.useState(false);
-  const { error, resetError, sendDamageSupportMessage, submitting } = useBookingMutation(booking);
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
+  const [paymentAmount, setPaymentAmount] = React.useState(
+    String(booking.settlement?.outstandingDamageAmount ?? ""),
+  );
+  const { error, resetError, sendDamageBalancePaymentRequest, sendDamageSupportMessage, submitting } =
+    useBookingMutation(booking);
   const trimmedMessage = messageText.trim();
+  const parsedPaymentAmount = Number(paymentAmount);
+  const paymentAmountError =
+    paymentAmount.trim() && (!Number.isInteger(parsedPaymentAmount) || parsedPaymentAmount <= 0)
+      ? "Enter a whole amount greater than 0."
+      : null;
+  const targetUid = target === "renter" ? getBookingRenterId(booking) : getBookingOwnerId(booking);
+  const targetName = target === "renter" ? getBookingRenterName(booking) : getBookingOwnerName(booking);
 
   React.useEffect(() => {
     if (!open) return;
     setMessageText("");
+    setPaymentAmount(String(booking.settlement?.outstandingDamageAmount ?? ""));
     resetError();
-  }, [open, resetError]);
+  }, [booking.settlement?.outstandingDamageAmount, open, resetError]);
 
   React.useEffect(() => {
     if (!open || !chatId) {
@@ -477,6 +524,21 @@ function SupportChatSheet({
     }
   }
 
+  async function onSendPaymentRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!chatId || paymentAmountError || !Number.isInteger(parsedPaymentAmount) || parsedPaymentAmount <= 0) {
+      return;
+    }
+
+    const success = await sendDamageBalancePaymentRequest({
+      chatId,
+      amount: parsedPaymentAmount,
+    });
+    if (success) {
+      setPaymentDialogOpen(false);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-xl">
@@ -484,6 +546,18 @@ function SupportChatSheet({
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{chatId ?? "No chat ID"}</SheetDescription>
         </SheetHeader>
+        <div className="border-b px-4 pb-4">
+          <Button
+            className="w-full justify-start"
+            disabled={!targetUid}
+            onClick={() => setProfileOpen(true)}
+            type="button"
+            variant="outline"
+          >
+            <UserRound className="size-4" />
+            View {targetName} profile
+          </Button>
+        </div>
         <div className="grid flex-1 auto-rows-min gap-3 overflow-y-auto overflow-x-hidden px-4 pb-4">
           {!chatId ? (
             <EmptyChatState text="No support chat exists yet." />
@@ -509,14 +583,70 @@ function SupportChatSheet({
                 placeholder="Message as Lend Support"
                 value={messageText}
               />
-              <Button disabled={submitting || !trimmedMessage} type="submit">
-                {submitting ? <Loader2 className="animate-spin" /> : <SendHorizontal className="size-4" />}
-                Send
-              </Button>
+              <div className="flex gap-2">
+                <Button className="flex-1" disabled={submitting || !trimmedMessage} type="submit">
+                  {submitting ? <Loader2 className="animate-spin" /> : <SendHorizontal className="size-4" />}
+                  Send
+                </Button>
+                {target === "renter" ? (
+                  <Button
+                    disabled={submitting}
+                    onClick={() => setPaymentDialogOpen(true)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <ReceiptText className="size-4" />
+                    Payment
+                  </Button>
+                ) : null}
+              </div>
             </form>
           </SheetFooter>
         ) : null}
       </SheetContent>
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request damage balance payment</DialogTitle>
+            <DialogDescription>{booking.id}</DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={onSendPaymentRequest}>
+            <div className="grid gap-2">
+              <Label htmlFor={`damage-balance-payment-${booking.id}`}>Amount</Label>
+              <Input
+                disabled={submitting}
+                id={`damage-balance-payment-${booking.id}`}
+                min={1}
+                onChange={(event) => setPaymentAmount(event.target.value)}
+                step={1}
+                type="number"
+                value={paymentAmount}
+              />
+              {paymentAmountError ? <p className="text-sm text-destructive">{paymentAmountError}</p> : null}
+              {!paymentAmountError && Number.isInteger(parsedPaymentAmount) && parsedPaymentAmount > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Request message amount: {formatBookingMoney(parsedPaymentAmount)}
+                </p>
+              ) : null}
+            </div>
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <DialogFooter>
+              <Button disabled={submitting || Boolean(paymentAmountError) || !paymentAmount.trim()} type="submit">
+                {submitting ? <Loader2 className="animate-spin" /> : null}
+                Send request
+              </Button>
+              <Button disabled={submitting} onClick={() => setPaymentDialogOpen(false)} type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <CachedUserViewSheet
+        onOpenChange={setProfileOpen}
+        open={profileOpen}
+        uid={targetUid}
+      />
     </Sheet>
   );
 }
