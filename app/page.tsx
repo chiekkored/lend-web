@@ -61,6 +61,15 @@ export default function LandingPage() {
             </Card>
           ))}
         </div>
+
+        <footer className="mt-16 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+          <Link className="transition hover:text-foreground" href="/privacy-policy">
+            Privacy Policy
+          </Link>
+          <Link className="transition hover:text-foreground" href="/terms-and-conditions">
+            Terms and Conditions
+          </Link>
+        </footer>
       </section>
     </main>
   );
