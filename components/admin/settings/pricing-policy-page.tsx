@@ -9,11 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  getFirebaseFunctions,
-  hasFirebaseConfig,
-  missingFirebaseConfig,
-} from "@/lib/firebase";
+import { getFirebaseFunctions, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
 
 type FeeRule = {
   label?: string;
@@ -33,6 +29,7 @@ type MethodFeeNode = FeeRule & {
 type PricingPolicy = {
   checkout_lock_expiry_minutes_by_method: Record<string, number>;
   owner_return_action_timeout_hours: number;
+  payment_method_fee_vat_rate_bps: number;
   payment_method_fees: Record<string, MethodFeeNode>;
   platform_fee: FeeRule;
   wallet_transfer_fee: FeeRule;
@@ -127,7 +124,11 @@ export function PricingPolicyPage() {
   }
 
   function updateTopLevelRule(key: "platform_fee" | "wallet_transfer_fee", patch: Partial<FeeRule>) {
-    setPolicy((current) => current ? { ...current, [key]: { ...current[key], ...patch } } : current);
+    setPolicy((current) => (current ? { ...current, [key]: { ...current[key], ...patch } } : current));
+  }
+
+  function updatePaymentMethodVat(rateBps: number) {
+    setPolicy((current) => (current ? { ...current, payment_method_fee_vat_rate_bps: rateBps } : current));
   }
 
   if (loading) {
@@ -172,9 +173,29 @@ export function PricingPolicyPage() {
               key={row.key}
               label={row.label}
               rule={readRule(policy, row.path)}
+              vatRateBps={policy.payment_method_fee_vat_rate_bps ?? 1200}
               onChange={(patch) => updateRule(row.path, patch)}
             />
           ))}
+          <div className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.4fr_1fr_3.3fr] md:items-end">
+            <div>
+              <Label>Payment method VAT</Label>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Applied to PayMongo method fee estimates shown in mobile and used by checkout.
+              </div>
+            </div>
+            <div>
+              <Label>VAT bps</Label>
+              <Input
+                type="number"
+                value={policy.payment_method_fee_vat_rate_bps ?? 1200}
+                onChange={(event) => updatePaymentMethodVat(Number(event.target.value))}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {((policy.payment_method_fee_vat_rate_bps ?? 1200) / 100).toFixed(2)}%
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -184,7 +205,7 @@ export function PricingPolicyPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <FeeRuleRow
-            label="Security deposit platform fee"
+            label="Platform fee"
             rule={policy.platform_fee}
             onChange={(patch) => updateTopLevelRule("platform_fee", patch)}
           />
@@ -203,12 +224,14 @@ function FeeRuleRow({
   label,
   onChange,
   rule,
+  vatRateBps,
 }: {
   label: string;
   rule: FeeRule;
+  vatRateBps?: number;
   onChange: (patch: Partial<FeeRule>) => void;
 }) {
-  const sampleFee = calculateFee(10000, rule);
+  const sampleFee = calculateFee(10000, rule, vatRateBps);
   return (
     <div className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.4fr_1fr_1fr_1.3fr_1fr] md:items-end">
       <div>
@@ -233,7 +256,10 @@ function FeeRuleRow({
       </div>
       <div>
         <Label>Calculation</Label>
-        <Select value={rule.calculation} onValueChange={(value) => onChange({ calculation: value as FeeRule["calculation"] })}>
+        <Select
+          value={rule.calculation}
+          onValueChange={(value) => onChange({ calculation: value as FeeRule["calculation"] })}
+        >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -264,10 +290,11 @@ function defaultRuleFor(path: readonly string[]): FeeRule {
   return { label, rate_bps: 0, fixed_amount: 0, calculation: "rate_plus_fixed" };
 }
 
-function calculateFee(amount: number, rule: FeeRule) {
+function calculateFee(amount: number, rule: FeeRule, vatRateBps = 0) {
   const rateAmount = Math.ceil((amount * Number(rule.rate_bps || 0)) / 10000);
   const fixed = Math.ceil(Number(rule.fixed_amount || 0));
-  switch (rule.calculation) {
+  const baseFee = (() => {
+    switch (rule.calculation) {
     case "rate_only":
       return rateAmount;
     case "fixed_only":
@@ -278,6 +305,8 @@ function calculateFee(amount: number, rule: FeeRule) {
     default:
       return rateAmount + fixed;
   }
+  })();
+  return baseFee * (1 + Number(vatRateBps || 0) / 10000);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
