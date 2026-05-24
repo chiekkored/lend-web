@@ -250,6 +250,7 @@ export function formatBookingDate(value: Date | null) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "2-digit",
+    timeZone: "UTC",
     year: "numeric",
   }).format(value);
 }
