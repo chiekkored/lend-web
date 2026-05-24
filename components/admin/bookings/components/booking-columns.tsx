@@ -17,8 +17,13 @@ import {
 } from "@/lib/admin-bookings";
 
 import { BookingRowActions } from "./booking-row-actions";
+import type { BookingActionsMode } from "./booking-table";
 
-export function useBookingColumns() {
+export function useBookingColumns({
+  actionsMode = "default",
+}: {
+  actionsMode?: BookingActionsMode;
+} = {}) {
   return React.useMemo<ColumnDef<AdminBooking>[]>(
     () => [
       {
@@ -118,9 +123,11 @@ export function useBookingColumns() {
         enableHiding: false,
         enableSorting: false,
         header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => <BookingRowActions booking={row.original} />,
+        cell: ({ row }) => (
+          <BookingRowActions actionsMode={actionsMode} booking={row.original} />
+        ),
       },
     ],
-    [],
+    [actionsMode],
   );
 }

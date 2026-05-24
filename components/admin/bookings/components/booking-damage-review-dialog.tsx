@@ -40,15 +40,25 @@ export function BookingDamageReviewDialog({
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const { error, resetError, reviewDamageDeduction, submitting } = useBookingMutation(booking);
   const requestedAmount = booking.damageDeductionRequest?.requestedAmount ?? 0;
+  const depositAmount = booking.securityDeposit.amount;
+  const reason = booking.damageDeductionRequest?.reason ?? "";
+  const isSupportReviewRequest =
+    booking.damageDeductionRequest?.requiresSupportReview === true ||
+    reason === "Total loss/damage" ||
+    reason === "Higher than security deposit";
+  const defaultApprovedAmount = String(
+    booking.damageDeductionRequest?.approvedAmount ??
+      (isSupportReviewRequest ? depositAmount : requestedAmount),
+  );
 
   React.useEffect(() => {
     if (!open) return;
-    setDecision("approve_full");
-    setApprovedAmount("");
+    setDecision(isSupportReviewRequest ? "approve_adjusted" : "approve_full");
+    setApprovedAmount(defaultApprovedAmount);
     setAdminNotes("");
     setValidationError(null);
     resetError();
-  }, [open, resetError]);
+  }, [defaultApprovedAmount, isSupportReviewRequest, open, resetError]);
 
   async function onConfirm() {
     setValidationError(null);
@@ -59,7 +69,12 @@ export function BookingDamageReviewDialog({
           ? requestedAmount
           : 0;
 
-    if (decision === "approve_adjusted" && (!Number.isFinite(amount) || amount < 0 || amount > requestedAmount)) {
+    if (decision === "approve_adjusted" && (!Number.isFinite(amount) || amount < 0)) {
+      setValidationError("Enter a valid adjusted amount.");
+      return;
+    }
+
+    if (decision === "approve_adjusted" && !isSupportReviewRequest && amount > requestedAmount) {
       setValidationError("Enter an adjusted amount from 0 up to the requested amount.");
       return;
     }
@@ -89,12 +104,18 @@ export function BookingDamageReviewDialog({
               Requested: {formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
             </p>
             <p className="mt-1 text-muted-foreground">
-              Deposit: {formatBookingMoney(booking.securityDeposit.amount)}
+              Deposit: {formatBookingMoney(depositAmount)}
             </p>
             <p className="mt-1 text-muted-foreground">
               Renter response: {booking.damageDeductionRequest?.renterResponse ?? "Not set"}
             </p>
             <p className="mt-1 text-muted-foreground">Reason: {booking.damageDeductionRequest?.reason ?? "Not set"}</p>
+            {isSupportReviewRequest ? (
+              <p className="mt-2 rounded-md bg-muted px-3 py-2 text-muted-foreground">
+                Above-deposit approval will be recorded as a pending Lend Support balance. Separate support chats can
+                be created for the renter and owner after approval.
+              </p>
+            ) : null}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="damage-decision">Decision</Label>
@@ -118,10 +139,15 @@ export function BookingDamageReviewDialog({
                 inputMode="decimal"
                 min="0"
                 onChange={(event) => setApprovedAmount(event.target.value)}
-                placeholder="Enter amount"
+                placeholder={isSupportReviewRequest ? "Enter support review amount" : "Enter amount"}
                 type="number"
                 value={approvedAmount}
               />
+              {isSupportReviewRequest ? (
+                <p className="text-xs text-muted-foreground">
+                  Amounts above {formatBookingMoney(depositAmount)} stay pending with Lend Support.
+                </p>
+              ) : null}
             </div>
           ) : null}
           <Textarea

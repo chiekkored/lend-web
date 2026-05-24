@@ -14,18 +14,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AdminBooking } from "@/lib/admin-bookings";
 
+import type { BookingActionsMode } from "./booking-table";
 import { BookingCancelDialog } from "./booking-cancel-dialog";
 import { BookingCancellationReviewDialog } from "./booking-cancellation-review-dialog";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
+import { BookingPendingDamageViewSheet } from "./booking-pending-damage-view-sheet";
 import { BookingStatusSheet } from "./booking-status-sheet";
 import { BookingViewSheet } from "./booking-view-sheet";
 
 type BookingRowActionsProps = {
+  actionsMode?: BookingActionsMode;
   booking: AdminBooking;
 };
 
-export function BookingRowActions({ booking }: BookingRowActionsProps) {
+export function BookingRowActions({
+  actionsMode = "default",
+  booking,
+}: BookingRowActionsProps) {
   const [viewOpen, setViewOpen] = React.useState(false);
+  const [pendingDamageOpen, setPendingDamageOpen] = React.useState(false);
   const [statusOpen, setStatusOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [approveCancellationOpen, setApproveCancellationOpen] =
@@ -37,6 +44,7 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
   const hasDamageReview =
     booking.settlement?.status === "admin_review_required" &&
     Boolean(booking.damageDeductionRequest);
+  const isPendingDamageMode = actionsMode === "pending-damage";
 
   return (
     <div className="text-right">
@@ -51,12 +59,18 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
           <DropdownMenuItem
             onSelect={(event) => {
               event.preventDefault();
-              setViewOpen(true);
+              if (isPendingDamageMode) {
+                setPendingDamageOpen(true);
+              } else {
+                setViewOpen(true);
+              }
             }}
           >
             <Eye />
             View
           </DropdownMenuItem>
+          {isPendingDamageMode ? null : (
+            <>
           <DropdownMenuItem
             onSelect={(event) => {
               event.preventDefault();
@@ -115,6 +129,8 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
             <Ban />
             Cancel booking
           </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <BookingViewSheet
@@ -148,6 +164,11 @@ export function BookingRowActions({ booking }: BookingRowActionsProps) {
         booking={booking}
         onOpenChange={setDamageReviewOpen}
         open={damageReviewOpen}
+      />
+      <BookingPendingDamageViewSheet
+        booking={booking}
+        onOpenChange={setPendingDamageOpen}
+        open={pendingDamageOpen}
       />
     </div>
   );

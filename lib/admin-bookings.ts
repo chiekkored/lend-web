@@ -53,17 +53,27 @@ export type AdminBooking = {
     depositStatus: string | null;
     renterResponse: string | null;
     approvedDamageDeductionAmount: number | null;
+    depositCoveredDamageAmount: number | null;
+    outstandingDamageAmount: number | null;
     depositReturnAmount: number | null;
     ownerPayoutAmount: number | null;
+    supportStatus: string | null;
+    renterSupportChatId: string | null;
+    ownerSupportChatId: string | null;
   } | null;
   damageDeductionRequest: {
     requestedAmount: number | null;
     approvedAmount: number | null;
     reason: string | null;
     notes: string | null;
+    evidenceUrls: string[];
+    requiresSupportReview: boolean;
+    overDepositRequested: boolean;
     renterResponse: string | null;
     status: string | null;
     adminNotes: string | null;
+    renterSupportChatId: string | null;
+    ownerSupportChatId: string | null;
   } | null;
   cancellationRequest: {
     status: string | null;
@@ -171,8 +181,15 @@ export function mapAdminBooking({
           approvedDamageDeductionAmount: asNumber(
             settlement.approvedDamageDeductionAmount,
           ),
+          depositCoveredDamageAmount: asNumber(
+            settlement.depositCoveredDamageAmount,
+          ),
+          outstandingDamageAmount: asNumber(settlement.outstandingDamageAmount),
           depositReturnAmount: asNumber(settlement.depositReturnAmount),
           ownerPayoutAmount: asNumber(settlement.ownerPayoutAmount),
+          supportStatus: asString(settlement.supportStatus),
+          renterSupportChatId: asString(settlement.renterSupportChatId),
+          ownerSupportChatId: asString(settlement.ownerSupportChatId),
         }
       : null,
     damageDeductionRequest: damageDeductionRequest
@@ -181,9 +198,20 @@ export function mapAdminBooking({
           approvedAmount: asNumber(damageDeductionRequest.approvedAmount),
           reason: asString(damageDeductionRequest.reason),
           notes: asString(damageDeductionRequest.notes),
+          evidenceUrls: asStringArray(damageDeductionRequest.evidenceUrls),
+          requiresSupportReview:
+            damageDeductionRequest.requiresSupportReview === true,
+          overDepositRequested:
+            damageDeductionRequest.overDepositRequested === true,
           renterResponse: asString(damageDeductionRequest.renterResponse),
           status: asString(damageDeductionRequest.status),
           adminNotes: asString(damageDeductionRequest.adminNotes),
+          renterSupportChatId: asString(
+            damageDeductionRequest.renterSupportChatId,
+          ),
+          ownerSupportChatId: asString(
+            damageDeductionRequest.ownerSupportChatId,
+          ),
         }
       : null,
     renter: mapBookingPerson(data.renter),
@@ -311,6 +339,14 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 function asString(value: unknown) {

@@ -5,7 +5,10 @@ import type { AdminBooking } from "@/lib/admin-bookings";
 
 import { useBookingColumns } from "./booking-columns";
 
+export type BookingActionsMode = "default" | "pending-damage";
+
 type BookingTableProps = {
+  actionsMode?: BookingActionsMode;
   data: AdminBooking[];
   error: string | null;
   loading: boolean;
@@ -13,12 +16,13 @@ type BookingTableProps = {
 };
 
 export function BookingTable({
+  actionsMode = "default",
   data,
   error,
   loading,
   storageKey = "admin:bookings:column-visibility",
 }: BookingTableProps) {
-  const columns = useBookingColumns();
+  const columns = useBookingColumns({ actionsMode });
 
   return (
     <AdminDataTable

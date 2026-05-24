@@ -191,13 +191,136 @@ export function useBookingMutation(booking: AdminBooking) {
     }
   }
 
+  async function createDamageSupportChat(target: "renter" | "owner") {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return null;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      const result = await callable({
+        bookingId: booking.id,
+        action: "admin_create_damage_support_chat",
+        target,
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      const data = result.data as { chatId?: unknown };
+      return typeof data.chatId === "string" ? data.chatId : null;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to create support chat.",
+      );
+      return null;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function updateDamageSupportRequest({
+    adminNotes,
+    supportStatus,
+  }: {
+    adminNotes?: string;
+    supportStatus: "pending" | "in_progress" | "resolved" | "closed";
+  }) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      await callable({
+        bookingId: booking.id,
+        action: "admin_update_damage_support_request",
+        supportStatus,
+        adminNotes: adminNotes?.trim() || null,
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to update support request.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function sendDamageSupportMessage({
+    chatId,
+    target,
+    text,
+  }: {
+    chatId: string;
+    target: "renter" | "owner";
+    text: string;
+  }) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "updateBookingSettlement",
+      );
+      await callable({
+        bookingId: booking.id,
+        action: "admin_send_damage_support_message",
+        chatId,
+        target,
+        text,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: bookingQueryKeys.messages(chatId),
+      });
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to send support message.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     cancelBooking: () => updateStatus("Cancelled"),
+    createDamageSupportChat,
     error,
     reviewCancellation,
     reviewDamageDeduction,
     resetError,
+    sendDamageSupportMessage,
     submitting,
+    updateDamageSupportRequest,
     updateStatus,
   };
 }

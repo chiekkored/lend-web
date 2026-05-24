@@ -89,6 +89,11 @@ const adminBookingsNavGroup = {
       icon: CalendarX,
     },
     {
+      title: "Pending Damage Fees",
+      href: "/admin/bookings/pending-damage",
+      icon: AlertTriangle,
+    },
+    {
       title: "All Bookings",
       href: "/admin/bookings/all",
       icon: CalendarClock,

@@ -187,6 +187,13 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                 label="Deposit return amount"
                 value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)}
               />
+              <DetailRow
+                label="Outstanding damage amount"
+                value={formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null)}
+              />
+              <DetailRow label="Support status" value={booking.settlement?.supportStatus ?? "Not set"} />
+              <DetailRow label="Renter support chat" value={booking.settlement?.renterSupportChatId ?? "Not set"} />
+              <DetailRow label="Owner support chat" value={booking.settlement?.ownerSupportChatId ?? "Not set"} />
               {booking.damageDeductionRequest ? (
                 <>
                   <DetailRow
@@ -195,6 +202,10 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                   />
                   <DetailRow label="Damage reason" value={booking.damageDeductionRequest.reason ?? "Not set"} />
                   <DetailRow label="Owner notes" value={booking.damageDeductionRequest.notes ?? "Not set"} />
+                  <DetailRow
+                    label="Evidence photos"
+                    value={String(booking.damageDeductionRequest.evidenceUrls.length)}
+                  />
                   <DetailRow label="Admin notes" value={booking.damageDeductionRequest.adminNotes ?? "Not set"} />
                 </>
               ) : null}

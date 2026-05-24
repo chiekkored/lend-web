@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, orderBy, query, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
 
 import {
   mapAdminBooking,
@@ -86,4 +86,33 @@ export async function fetchAdminBookingMessages(
   );
 
   return messagesSnapshot.docs.map(mapAdminBookingMessage);
+}
+
+export function listenAdminBookingMessages({
+  chatId,
+  onError,
+  onNext,
+}: {
+  chatId: string;
+  onError: (error: Error) => void;
+  onNext: (messages: AdminBookingMessage[]) => void;
+}) {
+  if (!hasFirebaseConfig) {
+    onError(
+      new Error(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      ),
+    );
+    return () => {};
+  }
+
+  const db = getFirebaseFirestore();
+  return onSnapshot(
+    query(
+      collection(db, "chats", chatId, "messages"),
+      orderBy("createdAt", "asc"),
+    ),
+    (snapshot) => onNext(snapshot.docs.map(mapAdminBookingMessage)),
+    onError,
+  );
 }
