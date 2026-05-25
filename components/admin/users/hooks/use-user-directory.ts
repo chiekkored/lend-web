@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import {
   filterUsersBySection,
@@ -14,9 +13,11 @@ import {
 } from "@/lib/firebase";
 
 import {
-  fetchUserDirectorySection,
-  userDirectoryQueryKeys,
+  fetchAdminUsersPage,
+  fetchAllUsersPage,
 } from "../data/user-directory-queries";
+import { useLiveVerifications } from "./use-live-verifications";
+import { useAdminCursorPagination } from "@/lib/helpers/use-admin-cursor-pagination";
 
 export function useUserDirectory(section: UserDirectorySection) {
   const content = userDirectoryContent[section];
@@ -24,9 +25,18 @@ export function useUserDirectory(section: UserDirectorySection) {
     null,
   );
   const [callerUid, setCallerUid] = React.useState<string | null>(null);
-  const usersQuery = useQuery({
-    queryFn: () => fetchUserDirectorySection(section),
-    queryKey: userDirectoryQueryKeys.section(section),
+  const isVerifications = section === "verifications";
+  const liveVerifications = useLiveVerifications({ enabled: isVerifications });
+  const fetchPage = React.useCallback(
+    (input: Parameters<typeof fetchAllUsersPage>[0]) =>
+      section === "admin-users"
+        ? fetchAdminUsersPage(input)
+        : fetchAllUsersPage(input),
+    [section],
+  );
+  const paginatedUsers = useAdminCursorPagination({
+    enabled: !isVerifications,
+    fetchPage,
   });
 
   React.useEffect(() => {
@@ -71,13 +81,14 @@ export function useUserDirectory(section: UserDirectorySection) {
     callerUid,
     canAddAdmin,
     content,
-    data: filterUsersBySection(usersQuery.data ?? [], section),
-    error:
-      usersQuery.error instanceof Error
-        ? usersQuery.error.message
-        : usersQuery.error
-          ? "Unable to load users."
-          : null,
-    loading: usersQuery.isLoading,
+    data: filterUsersBySection(
+      isVerifications ? liveVerifications.data : paginatedUsers.data,
+      section,
+    ),
+    error: isVerifications ? liveVerifications.error : paginatedUsers.error,
+    loading: isVerifications ? liveVerifications.loading : paginatedUsers.loading,
+    pagination: isVerifications
+      ? liveVerifications.pagination
+      : paginatedUsers.pagination,
   };
 }

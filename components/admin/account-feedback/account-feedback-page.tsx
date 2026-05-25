@@ -4,7 +4,7 @@ import { AccountFeedbackTable } from "./components";
 import { useAccountFeedback } from "./hooks/use-account-feedback";
 
 export function AccountFeedbackPage() {
-  const { data, error, loading } = useAccountFeedback();
+  const { data, error, loading, pagination } = useAccountFeedback();
 
   return (
     <div className="space-y-6">
@@ -17,7 +17,7 @@ export function AccountFeedbackPage() {
           accounts.
         </p>
       </div>
-      <AccountFeedbackTable data={data} error={error} loading={loading} />
+      <AccountFeedbackTable data={data} error={error} loading={loading} pagination={pagination} />
     </div>
   );
 }

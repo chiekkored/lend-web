@@ -1,4 +1,17 @@
-import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  startAfter,
+  where,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 
 import {
   mapAdminBooking,
@@ -11,9 +24,12 @@ import {
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
+import type { AdminCursorPage, AdminCursor } from "@/lib/helpers/use-admin-cursor-pagination";
 
 export const bookingQueryKeys = {
   root: ["admin", "bookings"] as const,
+  cancellations: ["admin", "bookings", "cancellations"] as const,
+  pendingDamage: ["admin", "bookings", "pendingDamage"] as const,
   detail: (
     bookingId: string | null | undefined,
     assetId: string | null | undefined,
@@ -21,6 +37,8 @@ export const bookingQueryKeys = {
   messages: (chatId: string | null | undefined) =>
     [...bookingQueryKeys.root, "messages", chatId ?? "missing"] as const,
 };
+
+export const BOOKING_QUEUE_LIVE_LIMIT = 50;
 
 export async function fetchAdminBookings(): Promise<AdminBooking[]> {
   if (!hasFirebaseConfig) {
@@ -40,6 +58,68 @@ export async function fetchAdminBookings(): Promise<AdminBooking[]> {
       snapshot,
     }),
   );
+}
+
+export async function fetchAdminBookingsPage({
+  cursor,
+  pageSize,
+}: {
+  cursor: AdminCursor;
+  pageSize: number;
+}): Promise<AdminCursorPage<AdminBooking>> {
+  if (!hasFirebaseConfig) {
+    throw new Error(
+      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+    );
+  }
+
+  const bookingsQuery = cursor
+    ? query(
+        collection(getFirebaseFirestore(), "bookings"),
+        orderBy("createdAt", "desc"),
+        startAfter(cursor),
+        limit(pageSize),
+      )
+    : query(
+        collection(getFirebaseFirestore(), "bookings"),
+        orderBy("createdAt", "desc"),
+        limit(pageSize),
+      );
+  const snapshot = await getDocs(bookingsQuery);
+
+  return mapBookingPageSnapshot(snapshot.docs, pageSize);
+}
+
+export async function fetchCancellationBookingsPage({
+  cursor,
+  pageSize,
+}: {
+  cursor: AdminCursor;
+  pageSize: number;
+}): Promise<AdminCursorPage<AdminBooking>> {
+  if (!hasFirebaseConfig) {
+    throw new Error(
+      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+    );
+  }
+
+  const cancellationsQuery = cursor
+    ? query(
+        collection(getFirebaseFirestore(), "bookings"),
+        where("status", "==", "Cancellation Requested"),
+        orderBy("createdAt", "desc"),
+        startAfter(cursor),
+        limit(pageSize),
+      )
+    : query(
+        collection(getFirebaseFirestore(), "bookings"),
+        where("status", "==", "Cancellation Requested"),
+        orderBy("createdAt", "desc"),
+        limit(pageSize),
+      );
+  const snapshot = await getDocs(cancellationsQuery);
+
+  return mapBookingPageSnapshot(snapshot.docs, pageSize);
 }
 
 export async function fetchAdminBooking({
@@ -115,4 +195,122 @@ export function listenAdminBookingMessages({
     (snapshot) => onNext(snapshot.docs.map(mapAdminBookingMessage)),
     onError,
   );
+}
+
+export function listenCancellationBookings({
+  onError,
+  onNext,
+  pageSize = BOOKING_QUEUE_LIVE_LIMIT,
+}: {
+  onError: (error: Error) => void;
+  onNext: (page: AdminCursorPage<AdminBooking>) => void;
+  pageSize?: number;
+}) {
+  if (!hasFirebaseConfig) {
+    onError(
+      new Error(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      ),
+    );
+    return () => {};
+  }
+
+  return onSnapshot(
+    query(
+      collection(getFirebaseFirestore(), "bookings"),
+      where("status", "==", "Cancellation Requested"),
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ),
+    (snapshot) =>
+      onNext(mapBookingPageSnapshot(snapshot.docs, pageSize)),
+    onError,
+  );
+}
+
+export function listenPendingDamageBookings({
+  onError,
+  onNext,
+  pageSize = BOOKING_QUEUE_LIVE_LIMIT,
+}: {
+  onError: (error: Error) => void;
+  onNext: (sourceIndex: number, page: AdminCursorPage<AdminBooking>) => void;
+  pageSize?: number;
+}) {
+  if (!hasFirebaseConfig) {
+    onError(
+      new Error(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      ),
+    );
+    return () => {};
+  }
+
+  const db = getFirebaseFirestore();
+  const bookingsCollection = collection(db, "bookings");
+  const queries = [
+    query(
+      bookingsCollection,
+      where("settlement.status", "in", [
+        "admin_review_required",
+        "damage_deduction_requested",
+        "support_pending",
+      ]),
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ),
+    query(
+      bookingsCollection,
+      where("settlement.supportStatus", "in", [
+        "pending",
+        "in_progress",
+        "resolved",
+        "closed",
+      ]),
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ),
+    query(
+      bookingsCollection,
+      where("damageDeductionRequest.status", "in", [
+        "requested",
+        "support_pending",
+        "resolved",
+      ]),
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ),
+  ];
+
+  const unsubscribes = queries.map((pendingDamageQuery, sourceIndex) =>
+    onSnapshot(
+      pendingDamageQuery,
+      (snapshot) =>
+        onNext(
+          sourceIndex,
+          mapBookingPageSnapshot(snapshot.docs, pageSize),
+        ),
+      onError,
+    ),
+  );
+
+  return () => {
+    unsubscribes.forEach((unsubscribe) => unsubscribe());
+  };
+}
+
+function mapBookingPageSnapshot(
+  docs: QueryDocumentSnapshot<DocumentData>[],
+  pageSize: number,
+): AdminCursorPage<AdminBooking> {
+  return {
+    hasMore: docs.length === pageSize,
+    items: docs.map((snapshotDoc) =>
+      mapAdminBooking({
+        assetId: snapshotDoc.data().asset?.id ?? "unknown",
+        snapshot: snapshotDoc,
+      }),
+    ),
+    lastCursor: docs.at(-1) ?? null,
+  };
 }

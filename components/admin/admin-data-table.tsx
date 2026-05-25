@@ -36,11 +36,31 @@ type AdminDataTableProps<TData> = {
   emptyMessage?: string;
   error?: string | null;
   loading?: boolean;
+  pagination?: AdminDataTablePaginationProps;
   primaryColumnId?: string;
   searchPlaceholder?: string;
   storageKey?: string;
   toolbarFilter?: React.ReactNode;
 };
+
+export type AdminDataTablePaginationProps =
+  | {
+      mode?: "client";
+      pageSizeOptions?: number[];
+    }
+  | {
+      canNextPage: boolean;
+      canPreviousPage: boolean;
+      mode: "server";
+      onNextPage: () => void;
+      onPageSizeChange: (pageSize: number) => void;
+      onPreviousPage: () => void;
+      pageLabel: string;
+      pageSize: number;
+      pageSizeOptions?: number[];
+      paginationLoading?: boolean;
+      recordCountLabel: string;
+    };
 
 export function AdminDataTable<TData>({
   actions,
@@ -49,6 +69,7 @@ export function AdminDataTable<TData>({
   emptyMessage = "No records found.",
   error,
   loading = false,
+  pagination,
   primaryColumnId,
   searchPlaceholder = "Search",
   storageKey,
@@ -60,6 +81,9 @@ export function AdminDataTable<TData>({
     );
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const serverPagination = pagination?.mode === "server" ? pagination : null;
+  const paginationMode = serverPagination ? "server" : "client";
+  const pageSizeOptions = pagination?.pageSizeOptions ?? [10, 20, 50];
 
   const handleColumnVisibilityChange = React.useCallback(
     (updater: React.SetStateAction<VisibilityState>) => {
@@ -92,8 +116,10 @@ export function AdminDataTable<TData>({
     data,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel:
+      paginationMode === "client" ? getPaginationRowModel() : undefined,
     getSortedRowModel: getSortedRowModel(),
+    manualPagination: paginationMode === "server",
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
@@ -106,6 +132,10 @@ export function AdminDataTable<TData>({
 
   const visibleRows = table.getRowModel().rows;
   const filteredCount = table.getFilteredRowModel().rows.length;
+  const currentPageSize =
+    serverPagination
+      ? serverPagination.pageSize
+      : table.getState().pagination.pageSize;
   const hideableColumns = table
     .getAllLeafColumns()
     .filter((column) => column.getCanHide() && column.id !== primaryColumnId);
@@ -221,19 +251,28 @@ export function AdminDataTable<TData>({
 
         <div className="mt-4 flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <span>
-            Showing {visibleRows.length} of {filteredCount} records
+            {serverPagination
+              ? serverPagination.recordCountLabel
+              : `Showing ${visibleRows.length} of ${filteredCount} records`}
           </span>
           <div className="flex flex-wrap items-center gap-2">
             <span>Rows</span>
             <Select
-              onValueChange={(value) => table.setPageSize(Number(value))}
-              value={`${table.getState().pagination.pageSize}`}
+              onValueChange={(value) => {
+                if (serverPagination) {
+                  serverPagination.onPageSizeChange(Number(value));
+                  return;
+                }
+
+                table.setPageSize(Number(value));
+              }}
+              value={`${currentPageSize}`}
             >
               <SelectTrigger className="h-9 w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[10, 20, 50].map((pageSize) => (
+                {pageSizeOptions.map((pageSize) => (
                   <SelectItem key={pageSize} value={`${pageSize}`}>
                     {pageSize}
                   </SelectItem>
@@ -241,17 +280,46 @@ export function AdminDataTable<TData>({
               </SelectContent>
             </Select>
             <span>
-              Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+              {serverPagination
+                ? serverPagination.pageLabel
+                : `Page ${table.getState().pagination.pageIndex + 1} of ${Math.max(table.getPageCount(), 1)}`}
             </span>
             <Button
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => table.previousPage()}
+              disabled={
+                serverPagination
+                  ? !serverPagination.canPreviousPage || serverPagination.paginationLoading
+                  : !table.getCanPreviousPage()
+              }
+              onClick={() => {
+                if (serverPagination) {
+                  serverPagination.onPreviousPage();
+                  return;
+                }
+
+                table.previousPage();
+              }}
               size="sm"
               variant="outline"
             >
               Previous
             </Button>
-            <Button disabled={!table.getCanNextPage()} onClick={() => table.nextPage()} size="sm" variant="outline">
+            <Button
+              disabled={
+                serverPagination
+                  ? !serverPagination.canNextPage || serverPagination.paginationLoading
+                  : !table.getCanNextPage()
+              }
+              onClick={() => {
+                if (serverPagination) {
+                  serverPagination.onNextPage();
+                  return;
+                }
+
+                table.nextPage();
+              }}
+              size="sm"
+              variant="outline"
+            >
               Next
             </Button>
           </div>

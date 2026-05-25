@@ -1,26 +1,21 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
 
-import {
-  fetchAdminListings,
-  listingQueryKeys,
-} from "../data/listing-queries";
+import { useAdminCursorPagination } from "@/lib/helpers/use-admin-cursor-pagination";
+
+import { fetchAdminListingsPage } from "../data/listing-queries";
 
 export function useListings() {
-  const listingsQuery = useQuery({
-    queryFn: fetchAdminListings,
-    queryKey: listingQueryKeys.root,
+  const fetchPage = React.useCallback(fetchAdminListingsPage, []);
+  const listings = useAdminCursorPagination({
+    fetchPage,
   });
 
   return {
-    data: listingsQuery.data ?? [],
-    error:
-      listingsQuery.error instanceof Error
-        ? listingsQuery.error.message
-        : listingsQuery.error
-          ? "Unable to load listings."
-          : null,
-    loading: listingsQuery.isLoading,
+    data: listings.data,
+    error: listings.error,
+    loading: listings.loading,
+    pagination: listings.pagination,
   };
 }

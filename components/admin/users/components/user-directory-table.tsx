@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { AdminDataTable } from "@/components/admin/admin-data-table";
+import {
+  AdminDataTable,
+  type AdminDataTablePaginationProps,
+} from "@/components/admin/admin-data-table";
 import type { AdminUser, UserDirectorySection } from "@/lib/admin-users";
 
 import { useUserColumns } from "./user-columns";
@@ -14,6 +17,7 @@ type UserDirectoryTableProps = {
   data: AdminUser[];
   error: string | null;
   loading: boolean;
+  pagination?: AdminDataTablePaginationProps;
   searchPlaceholder: string;
   section: UserDirectorySection;
 };
@@ -25,6 +29,7 @@ export function UserDirectoryTable({
   data,
   error,
   loading,
+  pagination,
   searchPlaceholder,
   section,
 }: UserDirectoryTableProps) {
@@ -42,6 +47,7 @@ export function UserDirectoryTable({
       emptyMessage="No users match this view."
       error={error}
       loading={loading}
+      pagination={pagination}
       primaryColumnId="name"
       searchPlaceholder={searchPlaceholder}
       storageKey={`admin:users:${section}:column-visibility`}

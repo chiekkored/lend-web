@@ -105,6 +105,27 @@ export type AdminBookingMessage = {
   type: string | null;
 };
 
+export const damageSupportStatuses = [
+  "pending",
+  "in_progress",
+  "resolved",
+  "closed",
+] as const;
+
+export type DamageSupportStatus = (typeof damageSupportStatuses)[number];
+
+export const damageSupportChatTargets = ["renter", "owner"] as const;
+
+export type DamageSupportChatTarget = (typeof damageSupportChatTargets)[number];
+
+export const damageReviewDecisions = [
+  "approve_full",
+  "approve_adjusted",
+  "reject",
+] as const;
+
+export type DamageReviewDecision = (typeof damageReviewDecisions)[number];
+
 export const bookingStatuses = [
   "Pending",
   "Confirmed",
@@ -284,6 +305,26 @@ export function buildBookingSearchText(booking: AdminBooking) {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+export function isPendingDamageBooking(booking: AdminBooking) {
+  return (
+    booking.settlement?.status === "support_pending" ||
+    booking.settlement?.status === "admin_review_required" ||
+    ["pending", "in_progress"].includes(booking.settlement?.supportStatus ?? "")
+  );
+}
+
+export function isCompletedDamageBooking(booking: AdminBooking) {
+  return (
+    booking.settlement?.status === "completed" ||
+    booking.damageDeductionRequest?.status === "resolved" ||
+    ["resolved", "closed"].includes(booking.settlement?.supportStatus ?? "")
+  );
+}
+
+export function isDamageFeeBooking(booking: AdminBooking) {
+  return isPendingDamageBooking(booking) || isCompletedDamageBooking(booking);
 }
 
 export function formatBookingDate(value: Date | null) {

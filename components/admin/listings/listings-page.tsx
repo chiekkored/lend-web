@@ -4,7 +4,7 @@ import { ListingTable } from "./components";
 import { useListings } from "./hooks/use-listings";
 
 export function ListingsPage() {
-  const { data, error, loading } = useListings();
+  const { data, error, loading, pagination } = useListings();
 
   return (
     <div className="space-y-6">
@@ -16,7 +16,7 @@ export function ListingsPage() {
           Review rental assets, approval state, availability, pricing, and reports.
         </p>
       </div>
-      <ListingTable data={data} error={error} loading={loading} />
+      <ListingTable data={data} error={error} loading={loading} pagination={pagination} />
     </div>
   );
 }

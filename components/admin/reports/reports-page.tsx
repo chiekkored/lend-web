@@ -10,7 +10,7 @@ type ReportsPageProps = {
 };
 
 export function ReportsPage({ section }: ReportsPageProps) {
-  const { content, data, error, loading } = useReports(section);
+  const { content, data, error, loading, pagination } = useReports(section);
 
   return (
     <div className="space-y-6">
@@ -22,7 +22,7 @@ export function ReportsPage({ section }: ReportsPageProps) {
           {content.description}
         </p>
       </div>
-      <ReportTable data={data} error={error} loading={loading} />
+      <ReportTable data={data} error={error} loading={loading} pagination={pagination} />
     </div>
   );
 }

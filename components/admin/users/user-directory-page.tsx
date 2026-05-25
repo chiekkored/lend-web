@@ -22,6 +22,7 @@ export function UserDirectoryPage({ section }: UserDirectoryPageProps) {
     data,
     error,
     loading,
+    pagination,
   } = useUserDirectory(section);
   const tableActions = canAddAdmin ? (
     <AddAdminUserSheet callerAdminType={callerAdminType} />
@@ -40,6 +41,7 @@ export function UserDirectoryPage({ section }: UserDirectoryPageProps) {
         data={data}
         error={error}
         loading={loading}
+        pagination={pagination}
         searchPlaceholder={`Search ${content.title.toLowerCase()}`}
         section={section}
       />

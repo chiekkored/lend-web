@@ -4,8 +4,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
+  onSnapshot,
   orderBy,
   query,
+  startAfter,
   where,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -32,9 +35,11 @@ import {
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
+import type { AdminCursor, AdminCursorPage } from "@/lib/helpers/use-admin-cursor-pagination";
 
 export const reportQueryKeys = {
   root: ["admin", "reports"] as const,
+  live: ["admin", "reports", "live"] as const,
   section: (section: AdminReportSection) =>
     [...reportQueryKeys.root, section] as const,
   user: (uid: string | null | undefined) =>
@@ -51,6 +56,8 @@ export const reportQueryKeys = {
     [...reportQueryKeys.root, "messages", chatId ?? "missing"] as const,
 };
 
+export const REPORTS_LIVE_LIMIT = 50;
+
 export async function fetchAdminReports(): Promise<AdminReport[]> {
   assertFirebaseConfig();
 
@@ -59,6 +66,70 @@ export async function fetchAdminReports(): Promise<AdminReport[]> {
   );
 
   return snapshot.docs.map(mapAdminReport);
+}
+
+export async function fetchAdminReportsPage({
+  cursor,
+  pageSize,
+}: {
+  cursor: AdminCursor;
+  pageSize: number;
+}): Promise<AdminCursorPage<AdminReport>> {
+  assertFirebaseConfig();
+
+  const reportsQuery = cursor
+    ? query(
+        collection(getFirebaseFirestore(), "reports"),
+        orderBy("createdAt", "desc"),
+        startAfter(cursor),
+        limit(pageSize),
+      )
+    : query(
+        collection(getFirebaseFirestore(), "reports"),
+        orderBy("createdAt", "desc"),
+        limit(pageSize),
+      );
+  const snapshot = await getDocs(reportsQuery);
+
+  return {
+    hasMore: snapshot.docs.length === pageSize,
+    items: snapshot.docs.map(mapAdminReport),
+    lastCursor: snapshot.docs.at(-1) ?? null,
+  };
+}
+
+export function listenAdminReports({
+  onError,
+  onNext,
+  pageSize = REPORTS_LIVE_LIMIT,
+}: {
+  onError: (error: Error) => void;
+  onNext: (page: AdminCursorPage<AdminReport>) => void;
+  pageSize?: number;
+}) {
+  if (!hasFirebaseConfig) {
+    onError(
+      new Error(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      ),
+    );
+    return () => {};
+  }
+
+  return onSnapshot(
+    query(
+      collection(getFirebaseFirestore(), "reports"),
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ),
+    (snapshot) =>
+      onNext({
+        hasMore: snapshot.docs.length === pageSize,
+        items: snapshot.docs.map(mapAdminReport),
+        lastCursor: snapshot.docs.at(-1) ?? null,
+      }),
+    onError,
+  );
 }
 
 export async function fetchAdminReportUser(uid: string): Promise<AdminUser | null> {

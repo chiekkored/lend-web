@@ -17,11 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { formatBookingMoney, getBookingAssetTitle, type AdminBooking } from "@/lib/admin-bookings";
+import {
+  damageReviewDecisions,
+  formatBookingMoney,
+  getBookingAssetTitle,
+  type AdminBooking,
+  type DamageReviewDecision,
+} from "@/lib/admin-bookings";
 
 import { useBookingMutation } from "../hooks/use-booking-mutation";
-
-type DamageDecision = "approve_full" | "approve_adjusted" | "reject";
 
 type BookingDamageReviewDialogProps = {
   booking: AdminBooking;
@@ -34,7 +38,7 @@ export function BookingDamageReviewDialog({
   onOpenChange,
   open,
 }: BookingDamageReviewDialogProps) {
-  const [decision, setDecision] = React.useState<DamageDecision>("approve_full");
+  const [decision, setDecision] = React.useState<DamageReviewDecision>("approve_adjusted");
   const [approvedAmount, setApprovedAmount] = React.useState("");
   const [adminNotes, setAdminNotes] = React.useState("");
   const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -53,7 +57,7 @@ export function BookingDamageReviewDialog({
 
   React.useEffect(() => {
     if (!open) return;
-    setDecision(isSupportReviewRequest ? "approve_adjusted" : "approve_full");
+    setDecision("approve_adjusted");
     setApprovedAmount(defaultApprovedAmount);
     setAdminNotes("");
     setValidationError(null);
@@ -119,14 +123,16 @@ export function BookingDamageReviewDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="damage-decision">Decision</Label>
-            <Select onValueChange={(value) => setDecision(value as DamageDecision)} value={decision}>
+            <Select onValueChange={(value) => setDecision(value as DamageReviewDecision)} value={decision}>
               <SelectTrigger id="damage-decision">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="approve_full">Approve full requested amount</SelectItem>
-                <SelectItem value="approve_adjusted">Approve adjusted amount</SelectItem>
-                <SelectItem value="reject">Reject deduction</SelectItem>
+                {damageReviewDecisions.map((nextDecision) => (
+                  <SelectItem key={nextDecision} value={nextDecision}>
+                    {formatDamageReviewDecisionLabel(nextDecision)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -177,4 +183,15 @@ export function BookingDamageReviewDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatDamageReviewDecisionLabel(decision: DamageReviewDecision) {
+  switch (decision) {
+    case "approve_full":
+      return "Approve requested amount";
+    case "reject":
+      return "Reject deduction";
+    default:
+      return "Approve adjusted amount";
+  }
 }

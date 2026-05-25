@@ -42,8 +42,11 @@ import {
   getBookingOwnerName,
   getBookingRenterId,
   getBookingRenterName,
+  damageSupportStatuses,
   type AdminBooking,
   type AdminBookingMessage,
+  type DamageSupportChatTarget,
+  type DamageSupportStatus,
 } from "@/lib/admin-bookings";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
@@ -54,8 +57,6 @@ import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { listenAdminBookingMessages } from "../data/booking-queries";
 import { useBookingMutation } from "../hooks/use-booking-mutation";
 
-type SupportStatus = "pending" | "in_progress" | "resolved" | "closed";
-type SupportChatTarget = "renter" | "owner";
 type ActionToast = {
   message: string;
   title: string;
@@ -100,11 +101,11 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
   const [updateOpen, setUpdateOpen] = React.useState(false);
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [bookingChatOpen, setBookingChatOpen] = React.useState(false);
-  const [chatTarget, setChatTarget] = React.useState<SupportChatTarget | null>(null);
+  const [chatTarget, setChatTarget] = React.useState<DamageSupportChatTarget | null>(null);
   const [toast, setToast] = React.useState<ActionToast | null>(null);
   const [updateRequestMessage, setUpdateRequestMessage] = React.useState<string | null>(null);
   const [releaseBalanceMessage, setReleaseBalanceMessage] = React.useState<string | null>(null);
-  const [supportStatus, setSupportStatus] = React.useState<SupportStatus>(initialSupportStatus);
+  const [supportStatus, setSupportStatus] = React.useState<DamageSupportStatus>(initialSupportStatus);
   const [adminNotes, setAdminNotes] = React.useState(booking.damageDeductionRequest?.adminNotes ?? "");
   const [renterSupportChatId, setRenterSupportChatId] = React.useState(
     booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
@@ -149,7 +150,7 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     resetError();
   }, [booking, initialSupportStatus, open, resetError]);
 
-  async function onCreateSupportChat(target: SupportChatTarget) {
+  async function onCreateSupportChat(target: DamageSupportChatTarget) {
     const chatId = await createDamageSupportChat(target);
     if (!chatId) return;
     if (target === "renter") {
@@ -179,7 +180,7 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     const message = result.error ?? "Unable to update support request.";
     setUpdateRequestMessage(message);
     setToast({
-      message,
+      message: "Please try again.",
       title: "Unable to update support request",
       variant: "error",
     });
@@ -200,7 +201,7 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     const message = result.error ?? "Unable to release paid balance.";
     setReleaseBalanceMessage(message);
     setToast({
-      message,
+      message: "Please try again.",
       title: "Unable to release paid balance",
       variant: "error",
     });
@@ -334,15 +335,16 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
           <form className="grid gap-4" onSubmit={onUpdateRequest}>
             <div className="grid gap-2">
               <Label htmlFor={`support-status-${booking.id}`}>Support status</Label>
-              <Select onValueChange={(value) => setSupportStatus(value as SupportStatus)} value={supportStatus}>
+              <Select onValueChange={(value) => setSupportStatus(value as DamageSupportStatus)} value={supportStatus}>
                 <SelectTrigger id={`support-status-${booking.id}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  {damageSupportStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {formatSupportStatusLabel(status)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -566,7 +568,7 @@ function StagePanel({
   releaseBalanceMessage: string | null;
   stage: DamageCaseStage;
   submitting: boolean;
-  supportStatus: SupportStatus;
+  supportStatus: DamageSupportStatus;
 }) {
   if (stage === "admin_review") {
     return (
@@ -848,7 +850,7 @@ function SupportChatSheet({
   chatId: string | null;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  target: SupportChatTarget;
+  target: DamageSupportChatTarget;
   title: string;
 }) {
   const [messageText, setMessageText] = React.useState("");
@@ -872,6 +874,12 @@ function SupportChatSheet({
     ? formatBookingMoney(booking.securityDeposit.amount)
     : "Disabled";
   const outstandingDamageBalanceText = formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null);
+  const canRequestDamageBalancePayment =
+    target === "renter" &&
+    Boolean(chatId) &&
+    !["pending", "paid"].includes(booking.settlement?.damageBalancePaymentStatus ?? "") &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "processing" &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
 
   React.useEffect(() => {
     if (!open) return;
@@ -983,7 +991,7 @@ function SupportChatSheet({
                 </Button>
                 {target === "renter" ? (
                   <Button
-                    disabled={submitting}
+                    disabled={submitting || !canRequestDamageBalancePayment}
                     onClick={() => setPaymentDialogOpen(true)}
                     type="button"
                     variant="secondary"
@@ -1237,11 +1245,24 @@ function getConnectedIdRows(booking: AdminBooking): ConnectedIdRow[] {
   ].filter((row): row is ConnectedIdRow => Boolean(row.id));
 }
 
-function normalizeSupportStatus(value: string | null | undefined): SupportStatus {
+function normalizeSupportStatus(value: string | null | undefined): DamageSupportStatus {
   if (value === "in_progress" || value === "resolved" || value === "closed") {
     return value;
   }
   return "pending";
+}
+
+function formatSupportStatusLabel(status: DamageSupportStatus) {
+  switch (status) {
+    case "in_progress":
+      return "In progress";
+    case "resolved":
+      return "Resolved";
+    case "closed":
+      return "Closed";
+    default:
+      return "Pending";
+  }
 }
 
 function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {

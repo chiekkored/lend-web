@@ -1,6 +1,9 @@
 "use client";
 
-import { AdminDataTable } from "@/components/admin/admin-data-table";
+import {
+  AdminDataTable,
+  type AdminDataTablePaginationProps,
+} from "@/components/admin/admin-data-table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminBooking } from "@/lib/admin-bookings";
 
@@ -16,6 +19,7 @@ type BookingTableProps = {
   filterValue?: BookingStatusFilter;
   loading: boolean;
   onFilterChange?: (value: BookingStatusFilter) => void;
+  pagination?: AdminDataTablePaginationProps;
   storageKey?: string;
 };
 
@@ -26,6 +30,7 @@ export function BookingTable({
   filterValue,
   loading,
   onFilterChange,
+  pagination,
   storageKey = "admin:bookings:column-visibility",
 }: BookingTableProps) {
   const columns = useBookingColumns({ actionsMode });
@@ -50,6 +55,7 @@ export function BookingTable({
       emptyMessage="No bookings match this view."
       error={error}
       loading={loading}
+      pagination={pagination}
       primaryColumnId="booking"
       searchPlaceholder="Search bookings"
       storageKey={storageKey}

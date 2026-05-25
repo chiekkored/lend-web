@@ -1,23 +1,22 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
 
-import { fetchAdminBookings, bookingQueryKeys } from "../data/booking-queries";
+import { useAdminCursorPagination } from "@/lib/helpers/use-admin-cursor-pagination";
 
-export function useBookings() {
-  const bookingsQuery = useQuery({
-    queryFn: fetchAdminBookings,
-    queryKey: bookingQueryKeys.root,
+import { fetchAdminBookingsPage } from "../data/booking-queries";
+
+export function useBookings({ enabled = true }: { enabled?: boolean } = {}) {
+  const fetchPage = React.useCallback(fetchAdminBookingsPage, []);
+  const bookings = useAdminCursorPagination({
+    enabled,
+    fetchPage,
   });
 
   return {
-    data: bookingsQuery.data ?? [],
-    error:
-      bookingsQuery.error instanceof Error
-        ? bookingsQuery.error.message
-        : bookingsQuery.error
-          ? "Unable to load bookings."
-          : null,
-    loading: bookingsQuery.isLoading,
+    data: bookings.data,
+    error: bookings.error,
+    loading: bookings.loading,
+    pagination: bookings.pagination,
   };
 }

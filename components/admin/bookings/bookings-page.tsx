@@ -4,8 +4,14 @@ import * as React from "react";
 
 import { BookingTable } from "./components";
 import type { BookingStatusFilter } from "./components";
+import { useCancellationBookings } from "./hooks/use-cancellation-bookings";
 import { useBookings } from "./hooks/use-bookings";
-import type { AdminBooking } from "@/lib/admin-bookings";
+import { usePendingDamageBookings } from "./hooks/use-pending-damage-bookings";
+import {
+  isCompletedDamageBooking,
+  isPendingDamageBooking,
+  type AdminBooking,
+} from "@/lib/admin-bookings";
 
 type BookingsPageMode = "all" | "cancellations" | "pending-damage";
 
@@ -14,14 +20,30 @@ type BookingsPageProps = {
 };
 
 export function BookingsPage({ mode = "all" }: BookingsPageProps) {
-  const { data, error, loading } = useBookings();
   const isCancellations = mode === "cancellations";
   const isPendingDamage = mode === "pending-damage";
+  const bookings = useBookings({ enabled: !isPendingDamage && !isCancellations });
+  const cancellationBookings = useCancellationBookings({
+    enabled: isCancellations,
+  });
+  const pendingDamageBookings = usePendingDamageBookings({
+    enabled: isPendingDamage,
+  });
+  const { data, error, loading } = isPendingDamage
+    ? pendingDamageBookings
+    : isCancellations
+      ? cancellationBookings
+      : bookings;
+  const pagination = isPendingDamage
+    ? pendingDamageBookings.pagination
+    : isCancellations
+      ? cancellationBookings.pagination
+      : bookings.pagination;
   const [statusFilter, setStatusFilter] = React.useState<BookingStatusFilter>(
     isPendingDamage ? "pending" : "all",
   );
   const filteredData = isCancellations
-    ? data.filter((booking) => booking.status === "Cancellation Requested")
+    ? data
     : isPendingDamage
       ? data.filter((booking) => matchesDamageFilter(booking, statusFilter))
       : data.filter((booking) => matchesBookingStatusFilter(booking, statusFilter));
@@ -50,6 +72,7 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
         filterValue={isCancellations ? undefined : statusFilter}
         loading={loading}
         onFilterChange={isCancellations ? undefined : setStatusFilter}
+        pagination={pagination}
         storageKey={
           isCancellations
             ? "admin:bookings:cancellations:column-visibility"
@@ -88,20 +111,4 @@ function matchesDamageFilter(booking: AdminBooking, filter: BookingStatusFilter)
   }
 
   return isPendingDamageBooking(booking) || isCompletedDamageBooking(booking);
-}
-
-function isPendingDamageBooking(booking: AdminBooking) {
-  return (
-    booking.settlement?.status === "support_pending" ||
-    booking.settlement?.status === "admin_review_required" ||
-    ["pending", "in_progress"].includes(booking.settlement?.supportStatus ?? "")
-  );
-}
-
-function isCompletedDamageBooking(booking: AdminBooking) {
-  return (
-    booking.settlement?.status === "completed" ||
-    booking.damageDeductionRequest?.status === "resolved" ||
-    ["resolved", "closed"].includes(booking.settlement?.supportStatus ?? "")
-  );
 }

@@ -1,26 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-
-import {
-  accountFeedbackQueryKeys,
-  fetchAccountFeedback,
-} from "../data/account-feedback-queries";
+import { useLiveAccountFeedback } from "./use-live-account-feedback";
 
 export function useAccountFeedback() {
-  const feedbackQuery = useQuery({
-    queryFn: fetchAccountFeedback,
-    queryKey: accountFeedbackQueryKeys.root,
-  });
+  const liveFeedback = useLiveAccountFeedback();
 
   return {
-    data: feedbackQuery.data ?? [],
-    error:
-      feedbackQuery.error instanceof Error
-        ? feedbackQuery.error.message
-        : feedbackQuery.error
-          ? "Unable to load account feedback."
-          : null,
-    loading: feedbackQuery.isLoading,
+    data: liveFeedback.data,
+    error: liveFeedback.error,
+    loading: liveFeedback.loading,
+    pagination: liveFeedback.pagination,
   };
 }

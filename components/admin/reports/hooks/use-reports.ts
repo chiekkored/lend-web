@@ -1,30 +1,20 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-
 import {
   filterReportsBySection,
   reportSectionContent,
   type AdminReportSection,
 } from "@/lib/admin-reports";
 
-import { fetchAdminReports, reportQueryKeys } from "../data/report-queries";
+import { useLiveReports } from "./use-live-reports";
 
 export function useReports(section: AdminReportSection) {
-  const reportsQuery = useQuery({
-    queryFn: fetchAdminReports,
-    queryKey: reportQueryKeys.root,
-  });
-
+  const liveReports = useLiveReports();
   return {
     content: reportSectionContent[section],
-    data: filterReportsBySection(reportsQuery.data ?? [], section),
-    error:
-      reportsQuery.error instanceof Error
-        ? reportsQuery.error.message
-        : reportsQuery.error
-          ? "Unable to load reports."
-          : null,
-    loading: reportsQuery.isLoading,
+    data: filterReportsBySection(liveReports.data, section),
+    error: liveReports.error,
+    loading: liveReports.loading,
+    pagination: liveReports.pagination,
   };
 }
