@@ -20,7 +20,7 @@ import { BookingRowActions } from "./booking-row-actions";
 import type { BookingActionsMode } from "./booking-table";
 
 export function useBookingColumns({
-  actionsMode = "default",
+  actionsMode = "all",
 }: {
   actionsMode?: BookingActionsMode;
 } = {}) {

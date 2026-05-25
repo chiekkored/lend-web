@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { ArrowRight, CalendarDays, MessageSquareText, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, MessageSquareText, RefreshCcw, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import type { AdminListing } from "@/lib/admin-listings";
 import type { AdminUser } from "@/lib/admin-users";
 
 import { BookingChatSheet } from "./booking-chat-sheet";
+import { BookingStatusDialog } from "./booking-status-dialog";
 
 const UserViewSheet = dynamic(
   () => import("@/components/admin/users/components/user-view-sheet").then((mod) => mod.UserViewSheet),
@@ -50,6 +51,7 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
   const [assetOpen, setAssetOpen] = React.useState(false);
   const [ownerOpen, setOwnerOpen] = React.useState(false);
   const [renterOpen, setRenterOpen] = React.useState(false);
+  const [statusOpen, setStatusOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const ownerUid = getBookingOwnerId(booking);
   const renterUid = getBookingRenterId(booking);
@@ -86,7 +88,13 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                   <SheetTitle>{getBookingAssetTitle(booking)}</SheetTitle>
                   <SheetDescription>{booking.id}</SheetDescription>
                 </div>
-                {booking.status ? <StatusBadge value={booking.status} /> : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {booking.status ? <StatusBadge value={booking.status} /> : null}
+                  <Button onClick={() => setStatusOpen(true)} size="sm" type="button" variant="outline">
+                    <RefreshCcw className="size-4" />
+                    Update status
+                  </Button>
+                </div>
               </div>
             </div>
           </SheetHeader>
@@ -269,6 +277,11 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
         booking={booking}
         onOpenChange={setChatOpen}
         open={chatOpen}
+      />
+      <BookingStatusDialog
+        booking={booking}
+        onOpenChange={setStatusOpen}
+        open={statusOpen}
       />
       {listingQuery.data ? (
         <ListingViewSheet

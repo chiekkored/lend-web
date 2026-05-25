@@ -9,7 +9,7 @@ import type { AdminBooking } from "@/lib/admin-bookings";
 
 import { useBookingColumns } from "./booking-columns";
 
-export type BookingActionsMode = "default" | "pending-damage";
+export type BookingActionsMode = "all" | "cancellations" | "pending-damage";
 export type BookingStatusFilter = "all" | "pending" | "completed";
 
 type BookingTableProps = {
@@ -24,7 +24,7 @@ type BookingTableProps = {
 };
 
 export function BookingTable({
-  actionsMode = "default",
+  actionsMode = "all",
   data,
   error,
   filterValue,

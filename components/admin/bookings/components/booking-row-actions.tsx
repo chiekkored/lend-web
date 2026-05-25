@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Ban, CheckCircle2, Eye, MoreVerticalIcon, RefreshCcw, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, MoreVerticalIcon, RefreshCcw, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +15,10 @@ import {
 import type { AdminBooking } from "@/lib/admin-bookings";
 
 import type { BookingActionsMode } from "./booking-table";
-import { BookingCancelDialog } from "./booking-cancel-dialog";
 import { BookingCancellationReviewDialog } from "./booking-cancellation-review-dialog";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { BookingPendingDamageViewSheet } from "./booking-pending-damage-view-sheet";
-import { BookingStatusSheet } from "./booking-status-sheet";
+import { BookingStatusDialog } from "./booking-status-dialog";
 import { BookingViewSheet } from "./booking-view-sheet";
 
 type BookingRowActionsProps = {
@@ -28,13 +27,12 @@ type BookingRowActionsProps = {
 };
 
 export function BookingRowActions({
-  actionsMode = "default",
+  actionsMode = "all",
   booking,
 }: BookingRowActionsProps) {
   const [viewOpen, setViewOpen] = React.useState(false);
   const [pendingDamageOpen, setPendingDamageOpen] = React.useState(false);
   const [statusOpen, setStatusOpen] = React.useState(false);
-  const [cancelOpen, setCancelOpen] = React.useState(false);
   const [approveCancellationOpen, setApproveCancellationOpen] =
     React.useState(false);
   const [rejectCancellationOpen, setRejectCancellationOpen] =
@@ -45,6 +43,7 @@ export function BookingRowActions({
     booking.settlement?.status === "admin_review_required" &&
     Boolean(booking.damageDeductionRequest);
   const isPendingDamageMode = actionsMode === "pending-damage";
+  const isCancellationMode = actionsMode === "cancellations";
 
   return (
     <div className="text-right">
@@ -71,64 +70,52 @@ export function BookingRowActions({
           </DropdownMenuItem>
           {isPendingDamageMode ? null : (
             <>
-          <DropdownMenuItem
-            onSelect={(event) => {
-              event.preventDefault();
-              setStatusOpen(true);
-            }}
-          >
-            <RefreshCcw />
-            Update status
-          </DropdownMenuItem>
-          {hasCancellationRequest ? (
-            <>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={(event) => {
                   event.preventDefault();
-                  setApproveCancellationOpen(true);
+                  setStatusOpen(true);
                 }}
               >
-                <CheckCircle2 />
-                Approve cancellation
+                <RefreshCcw />
+                Update status
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(event) => {
-                  event.preventDefault();
-                  setRejectCancellationOpen(true);
-                }}
-              >
-                <XCircle />
-                Reject cancellation
-              </DropdownMenuItem>
-            </>
-          ) : null}
-          {hasDamageReview ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={(event) => {
-                  event.preventDefault();
-                  setDamageReviewOpen(true);
-                }}
-              >
-                <CheckCircle2 />
-                Review damage fees
-              </DropdownMenuItem>
-            </>
-          ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            disabled={booking.status === "Cancelled" || hasCancellationRequest}
-            onSelect={(event) => {
-              event.preventDefault();
-              setCancelOpen(true);
-            }}
-          >
-            <Ban />
-            Cancel booking
-          </DropdownMenuItem>
+              {isCancellationMode && hasCancellationRequest ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setApproveCancellationOpen(true);
+                    }}
+                  >
+                    <CheckCircle2 />
+                    Approve cancellation
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setRejectCancellationOpen(true);
+                    }}
+                  >
+                    <XCircle />
+                    Reject cancellation
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+              {isCancellationMode && hasDamageReview ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setDamageReviewOpen(true);
+                    }}
+                  >
+                    <CheckCircle2 />
+                    Review damage fees
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </>
           )}
         </DropdownMenuContent>
@@ -138,15 +125,10 @@ export function BookingRowActions({
         onOpenChange={setViewOpen}
         open={viewOpen}
       />
-      <BookingStatusSheet
+      <BookingStatusDialog
         booking={booking}
         onOpenChange={setStatusOpen}
         open={statusOpen}
-      />
-      <BookingCancelDialog
-        booking={booking}
-        onOpenChange={setCancelOpen}
-        open={cancelOpen}
       />
       <BookingCancellationReviewDialog
         booking={booking}

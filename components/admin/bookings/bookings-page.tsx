@@ -80,7 +80,7 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
               ? "admin:bookings:pending-damage:column-visibility"
             : "admin:bookings:column-visibility"
         }
-        actionsMode={isPendingDamage ? "pending-damage" : "default"}
+        actionsMode={isPendingDamage ? "pending-damage" : isCancellations ? "cancellations" : "all"}
       />
     </div>
   );
