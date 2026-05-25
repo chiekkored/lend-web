@@ -868,6 +868,10 @@ function SupportChatSheet({
       : null;
   const targetUid = target === "renter" ? getBookingRenterId(booking) : getBookingOwnerId(booking);
   const targetName = target === "renter" ? getBookingRenterName(booking) : getBookingOwnerName(booking);
+  const securityDepositText = booking.securityDeposit.enabled
+    ? formatBookingMoney(booking.securityDeposit.amount)
+    : "Disabled";
+  const outstandingDamageBalanceText = formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -1000,6 +1004,25 @@ function SupportChatSheet({
             <DialogDescription>{booking.id}</DialogDescription>
           </DialogHeader>
           <form className="grid gap-4" onSubmit={onSendPaymentRequest}>
+            <div className="grid gap-3 rounded-md border bg-muted/30 p-3 text-sm">
+              <p className="text-muted-foreground">
+                Enter only the amount beyond the security deposit. This is not the full damage amount or a new security
+                deposit.
+              </p>
+              <div className="grid gap-1">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Security deposit</span>
+                  <span className="font-medium">{securityDepositText}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Outstanding damage balance</span>
+                  <span className="font-medium">{outstandingDamageBalanceText}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Example: if the deposit is PHP 500 and approved damage is PHP 700, request PHP 200.
+              </p>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor={`damage-balance-payment-${booking.id}`}>Amount</Label>
               <Input

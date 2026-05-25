@@ -39,6 +39,7 @@ type AdminDataTableProps<TData> = {
   primaryColumnId?: string;
   searchPlaceholder?: string;
   storageKey?: string;
+  toolbarFilter?: React.ReactNode;
 };
 
 export function AdminDataTable<TData>({
@@ -51,6 +52,7 @@ export function AdminDataTable<TData>({
   primaryColumnId,
   searchPlaceholder = "Search",
   storageKey,
+  toolbarFilter,
 }: AdminDataTableProps<TData>) {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(() =>
@@ -111,14 +113,17 @@ export function AdminDataTable<TData>({
   return (
     <div className="min-w-0 w-full max-w-full space-y-4">
       <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full min-w-0 lg:w-80">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            onChange={(event) => setGlobalFilter(event.target.value)}
-            placeholder={searchPlaceholder}
-            value={globalFilter}
-          />
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative w-full min-w-0 sm:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              placeholder={searchPlaceholder}
+              value={globalFilter}
+            />
+          </div>
+          {toolbarFilter}
         </div>
         <div className="flex min-w-0 flex-wrap gap-2">
           {hideableColumns.length ? (
