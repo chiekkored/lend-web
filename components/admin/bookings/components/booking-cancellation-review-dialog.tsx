@@ -43,6 +43,8 @@ export function BookingCancellationReviewDialog({
   const { error, resetError, reviewCancellation, submitting } = useBookingMutation(booking);
   const approving = decision === "approve";
   const noRefund = approving && isNonRefundablePaymentMethod(booking);
+  const maxRefundAmount = getMaxRefundAmount(booking);
+  const maxRefundText = formatBookingMoney(maxRefundAmount);
   const hasAmbiguousDobPayment =
     approving && booking.payment?.method === "dob" && typeof booking.payment.details.bank_code !== "string";
 
@@ -59,7 +61,9 @@ export function BookingCancellationReviewDialog({
   async function onConfirm() {
     setValidationError(null);
 
-    const refundOptions = approving ? buildRefundOptions({ noRefund, partialAmount, refundType }) : undefined;
+    const refundOptions = approving
+      ? buildRefundOptions({ maxRefundAmount, noRefund, partialAmount, refundType })
+      : undefined;
     if (refundOptions?.error) {
       setValidationError(refundOptions.error);
       return;
@@ -88,7 +92,7 @@ export function BookingCancellationReviewDialog({
             <p className="mt-1 text-muted-foreground">{getBookingAssetTitle(booking)}</p>
             <p className="mt-1 text-muted-foreground">Reason: {booking.cancellationRequest?.reason ?? "Not set"}</p>
             {approving ? (
-              <p className="mt-1 text-muted-foreground">Paid amount: {formatBookingMoney(booking.totalPrice)}</p>
+              <p className="mt-1 text-muted-foreground">Paid amount: {maxRefundText}</p>
             ) : null}
             <p className="mt-1 text-muted-foreground">{booking.payment?.method}</p>
           </div>
@@ -128,12 +132,17 @@ export function BookingCancellationReviewDialog({
                     disabled={submitting}
                     id="refund-amount"
                     inputMode="decimal"
-                    min="0"
+                    max={maxRefundAmount ?? undefined}
+                    min="0.01"
                     onChange={(event) => setPartialAmount(event.target.value)}
                     placeholder="Enter amount"
+                    step="0.01"
                     type="number"
                     value={partialAmount}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Maximum refund: {maxRefundText}
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -177,10 +186,12 @@ function RefundNotice({ children }: { children: React.ReactNode }) {
 }
 
 function buildRefundOptions({
+  maxRefundAmount,
   noRefund,
   partialAmount,
   refundType,
 }: {
+  maxRefundAmount: number | null;
   noRefund: boolean;
   partialAmount: string;
   refundType: RefundType;
@@ -198,14 +209,35 @@ function buildRefundOptions({
   }
 
   if (refundType === "partial") {
+    if (maxRefundAmount == null || !Number.isFinite(maxRefundAmount) || maxRefundAmount <= 0) {
+      return { error: "Refundable paid amount is not available." };
+    }
+
     const amount = Number(partialAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
       return { error: "Enter a valid partial refund amount." };
+    }
+    if (amount > maxRefundAmount) {
+      return { error: `Partial refund cannot exceed ${formatBookingMoney(maxRefundAmount)}.` };
     }
     return { value: { refundAmount: amount, refundType: "partial" } };
   }
 
   return { value: { refundAmount: null, refundType: "full" } };
+}
+
+function getMaxRefundAmount(booking: AdminBooking) {
+  const paidAmount = booking.payment?.amount;
+  if (paidAmount != null && Number.isFinite(paidAmount) && paidAmount > 0) {
+    return paidAmount;
+  }
+
+  const legacyTotal = booking.totalPrice;
+  if (legacyTotal != null && Number.isFinite(legacyTotal) && legacyTotal > 0) {
+    return legacyTotal;
+  }
+
+  return null;
 }
 
 function isNonRefundablePaymentMethod(booking: AdminBooking) {

@@ -35,6 +35,7 @@ export type AdminBooking = {
   endDate: Date | null;
   numDays: number | null;
   payment: {
+    amount: number | null;
     method: string | null;
     details: Record<string, unknown>;
     transactionId: string | null;
@@ -170,6 +171,7 @@ export function mapAdminBooking({
     numDays: asNumber(data.numDays),
     payment: payment
       ? {
+          amount: asNumber(payment.amount),
           method: asString(payment.method),
           details: asRecord(payment.details) ?? {},
           transactionId: asString(payment.transactionId),
