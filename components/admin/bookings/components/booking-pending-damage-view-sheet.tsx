@@ -2,10 +2,24 @@
 
 import * as React from "react";
 import { getDownloadURL, ref } from "firebase/storage";
-import { ExternalLink, ImageIcon, Loader2, MessageSquareText, ReceiptText, SendHorizontal, UserRound } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  CircleDollarSign,
+  ExternalLink,
+  ImageIcon,
+  Loader2,
+  MessageSquareText,
+  ReceiptText,
+  SendHorizontal,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -17,15 +31,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { Toast } from "@/components/ui/toast";
 import {
   formatBookingDate,
   formatBookingMoney,
@@ -41,12 +49,34 @@ import { getFirebaseStorage } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
 import { CachedUserViewSheet } from "../../entity-detail-sheets";
+import { BookingChatSheet } from "./booking-chat-sheet";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { listenAdminBookingMessages } from "../data/booking-queries";
 import { useBookingMutation } from "../hooks/use-booking-mutation";
 
 type SupportStatus = "pending" | "in_progress" | "resolved" | "closed";
 type SupportChatTarget = "renter" | "owner";
+type ActionToast = {
+  message: string;
+  title: string;
+  variant: "success" | "error";
+};
+type DamageCaseStage =
+  | "admin_review"
+  | "support_handling"
+  | "balance_paid"
+  | "resolved"
+  | "damage_requested"
+  | "unknown";
+type DamageFlowStep = {
+  key: DamageCaseStage | "owner_payout";
+  label: string;
+};
+type ConnectedIdRow = {
+  collection: string;
+  id: string;
+  purpose: string;
+};
 
 type BookingPendingDamageViewSheetProps = {
   booking: AdminBooking;
@@ -54,14 +84,8 @@ type BookingPendingDamageViewSheetProps = {
   open: boolean;
 };
 
-export function BookingPendingDamageViewSheet({
-  booking,
-  onOpenChange,
-  open,
-}: BookingPendingDamageViewSheetProps) {
-  const initialSupportStatus = normalizeSupportStatus(
-    booking.settlement?.supportStatus,
-  );
+export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: BookingPendingDamageViewSheetProps) {
+  const initialSupportStatus = normalizeSupportStatus(booking.settlement?.supportStatus);
   const isAdminReviewRequired = booking.settlement?.status === "admin_review_required";
   const isSupportHandling =
     !isAdminReviewRequired &&
@@ -75,20 +99,18 @@ export function BookingPendingDamageViewSheet({
     booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
   const [updateOpen, setUpdateOpen] = React.useState(false);
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  const [bookingChatOpen, setBookingChatOpen] = React.useState(false);
   const [chatTarget, setChatTarget] = React.useState<SupportChatTarget | null>(null);
+  const [toast, setToast] = React.useState<ActionToast | null>(null);
+  const [updateRequestMessage, setUpdateRequestMessage] = React.useState<string | null>(null);
+  const [releaseBalanceMessage, setReleaseBalanceMessage] = React.useState<string | null>(null);
   const [supportStatus, setSupportStatus] = React.useState<SupportStatus>(initialSupportStatus);
-  const [adminNotes, setAdminNotes] = React.useState(
-    booking.damageDeductionRequest?.adminNotes ?? "",
-  );
+  const [adminNotes, setAdminNotes] = React.useState(booking.damageDeductionRequest?.adminNotes ?? "");
   const [renterSupportChatId, setRenterSupportChatId] = React.useState(
-    booking.settlement?.renterSupportChatId ??
-      booking.damageDeductionRequest?.renterSupportChatId ??
-      null,
+    booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
   );
   const [ownerSupportChatId, setOwnerSupportChatId] = React.useState(
-    booking.settlement?.ownerSupportChatId ??
-      booking.damageDeductionRequest?.ownerSupportChatId ??
-      null,
+    booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
   );
   const {
     createDamageSupportChat,
@@ -99,21 +121,31 @@ export function BookingPendingDamageViewSheet({
     updateDamageSupportRequest,
   } = useBookingMutation(booking);
   const evidenceUrls = booking.damageDeductionRequest?.evidenceUrls ?? [];
+  const stage = getDamageCaseStage(booking);
+  const primaryStatus =
+    stage === "admin_review"
+      ? "admin_review_required"
+      : stage === "support_handling"
+        ? supportStatus
+        : stage === "balance_paid"
+          ? "paid"
+          : stage === "resolved"
+            ? "resolved"
+            : (booking.settlement?.status ?? booking.damageDeductionRequest?.status ?? "pending");
 
   React.useEffect(() => {
     if (!open) return;
     setSupportStatus(initialSupportStatus);
     setAdminNotes(booking.damageDeductionRequest?.adminNotes ?? "");
     setRenterSupportChatId(
-      booking.settlement?.renterSupportChatId ??
-        booking.damageDeductionRequest?.renterSupportChatId ??
-        null,
+      booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
     );
     setOwnerSupportChatId(
-      booking.settlement?.ownerSupportChatId ??
-        booking.damageDeductionRequest?.ownerSupportChatId ??
-        null,
+      booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
     );
+    setToast(null);
+    setUpdateRequestMessage(null);
+    setReleaseBalanceMessage(null);
     resetError();
   }, [booking, initialSupportStatus, open, resetError]);
 
@@ -129,13 +161,49 @@ export function BookingPendingDamageViewSheet({
 
   async function onUpdateRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const success = await updateDamageSupportRequest({
+    setUpdateRequestMessage(null);
+    const result = await updateDamageSupportRequest({
       adminNotes,
       supportStatus,
     });
-    if (success) {
+    if (result.success) {
+      setToast({
+        message: "Support request updated.",
+        title: "Success",
+        variant: "success",
+      });
       setUpdateOpen(false);
+      return;
     }
+
+    const message = result.error ?? "Unable to update support request.";
+    setUpdateRequestMessage(message);
+    setToast({
+      message,
+      title: "Unable to update support request",
+      variant: "error",
+    });
+  }
+
+  async function onReleaseDamageBalancePayment() {
+    setReleaseBalanceMessage(null);
+    const result = await releaseDamageBalancePayment();
+    if (result.success) {
+      setToast({
+        message: "Paid damage balance released.",
+        title: "Success",
+        variant: "success",
+      });
+      return;
+    }
+
+    const message = result.error ?? "Unable to release paid balance.";
+    setReleaseBalanceMessage(message);
+    setToast({
+      message,
+      title: "Unable to release paid balance",
+      variant: "error",
+    });
   }
 
   return (
@@ -143,133 +211,119 @@ export function BookingPendingDamageViewSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="sm:max-w-2xl">
           <SheetHeader className="pr-12">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <SheetTitle>{getBookingAssetTitle(booking)}</SheetTitle>
-                <SheetDescription>{booking.id}</SheetDescription>
+            <div className="grid gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <SheetTitle>{getBookingAssetTitle(booking)}</SheetTitle>
+                  <SheetDescription>{booking.id}</SheetDescription>
+                </div>
+                <StatusBadge value={primaryStatus} />
               </div>
-              <StatusBadge value={isAdminReviewRequired ? "admin_review_required" : supportStatus} />
+              <DamageStatusFlow booking={booking} stage={stage} />
             </div>
           </SheetHeader>
-          <div className="grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4">
-            <Section title="Damage request">
-              <DetailRow label="Reason" value={booking.damageDeductionRequest?.reason ?? "Not set"} />
-              <DetailRow label="Owner notes" value={booking.damageDeductionRequest?.notes ?? "Not set"} />
-              <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
-              <DetailRow label="Request status" value={booking.damageDeductionRequest?.status ?? "Not set"} />
-            </Section>
+          <div className="hover-scrollbar grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4">
+            <DamageCaseHero booking={booking} stage={stage} status={primaryStatus} />
 
-            <Section title="Settlement">
-              <DetailRow
-                label="Settlement status"
-                value={booking.settlement?.status ? <StatusBadge value={booking.settlement.status} /> : "Not set"}
-              />
-              <DetailRow
-                label="Support status"
-                value={isSupportHandling ? <StatusBadge value={supportStatus} /> : "Not started"}
-              />
-              <DetailRow
-                label="Approved damage"
-                value={formatBookingMoney(booking.settlement?.approvedDamageDeductionAmount ?? null)}
-              />
-              <DetailRow
-                label="Deposit-covered damage"
-                value={formatBookingMoney(booking.settlement?.depositCoveredDamageAmount ?? null)}
-              />
-              <DetailRow
-                label="Outstanding amount"
-                value={formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null)}
-              />
-              <DetailRow
-                label="Deposit return"
-                value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)}
-              />
-              <DetailRow
-                label="Balance payment"
-                value={
-                  booking.settlement?.damageBalancePaymentStatus ? (
-                    <StatusBadge value={booking.settlement.damageBalancePaymentStatus} />
-                  ) : (
-                    "Not paid"
-                  )
-                }
-              />
-              <DetailRow
-                label="Owner balance payout"
-                value={
-                  booking.settlement?.ownerDamageBalancePayoutStatus ? (
-                    <StatusBadge value={booking.settlement.ownerDamageBalancePayoutStatus} />
-                  ) : (
-                    "Not released"
-                  )
-                }
+            <SummaryGrid booking={booking} />
+
+            <Section title={getStagePanelTitle(stage)}>
+              <StagePanel
+                adminNotes={adminNotes}
+                booking={booking}
+                canReleaseDamageBalancePayment={canReleaseDamageBalancePayment}
+                evidenceCount={evidenceUrls.length}
+                isAdminReviewRequired={isAdminReviewRequired}
+                isSupportHandling={isSupportHandling}
+                onReleaseDamageBalancePayment={onReleaseDamageBalancePayment}
+                onReview={() => setReviewOpen(true)}
+                onUpdate={() => {
+                  setUpdateRequestMessage(null);
+                  setUpdateOpen(true);
+                }}
+                releaseBalanceMessage={releaseBalanceMessage}
+                stage={stage}
+                submitting={submitting}
+                supportStatus={supportStatus}
               />
             </Section>
 
-            <Section title="Booking">
-              <DetailRow label="Owner" value={getBookingOwnerName(booking)} />
-              <DetailRow label="Renter" value={getBookingRenterName(booking)} />
-              <DetailRow label="Start" value={formatBookingDate(booking.startDate)} />
-              <DetailRow label="End" value={formatBookingDate(booking.endDate)} />
-              <DetailRow label="Total" value={formatBookingMoney(booking.totalPrice)} />
-              <DetailRow label="Security deposit" value={formatBookingMoney(booking.securityDeposit.amount)} />
+            <Section title="Chats">
+              <Button
+                className="w-full justify-between"
+                disabled={!booking.chatId}
+                onClick={() => setBookingChatOpen(true)}
+                type="button"
+                variant="outline"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <MessageSquareText className="size-4" />
+                  View buyer-renter chat
+                </span>
+                <span className="max-w-40 truncate text-muted-foreground">{booking.chatId ?? "No chat"}</span>
+              </Button>
+              <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
+                <div className="text-xs font-medium uppercase text-muted-foreground">Support chats</div>
+                {canManageSupportChats ? (
+                  <>
+                    <SupportChatAction
+                      chatId={renterSupportChatId}
+                      createLabel="Create renter support chat"
+                      disabled={submitting}
+                      onCreate={() => onCreateSupportChat("renter")}
+                      onView={() => setChatTarget("renter")}
+                      viewLabel="View renter support chat"
+                    />
+                    <SupportChatAction
+                      chatId={ownerSupportChatId}
+                      createLabel="Create owner support chat"
+                      disabled={submitting}
+                      onCreate={() => onCreateSupportChat("owner")}
+                      onView={() => setChatTarget("owner")}
+                      viewLabel="View owner support chat"
+                    />
+                    {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Support chats become available after the request enters admin review or support handling.
+                  </p>
+                )}
+              </div>
             </Section>
 
-            {canManageSupportChats ? (
-              <Section title="Support chats">
-                <SupportChatAction
-                  chatId={renterSupportChatId}
-                  createLabel="Create renter support chat"
-                  disabled={submitting}
-                  onCreate={() => onCreateSupportChat("renter")}
-                  onView={() => setChatTarget("renter")}
-                  viewLabel="View renter chat"
+            <Section title="Booking context">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InfoTile icon={<UserRound className="size-4" />} label="Owner" value={getBookingOwnerName(booking)} />
+                <InfoTile
+                  icon={<UserRound className="size-4" />}
+                  label="Renter"
+                  value={getBookingRenterName(booking)}
                 />
-                <SupportChatAction
-                  chatId={ownerSupportChatId}
-                  createLabel="Create owner support chat"
-                  disabled={submitting}
-                  onCreate={() => onCreateSupportChat("owner")}
-                  onView={() => setChatTarget("owner")}
-                  viewLabel="View owner chat"
+                <InfoTile label="Start" value={formatBookingDate(booking.startDate)} />
+                <InfoTile label="End" value={formatBookingDate(booking.endDate)} />
+                <InfoTile label="Booking total" value={formatBookingMoney(booking.totalPrice)} />
+                <InfoTile
+                  label="Security deposit"
+                  value={
+                    booking.securityDeposit.enabled ? formatBookingMoney(booking.securityDeposit.amount) : "Disabled"
+                  }
                 />
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              </Section>
-            ) : null}
+              </div>
+            </Section>
 
             <Section title="Evidence">
               <EvidenceGrid urls={evidenceUrls} />
             </Section>
+
+            <ConnectedIdsAccordion booking={booking} />
           </div>
-          <SheetFooter>
-            {isAdminReviewRequired ? (
-              <Button disabled={submitting} onClick={() => setReviewOpen(true)} type="button">
-                Review request
-              </Button>
-            ) : null}
-            {isSupportHandling ? (
-              <Button disabled={submitting} onClick={() => setUpdateOpen(true)} type="button">
-                Update request
-              </Button>
-            ) : null}
-            {canReleaseDamageBalancePayment ? (
-              <Button disabled={submitting} onClick={releaseDamageBalancePayment} type="button">
-                {submitting ? <Loader2 className="animate-spin" /> : null}
-                Release paid balance
-              </Button>
-            ) : null}
-            <Button disabled={submitting} onClick={() => onOpenChange(false)} type="button" variant="outline">
-              Close
-            </Button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
 
-      <BookingDamageReviewDialog
-        booking={booking}
-        onOpenChange={setReviewOpen}
-        open={reviewOpen}
-      />
+      <BookingDamageReviewDialog booking={booking} onOpenChange={setReviewOpen} open={reviewOpen} />
+
+      <BookingChatSheet booking={booking} onOpenChange={setBookingChatOpen} open={bookingChatOpen} />
 
       <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
         <DialogContent>
@@ -298,15 +352,19 @@ export function BookingPendingDamageViewSheet({
               placeholder="Admin notes"
               value={adminNotes}
             />
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <DialogFooter>
-              <Button disabled={submitting} type="submit">
-                {submitting ? <Loader2 className="animate-spin" /> : null}
-                Save
-              </Button>
-              <Button disabled={submitting} onClick={() => setUpdateOpen(false)} type="button" variant="outline">
-                Cancel
-              </Button>
+              <div className="grid w-full gap-2">
+                <div className="flex justify-end gap-2">
+                  <Button disabled={submitting} type="submit">
+                    {submitting ? <Loader2 className="animate-spin" /> : null}
+                    Save
+                  </Button>
+                  <Button disabled={submitting} onClick={() => setUpdateOpen(false)} type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </div>
+                {updateRequestMessage ? <ActionMessage text={updateRequestMessage} /> : null}
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -320,6 +378,10 @@ export function BookingPendingDamageViewSheet({
         target={chatTarget ?? "renter"}
         title={chatTarget === "owner" ? "Owner support chat" : "Renter support chat"}
       />
+
+      {toast ? (
+        <Toast message={toast.message} onDismiss={() => setToast(null)} title={toast.title} variant={toast.variant} />
+      ) : null}
     </>
   );
 }
@@ -331,6 +393,329 @@ function Section({ children, title }: { children: React.ReactNode; title: string
       <div className="grid gap-3">{children}</div>
     </section>
   );
+}
+
+function DamageStatusFlow({ booking, stage }: { booking: AdminBooking; stage: DamageCaseStage }) {
+  const steps = getDamageFlowSteps();
+  const currentIndex = getDamageFlowCurrentIndex(booking, stage);
+
+  return (
+    <div className="hover-scrollbar overflow-x-auto pb-1">
+      <div className="flex min-w-max items-center gap-2">
+        {steps.map((step, index) => {
+          const state = index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming";
+          return (
+            <React.Fragment key={step.key}>
+              <div
+                className={cn(
+                  "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium",
+                  state === "complete" && "border-primary/30 bg-primary/10 text-primary",
+                  state === "current" && "border-primary bg-primary text-primary-foreground",
+                  state === "upcoming" && "bg-background text-muted-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "grid size-5 place-items-center rounded-full border text-[10px]",
+                    state === "complete" && "border-primary bg-primary text-primary-foreground",
+                    state === "current" && "border-primary-foreground/70",
+                    state === "upcoming" && "border-muted-foreground/40",
+                  )}
+                >
+                  {state === "complete" ? <CheckCircle2 className="size-3" /> : index + 1}
+                </span>
+                {step.label}
+              </div>
+              {index < steps.length - 1 ? (
+                <div className={cn("h-px w-8 shrink-0", index < currentIndex ? "bg-primary" : "bg-border")} />
+              ) : null}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DamageCaseHero({ booking, stage, status }: { booking: AdminBooking; stage: DamageCaseStage; status: string }) {
+  return (
+    <section className="grid gap-4 rounded-md border bg-muted/30 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            {getStageIcon(stage)}
+            {getStageTitle(stage)}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{getStageDescription(stage, booking)}</p>
+        </div>
+        <StatusBadge value={status} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard
+          label="Requested"
+          value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+        />
+        <MetricCard
+          label="Approved"
+          value={formatBookingMoney(
+            booking.settlement?.approvedDamageDeductionAmount ?? booking.damageDeductionRequest?.approvedAmount ?? null,
+          )}
+        />
+        <MetricCard
+          label="Outstanding"
+          value={formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null)}
+        />
+      </div>
+    </section>
+  );
+}
+
+function ConnectedIdsAccordion({ booking }: { booking: AdminBooking }) {
+  const rows = getConnectedIdRows(booking);
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return (
+    <Collapsible className="rounded-md border">
+      <CollapsibleTrigger asChild>
+        <button
+          className="group flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-medium"
+          type="button"
+        >
+          <span>Connected IDs ({rows.length})</span>
+          <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="grid gap-2 border-t p-4">
+          {rows.map((row) => (
+            <div
+              className="grid gap-1 rounded-md border bg-muted/30 p-3 text-sm sm:grid-cols-[15rem_minmax(0,1fr)] sm:gap-3"
+              key={`${row.collection}-${row.purpose}-${row.id}`}
+            >
+              <div className="font-medium">{row.collection}</div>
+              <div className="min-w-0">
+                <div className="font-mono text-xs [overflow-wrap:anywhere]">{row.id}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{row.purpose}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function SummaryGrid({ booking }: { booking: AdminBooking }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <InfoTile
+        icon={<AlertTriangle className="size-4" />}
+        label="Damage reason"
+        value={booking.damageDeductionRequest?.reason ?? "Not set"}
+      />
+      <InfoTile
+        icon={<ShieldCheck className="size-4" />}
+        label="Renter response"
+        value={booking.settlement?.renterResponse ?? booking.damageDeductionRequest?.renterResponse ?? "Not set"}
+      />
+      <InfoTile
+        label="Request status"
+        value={
+          booking.damageDeductionRequest?.status ? (
+            <StatusBadge value={booking.damageDeductionRequest.status} />
+          ) : (
+            "Not set"
+          )
+        }
+      />
+      <InfoTile
+        label="Settlement status"
+        value={booking.settlement?.status ? <StatusBadge value={booking.settlement.status} /> : "Not set"}
+      />
+    </div>
+  );
+}
+
+function StagePanel({
+  adminNotes,
+  booking,
+  canReleaseDamageBalancePayment,
+  evidenceCount,
+  isAdminReviewRequired,
+  isSupportHandling,
+  onReleaseDamageBalancePayment,
+  onReview,
+  onUpdate,
+  releaseBalanceMessage,
+  stage,
+  submitting,
+  supportStatus,
+}: {
+  adminNotes: string;
+  booking: AdminBooking;
+  canReleaseDamageBalancePayment: boolean;
+  evidenceCount: number;
+  isAdminReviewRequired: boolean;
+  isSupportHandling: boolean;
+  onReleaseDamageBalancePayment: () => void;
+  onReview: () => void;
+  onUpdate: () => void;
+  releaseBalanceMessage: string | null;
+  stage: DamageCaseStage;
+  submitting: boolean;
+  supportStatus: SupportStatus;
+}) {
+  if (stage === "admin_review") {
+    return (
+      <>
+        <DetailRow
+          label="Requested amount"
+          value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+        />
+        <DetailRow
+          label="Security deposit"
+          value={booking.securityDeposit.enabled ? formatBookingMoney(booking.securityDeposit.amount) : "Disabled"}
+        />
+        <DetailRow label="Owner notes" value={booking.damageDeductionRequest?.notes ?? "Not set"} />
+        <DetailRow label="Evidence photos" value={String(evidenceCount)} />
+        <DetailRow
+          label="Needs support review"
+          value={booking.damageDeductionRequest?.requiresSupportReview ? "Yes" : "No"}
+        />
+        <Button
+          className="w-full justify-center"
+          disabled={submitting || !isAdminReviewRequired}
+          onClick={onReview}
+          type="button"
+        >
+          Review request
+        </Button>
+      </>
+    );
+  }
+
+  if (stage === "support_handling" || stage === "balance_paid") {
+    return (
+      <>
+        <DetailRow label="Support status" value={<StatusBadge value={supportStatus} />} />
+        <DetailRow
+          label="Approved damage"
+          value={formatBookingMoney(booking.settlement?.approvedDamageDeductionAmount ?? null)}
+        />
+        <DetailRow
+          label="Deposit-covered damage"
+          value={formatBookingMoney(booking.settlement?.depositCoveredDamageAmount ?? null)}
+        />
+        <DetailRow
+          label="Outstanding amount"
+          value={formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null)}
+        />
+        <DetailRow
+          label="Balance payment"
+          value={
+            booking.settlement?.damageBalancePaymentStatus ? (
+              <StatusBadge value={booking.settlement.damageBalancePaymentStatus} />
+            ) : (
+              "Not requested"
+            )
+          }
+        />
+        <DetailRow
+          label="Owner balance payout"
+          value={
+            booking.settlement?.ownerDamageBalancePayoutStatus ? (
+              <StatusBadge value={booking.settlement.ownerDamageBalancePayoutStatus} />
+            ) : (
+              "Not released"
+            )
+          }
+        />
+        <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            className="flex-1"
+            disabled={submitting || !isSupportHandling}
+            onClick={onUpdate}
+            type="button"
+            variant="outline"
+          >
+            Update request
+          </Button>
+          {canReleaseDamageBalancePayment ? (
+            <Button className="flex-1" disabled={submitting} onClick={onReleaseDamageBalancePayment} type="button">
+              {submitting ? <Loader2 className="animate-spin" /> : null}
+              Release paid balance
+            </Button>
+          ) : null}
+        </div>
+        {releaseBalanceMessage ? <ActionMessage text={releaseBalanceMessage} /> : null}
+      </>
+    );
+  }
+
+  if (stage === "resolved") {
+    return (
+      <>
+        <DetailRow
+          label="Final approved damage"
+          value={formatBookingMoney(booking.settlement?.approvedDamageDeductionAmount ?? null)}
+        />
+        <DetailRow label="Deposit return" value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)} />
+        <DetailRow label="Owner payout" value={formatBookingMoney(booking.settlement?.ownerPayoutAmount ?? null)} />
+        <DetailRow
+          label="Balance payment"
+          value={
+            booking.settlement?.damageBalancePaymentStatus ? (
+              <StatusBadge value={booking.settlement.damageBalancePaymentStatus} />
+            ) : (
+              "Not needed"
+            )
+          }
+        />
+        <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <DetailRow label="Owner notes" value={booking.damageDeductionRequest?.notes ?? "Not set"} />
+      <DetailRow label="Evidence photos" value={String(evidenceCount)} />
+      <DetailRow
+        label="Security deposit"
+        value={booking.securityDeposit.enabled ? formatBookingMoney(booking.securityDeposit.amount) : "Disabled"}
+      />
+      <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
+    </>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid min-w-0 gap-1 rounded-md border bg-background p-3">
+      <div className="text-xs uppercase text-muted-foreground">{label}</div>
+      <div className="truncate text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function InfoTile({ icon, label, value }: { icon?: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid min-w-0 gap-2 rounded-md border p-3 text-sm">
+      <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className="min-w-0 [overflow-wrap:anywhere]">{value}</div>
+    </div>
+  );
+}
+
+function ActionMessage({ text }: { text: string }) {
+  return <p className="text-sm text-destructive [overflow-wrap:anywhere]">{text}</p>;
 }
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -412,7 +797,11 @@ function EvidenceImage({ label, url }: { label: string; url: string }) {
       >
         {resolvedUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img alt={label} className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]" src={resolvedUrl} />
+          <img
+            alt={label}
+            className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+            src={resolvedUrl}
+          />
         ) : (
           <span className="flex h-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
             Loading...
@@ -428,7 +817,11 @@ function EvidenceImage({ label, url }: { label: string; url: string }) {
           {resolvedUrl ? (
             <div className="grid gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img alt={`${label} preview`} className="max-h-[70vh] w-full rounded-md object-contain" src={resolvedUrl} />
+              <img
+                alt={`${label} preview`}
+                className="max-h-[70vh] w-full rounded-md object-contain"
+                src={resolvedUrl}
+              />
               <Button asChild variant="outline">
                 <a href={resolvedUrl} rel="noreferrer" target="_blank">
                   <ExternalLink className="size-4" />
@@ -464,9 +857,7 @@ function SupportChatSheet({
   const [messagesLoading, setMessagesLoading] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
-  const [paymentAmount, setPaymentAmount] = React.useState(
-    String(booking.settlement?.outstandingDamageAmount ?? ""),
-  );
+  const [paymentAmount, setPaymentAmount] = React.useState(String(booking.settlement?.outstandingDamageAmount ?? ""));
   const { error, resetError, sendDamageBalancePaymentRequest, sendDamageSupportMessage, submitting } =
     useBookingMutation(booking);
   const trimmedMessage = messageText.trim();
@@ -566,9 +957,7 @@ function SupportChatSheet({
           ) : messagesError ? (
             <EmptyChatState text={messagesError} />
           ) : messages.length ? (
-            messages.map((message) => (
-              <SupportMessageBubble booking={booking} key={message.id} message={message} />
-            ))
+            messages.map((message) => <SupportMessageBubble booking={booking} key={message.id} message={message} />)
           ) : (
             <EmptyChatState text="No messages in this support chat yet." />
           )}
@@ -642,22 +1031,12 @@ function SupportChatSheet({
           </form>
         </DialogContent>
       </Dialog>
-      <CachedUserViewSheet
-        onOpenChange={setProfileOpen}
-        open={profileOpen}
-        uid={targetUid}
-      />
+      <CachedUserViewSheet onOpenChange={setProfileOpen} open={profileOpen} uid={targetUid} />
     </Sheet>
   );
 }
 
-function SupportMessageBubble({
-  booking,
-  message,
-}: {
-  booking: AdminBooking;
-  message: AdminBookingMessage;
-}) {
+function SupportMessageBubble({ booking, message }: { booking: AdminBooking; message: AdminBookingMessage }) {
   const sender = getSupportSenderDetails(booking, message.senderId);
   return (
     <div className={cn("flex", sender.role === "Support" ? "justify-end" : "justify-start")}>
@@ -672,9 +1051,7 @@ function SupportMessageBubble({
         <p className="whitespace-pre-wrap break-words text-muted-foreground">
           {message.text ?? message.mediaUrl ?? "No message content"}
         </p>
-        <span className="text-xs text-muted-foreground">
-          {booking.id}
-        </span>
+        <span className="text-xs text-muted-foreground">{booking.id}</span>
       </div>
     </div>
   );
@@ -748,9 +1125,201 @@ function isUrl(value: string) {
   return /^https?:\/\//i.test(value) || value.startsWith("/");
 }
 
+function getDamageFlowSteps(): DamageFlowStep[] {
+  return [
+    { key: "damage_requested", label: "Damage requested" },
+    { key: "admin_review", label: "Admin review" },
+    { key: "support_handling", label: "Support handling" },
+    { key: "balance_paid", label: "Balance payment" },
+    { key: "owner_payout", label: "Owner payout" },
+    { key: "resolved", label: "Resolved" },
+  ];
+}
+
+function getDamageFlowCurrentIndex(booking: AdminBooking, stage: DamageCaseStage) {
+  if (stage === "resolved") {
+    return 5;
+  }
+
+  if (
+    booking.settlement?.ownerDamageBalancePayoutStatus === "processing" ||
+    booking.settlement?.ownerDamageBalancePayoutStatus === "succeeded" ||
+    booking.settlement?.ownerDamageBalancePayoutStatus === "failed"
+  ) {
+    return 4;
+  }
+
+  if (
+    stage === "balance_paid" ||
+    booking.settlement?.damageBalancePaymentStatus === "pending" ||
+    booking.settlement?.damageBalancePaymentStatus === "paid" ||
+    booking.settlement?.damageBalancePaymentStatus === "failed"
+  ) {
+    return 3;
+  }
+
+  if (stage === "support_handling") {
+    return 2;
+  }
+
+  if (stage === "admin_review") {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getConnectedIdRows(booking: AdminBooking): ConnectedIdRow[] {
+  return [
+    {
+      collection: "bookings",
+      id: booking.id,
+      purpose: "Canonical booking document",
+    },
+    {
+      collection: "assets",
+      id: booking.assetId,
+      purpose: "Linked rental asset",
+    },
+    {
+      collection: "chats",
+      id: booking.chatId,
+      purpose: "Buyer-renter booking chat",
+    },
+    {
+      collection: "users",
+      id: getBookingOwnerId(booking),
+      purpose: "Owner user profile",
+    },
+    {
+      collection: "users",
+      id: getBookingRenterId(booking),
+      purpose: "Renter user profile",
+    },
+    {
+      collection: "chats",
+      id: booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
+      purpose: "Renter support chat",
+    },
+    {
+      collection: "chats",
+      id: booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
+      purpose: "Owner support chat",
+    },
+    {
+      collection: "damageBalancePaymentRequests",
+      id: booking.settlement?.damageBalancePaymentRequestId ?? null,
+      purpose: "Damage balance payment request",
+    },
+  ].filter((row): row is ConnectedIdRow => Boolean(row.id));
+}
+
 function normalizeSupportStatus(value: string | null | undefined): SupportStatus {
   if (value === "in_progress" || value === "resolved" || value === "closed") {
     return value;
   }
   return "pending";
+}
+
+function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
+  if (
+    booking.settlement?.damageBalancePaymentStatus === "paid" &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded"
+  ) {
+    return "balance_paid";
+  }
+
+  if (
+    booking.settlement?.status === "completed" ||
+    booking.damageDeductionRequest?.status === "resolved" ||
+    booking.settlement?.supportStatus === "resolved" ||
+    booking.settlement?.supportStatus === "closed"
+  ) {
+    return "resolved";
+  }
+
+  if (booking.settlement?.status === "admin_review_required") {
+    return "admin_review";
+  }
+
+  if (
+    booking.settlement?.status === "support_pending" ||
+    booking.settlement?.supportStatus === "pending" ||
+    booking.settlement?.supportStatus === "in_progress"
+  ) {
+    return "support_handling";
+  }
+
+  if (booking.settlement?.status === "damage_deduction_requested") {
+    return "damage_requested";
+  }
+
+  return "unknown";
+}
+
+function getStagePanelTitle(stage: DamageCaseStage) {
+  switch (stage) {
+    case "admin_review":
+      return "Review needed";
+    case "support_handling":
+      return "Support handling";
+    case "balance_paid":
+      return "Payment received";
+    case "resolved":
+      return "Final outcome";
+    case "damage_requested":
+      return "Renter response needed";
+    default:
+      return "Damage details";
+  }
+}
+
+function getStageTitle(stage: DamageCaseStage) {
+  switch (stage) {
+    case "admin_review":
+      return "Admin review required";
+    case "support_handling":
+      return "Support case in progress";
+    case "balance_paid":
+      return "Damage balance paid";
+    case "resolved":
+      return "Damage case resolved";
+    case "damage_requested":
+      return "Waiting for renter response";
+    default:
+      return "Damage request";
+  }
+}
+
+function getStageDescription(stage: DamageCaseStage, booking: AdminBooking) {
+  const reason = booking.damageDeductionRequest?.reason ?? "damage";
+  switch (stage) {
+    case "admin_review":
+      return `Review the ${reason} request and decide the approved damage amount.`;
+    case "support_handling":
+      return "Coordinate support chats, payment requests, and admin notes for the approved damage amount.";
+    case "balance_paid":
+      return "The renter paid the outstanding balance. Release the paid balance to the owner when ready.";
+    case "resolved":
+      return "Review the final settlement amounts and retained record for this damage case.";
+    case "damage_requested":
+      return "The owner submitted a deduction request and the renter response is still pending.";
+    default:
+      return "Review the request, settlement, chat, and evidence details for this booking.";
+  }
+}
+
+function getStageIcon(stage: DamageCaseStage) {
+  switch (stage) {
+    case "admin_review":
+      return <AlertTriangle className="size-4 text-destructive" />;
+    case "support_handling":
+      return <MessageSquareText className="size-4 text-primary" />;
+    case "balance_paid":
+      return <CircleDollarSign className="size-4 text-primary" />;
+    case "resolved":
+      return <CheckCircle2 className="size-4 text-primary" />;
+    default:
+      return <ShieldCheck className="size-4 text-muted-foreground" />;
+  }
 }

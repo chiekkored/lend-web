@@ -34,6 +34,36 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 24% 96%;
+    --card: 222 42% 10%;
+    --card-foreground: 210 24% 96%;
+    --popover: 222 42% 10%;
+    --popover-foreground: 210 24% 96%;
+    --primary: 25 100% 55%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 217 28% 16%;
+    --secondary-foreground: 210 24% 96%;
+    --muted: 217 28% 15%;
+    --muted-foreground: 215 18% 68%;
+    --accent: 24 70% 18%;
+    --accent-foreground: 25 100% 88%;
+    --sidebar: 222 42% 9%;
+    --sidebar-foreground: 210 24% 96%;
+    --sidebar-primary: 25 100% 55%;
+    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-accent: 217 28% 16%;
+    --sidebar-accent-foreground: 210 24% 96%;
+    --sidebar-border: 217 24% 20%;
+    --sidebar-ring: 25 100% 55%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 24% 20%;
+    --input: 217 24% 20%;
+    --ring: 25 100% 55%;
+  }
+
   * {
     @apply border-border;
   }
@@ -52,5 +82,34 @@
 @layer components {
   .admin-page-grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .hover-scrollbar {
+    scrollbar-color: transparent transparent;
+    scrollbar-width: thin;
+  }
+
+  .hover-scrollbar:hover,
+  .hover-scrollbar:focus-within {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  }
+
+  .hover-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+
+  .hover-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 999px;
+  }
+
+  .hover-scrollbar:hover::-webkit-scrollbar-thumb,
+  .hover-scrollbar:focus-within::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+
+  .hover-scrollbar::-webkit-scrollbar-track {
+    background-color: transparent;
   }
 }

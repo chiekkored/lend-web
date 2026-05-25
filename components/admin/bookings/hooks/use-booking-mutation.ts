@@ -19,6 +19,19 @@ import {
 
 import { bookingQueryKeys } from "../data/booking-queries";
 
+type MutationResult = { error?: string; success: boolean };
+type ReleaseDamageBalanceResponse = {
+  alreadyReleased?: boolean;
+  ownerPayout?: {
+    error?: unknown;
+    reason?: unknown;
+    skipped?: unknown;
+    status?: unknown;
+  };
+  status?: unknown;
+  success?: unknown;
+};
+
 export function useBookingMutation(booking: AdminBooking) {
   const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
@@ -231,14 +244,13 @@ export function useBookingMutation(booking: AdminBooking) {
   }: {
     adminNotes?: string;
     supportStatus: "pending" | "in_progress" | "resolved" | "closed";
-  }) {
+  }): Promise<MutationResult> {
     setError(null);
 
     if (!hasFirebaseConfig) {
-      setError(
-        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
-      );
-      return false;
+      const message = `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`;
+      setError(message);
+      return { error: message, success: false };
     }
 
     setSubmitting(true);
@@ -254,12 +266,11 @@ export function useBookingMutation(booking: AdminBooking) {
         adminNotes: adminNotes?.trim() || null,
       });
       await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
-      return true;
+      return { success: true };
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to update support request.",
-      );
-      return false;
+      const message = err instanceof Error ? err.message : "Unable to update support request.";
+      setError(message);
+      return { error: message, success: false };
     } finally {
       setSubmitting(false);
     }
@@ -359,14 +370,13 @@ export function useBookingMutation(booking: AdminBooking) {
     }
   }
 
-  async function releaseDamageBalancePayment() {
+  async function releaseDamageBalancePayment(): Promise<MutationResult> {
     setError(null);
 
     if (!hasFirebaseConfig) {
-      setError(
-        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
-      );
-      return false;
+      const message = `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`;
+      setError(message);
+      return { error: message, success: false };
     }
 
     setSubmitting(true);
@@ -375,17 +385,24 @@ export function useBookingMutation(booking: AdminBooking) {
         getFirebaseFunctions(),
         "updateBookingSettlement",
       );
-      await callable({
+      const result = await callable({
         bookingId: booking.id,
         action: "admin_release_damage_balance_payment",
       });
-      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
-      return true;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to release payment.",
+      const releaseResult = getReleaseDamageBalanceResult(
+        result.data as ReleaseDamageBalanceResponse,
       );
-      return false;
+      if (!releaseResult.success) {
+        setError(releaseResult.error ?? "Unable to release payment.");
+        await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+        return releaseResult;
+      }
+      await queryClient.invalidateQueries({ queryKey: bookingQueryKeys.root });
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to release payment.";
+      setError(message);
+      return { error: message, success: false };
     } finally {
       setSubmitting(false);
     }
@@ -405,6 +422,28 @@ export function useBookingMutation(booking: AdminBooking) {
     updateDamageSupportRequest,
     updateStatus,
   };
+}
+
+function getReleaseDamageBalanceResult(
+  data: ReleaseDamageBalanceResponse,
+): MutationResult {
+  const ownerPayout = data?.ownerPayout;
+  const ownerPayoutStatus =
+    typeof ownerPayout?.status === "string" ? ownerPayout.status : null;
+  const responseStatus = typeof data?.status === "string" ? data.status : null;
+  const ownerPayoutError =
+    typeof ownerPayout?.error === "string" && ownerPayout.error.trim()
+      ? ownerPayout.error.trim()
+      : null;
+
+  if (responseStatus === "failed" || ownerPayoutStatus === "failed" || ownerPayoutError) {
+    return {
+      error: ownerPayoutError ?? "Unable to release payment.",
+      success: false,
+    };
+  }
+
+  return { success: true };
 }
 
 function getPendingDelta(currentStatus: string | null, nextStatus: string) {

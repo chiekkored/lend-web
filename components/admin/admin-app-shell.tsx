@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { ChevronRight, LogOut, ShieldAlert } from "lucide-react";
+import { ChevronRight, LogOut, Moon, ShieldAlert, Sun } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,10 @@ type AdminState =
   | { status: "loading"; user: null; error: null }
   | { status: "authorized"; user: User; error: null }
   | { status: "denied"; user: User | null; error: string };
+
+type ThemeMode = "light" | "dark";
+
+const ADMIN_THEME_STORAGE_KEY = "lend:admin:theme";
 
 export function AdminAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -149,6 +153,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
               <SidebarTrigger />
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <div className="hidden text-right text-sm sm:block">
                 <p className="font-medium">{state.user.email}</p>
                 <p className="text-muted-foreground">Firebase admin</p>
@@ -163,7 +168,7 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
                   router.replace("/admin/sign-in");
                 }}
                 size="icon"
-                variant="outline"
+                variant="ghost"
               >
                 <LogOut />
               </Button>
@@ -176,6 +181,53 @@ export function AdminAppShell({ children }: { children: ReactNode }) {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const storedTheme = readStoredTheme();
+    setTheme(storedTheme);
+    applyTheme(storedTheme);
+    setMounted(true);
+  }, []);
+
+  function onToggleTheme() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    window.localStorage.setItem(ADMIN_THEME_STORAGE_KEY, nextTheme);
+  }
+
+  const isDark = theme === "dark";
+
+  return (
+    <Button
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={mounted ? isDark : undefined}
+      onClick={onToggleTheme}
+      size="icon"
+      type="button"
+      variant="ghost"
+    >
+      {isDark ? <Sun /> : <Moon />}
+    </Button>
+  );
+}
+
+function readStoredTheme(): ThemeMode {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
+  const storedTheme = window.localStorage.getItem(ADMIN_THEME_STORAGE_KEY);
+  return storedTheme === "dark" ? "dark" : "light";
+}
+
+function applyTheme(theme: ThemeMode) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
 }
 
 function AdminSidebar() {

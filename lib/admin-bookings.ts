@@ -61,6 +61,8 @@ export type AdminBooking = {
     renterSupportChatId: string | null;
     ownerSupportChatId: string | null;
     damageBalancePaymentStatus: string | null;
+    damageBalancePaymentRequestId: string | null;
+    damageBalanceRequestedAmount: number | null;
     ownerDamageBalancePayoutStatus: string | null;
   } | null;
   damageDeductionRequest: {
@@ -194,6 +196,12 @@ export function mapAdminBooking({
           ownerSupportChatId: asString(settlement.ownerSupportChatId),
           damageBalancePaymentStatus: asString(
             settlement.damageBalancePaymentStatus,
+          ),
+          damageBalancePaymentRequestId: asString(
+            settlement.damageBalancePaymentRequestId,
+          ),
+          damageBalanceRequestedAmount: asNumber(
+            settlement.damageBalanceRequestedAmount,
           ),
           ownerDamageBalancePayoutStatus: asString(
             settlement.ownerDamageBalancePayoutStatus,
