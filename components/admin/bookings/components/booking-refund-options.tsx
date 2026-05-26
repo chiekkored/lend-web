@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatBookingMoney, type AdminBooking } from "@/lib/admin-bookings";
 
-export type RefundType = "full" | "partial";
+export type RefundType = "full" | "partial" | "none";
 export type RefundOptionsValue = {
   refundAmount: number | null;
   refundType: "full" | "partial" | "none";
@@ -19,6 +19,7 @@ type BookingRefundOptionsProps = {
   disabled?: boolean;
   partialAmount: string;
   refundType: RefundType;
+  allowNoRefund?: boolean;
   setPartialAmount: (value: string) => void;
   setRefundType: (value: RefundType) => void;
 };
@@ -28,6 +29,7 @@ export function BookingRefundOptions({
   disabled = false,
   partialAmount,
   refundType,
+  allowNoRefund = false,
   setPartialAmount,
   setRefundType,
 }: BookingRefundOptionsProps) {
@@ -63,6 +65,7 @@ export function BookingRefundOptions({
           <SelectContent>
             <SelectItem value="full">Full refund</SelectItem>
             <SelectItem value="partial">Partial refund</SelectItem>
+            {allowNoRefund ? <SelectItem value="none">No refund</SelectItem> : null}
           </SelectContent>
         </Select>
       </div>
@@ -107,6 +110,10 @@ export function buildRefundOptions({
   }
 
   const maxRefundAmount = getMaxRefundAmount(booking);
+
+  if (refundType === "none") {
+    return { value: { refundAmount: null, refundType: "none" } };
+  }
 
   if (refundType === "partial") {
     if (maxRefundAmount == null || !Number.isFinite(maxRefundAmount) || maxRefundAmount <= 0) {

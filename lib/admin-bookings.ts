@@ -55,6 +55,7 @@ export type AdminBooking = {
     refundStatus: string | null;
     refundError: string | null;
     refundAmount: number | null;
+    refundType: string | null;
     paymongoRefundId: string | null;
   } | null;
   securityDeposit: {
@@ -119,6 +120,34 @@ export type AdminBooking = {
       remainingAmount: number | null;
       currency: string | null;
       listingStatusAfterApproval: string | null;
+    } | null;
+    renterPenaltyPreview: {
+      tier: string | null;
+      refundBaseAmount: number | null;
+      rentalRefundAmount: number | null;
+      securityDepositRefundAmount: number | null;
+      totalRefundableAmount: number | null;
+      refundAmount: number | null;
+      retainedOwnerAmount: number | null;
+      manualSecurityDepositRefundAmount: number | null;
+      suggestedRefundType: string | null;
+      currency: string | null;
+      fullRefundWindowLabel: string | null;
+      noRefundWindowLabel: string | null;
+    } | null;
+    renterPenalty: {
+      tier: string | null;
+      refundBaseAmount: number | null;
+      rentalRefundAmount: number | null;
+      securityDepositRefundAmount: number | null;
+      totalRefundableAmount: number | null;
+      refundAmount: number | null;
+      retainedOwnerAmount: number | null;
+      manualSecurityDepositRefundAmount: number | null;
+      suggestedRefundType: string | null;
+      currency: string | null;
+      fullRefundWindowLabel: string | null;
+      noRefundWindowLabel: string | null;
     } | null;
   } | null;
   renter: BookingPerson | null;
@@ -208,6 +237,7 @@ export function mapAdminBooking({
           refundStatus: asString(payment.refundStatus),
           refundError: asString(payment.refundError),
           refundAmount: asNumber(payment.refundAmount),
+          refundType: asString(payment.refundType),
           paymongoRefundId: asString(payment.paymongoRefundId),
         }
       : null,
@@ -226,6 +256,8 @@ export function mapAdminBooking({
           refundError: asString(cancellationRequest.refundError),
           ownerPenaltyPreview: mapOwnerPenaltyPreview(cancellationRequest.ownerPenaltyPreview),
           ownerPenalty: mapOwnerPenaltyPreview(cancellationRequest.ownerPenalty),
+          renterPenaltyPreview: mapRenterPenaltyPreview(cancellationRequest.renterPenaltyPreview),
+          renterPenalty: mapRenterPenaltyPreview(cancellationRequest.renterPenalty),
         }
       : null,
     securityDeposit: {
@@ -288,6 +320,27 @@ export function mapAdminBooking({
     renter: mapBookingPerson(data.renter),
     status: asString(data.status),
     totalPrice: asNumber(data.totalPrice),
+  };
+}
+
+function mapRenterPenaltyPreview(
+  value: unknown,
+): NonNullable<AdminBooking["cancellationRequest"]>["renterPenaltyPreview"] {
+  const data = asRecord(value);
+  if (!data) return null;
+  return {
+    tier: asString(data.tier),
+    refundBaseAmount: asNumber(data.refundBaseAmount),
+    rentalRefundAmount: asNumber(data.rentalRefundAmount),
+    securityDepositRefundAmount: asNumber(data.securityDepositRefundAmount),
+    totalRefundableAmount: asNumber(data.totalRefundableAmount),
+    refundAmount: asNumber(data.refundAmount),
+    retainedOwnerAmount: asNumber(data.retainedOwnerAmount),
+    manualSecurityDepositRefundAmount: asNumber(data.manualSecurityDepositRefundAmount),
+    suggestedRefundType: asString(data.suggestedRefundType),
+    currency: asString(data.currency),
+    fullRefundWindowLabel: asString(data.fullRefundWindowLabel),
+    noRefundWindowLabel: asString(data.noRefundWindowLabel),
   };
 }
 

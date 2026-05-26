@@ -32,6 +32,12 @@ type PricingPolicy = {
   payment_method_fee_vat_rate_bps: number;
   payment_method_fees: Record<string, MethodFeeNode>;
   platform_fee: FeeRule;
+  renter_cancellation_policy: {
+    full_refund_window: { lead_time_rate_bps: number; max_hours: number };
+    middle_retention: { type: "percentage" | "fixed"; rate_bps?: number; fixed_amount?: number };
+    no_refund_window: { lead_time_rate_bps: number; max_hours: number };
+    no_refund_retention: { type: "percentage" | "fixed"; rate_bps?: number; fixed_amount?: number };
+  };
   wallet_transfer_fee: FeeRule;
 };
 
@@ -131,6 +137,22 @@ export function PricingPolicyPage() {
     setPolicy((current) => (current ? { ...current, payment_method_fee_vat_rate_bps: rateBps } : current));
   }
 
+  function updateCancellationPolicy(path: readonly string[], value: number | string) {
+    setPolicy((current) => {
+      if (!current) return current;
+      const next = structuredClone(current);
+      let cursor: Record<string, unknown> = next.renter_cancellation_policy as unknown as Record<string, unknown>;
+      path.forEach((part, index) => {
+        if (index === path.length - 1) {
+          cursor[part] = value;
+          return;
+        }
+        cursor = cursor[part] as Record<string, unknown>;
+      });
+      return next;
+    });
+  }
+
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading pricing policy...</div>;
   }
@@ -216,6 +238,52 @@ export function PricingPolicyPage() {
           />
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Renter cancellation policy</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 rounded-md border p-3 md:grid-cols-4">
+            <PolicyNumberField
+              label="Full refund bps"
+              value={policy.renter_cancellation_policy.full_refund_window.lead_time_rate_bps}
+              onChange={(value) => updateCancellationPolicy(["full_refund_window", "lead_time_rate_bps"], value)}
+            />
+            <PolicyNumberField
+              label="Full max hours"
+              value={policy.renter_cancellation_policy.full_refund_window.max_hours}
+              onChange={(value) => updateCancellationPolicy(["full_refund_window", "max_hours"], value)}
+            />
+            <PolicyNumberField
+              label="No refund bps"
+              value={policy.renter_cancellation_policy.no_refund_window.lead_time_rate_bps}
+              onChange={(value) => updateCancellationPolicy(["no_refund_window", "lead_time_rate_bps"], value)}
+            />
+            <PolicyNumberField
+              label="No refund max hours"
+              value={policy.renter_cancellation_policy.no_refund_window.max_hours}
+              onChange={(value) => updateCancellationPolicy(["no_refund_window", "max_hours"], value)}
+            />
+          </div>
+          <div className="grid gap-3 rounded-md border p-3 md:grid-cols-3">
+            <RetentionRuleFields
+              label="Middle retention"
+              rule={policy.renter_cancellation_policy.middle_retention}
+              onChange={(key, value) => updateCancellationPolicy(["middle_retention", key], value)}
+            />
+            <RetentionRuleFields
+              label="No refund retention"
+              rule={policy.renter_cancellation_policy.no_refund_retention}
+              onChange={(key, value) => updateCancellationPolicy(["no_refund_retention", key], value)}
+            />
+            <div className="text-sm text-muted-foreground">
+              Mobile displays these windows as days or hours. Cancellation penalties apply only to rental subtotal; security
+              deposits remain refundable and platform/payment fees remain in the platform wallet.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -273,6 +341,60 @@ function FeeRuleRow({
         </Select>
       </div>
       <div className="text-sm text-muted-foreground">{(rule.rate_bps / 100).toFixed(3)}%</div>
+    </div>
+  );
+}
+
+function PolicyNumberField({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Input type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+    </div>
+  );
+}
+
+function RetentionRuleFields({
+  label,
+  onChange,
+  rule,
+}: {
+  label: string;
+  onChange: (key: "type" | "rate_bps" | "fixed_amount", value: number | string) => void;
+  rule: PricingPolicy["renter_cancellation_policy"]["middle_retention"];
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Select value={rule.type} onValueChange={(value) => onChange("type", value)}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="percentage">Percentage</SelectItem>
+          <SelectItem value="fixed">Fixed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input
+        type="number"
+        value={rule.rate_bps ?? 0}
+        onChange={(event) => onChange("rate_bps", Number(event.target.value))}
+        placeholder="Rate bps"
+      />
+      <Input
+        type="number"
+        value={rule.fixed_amount ?? 0}
+        onChange={(event) => onChange("fixed_amount", Number(event.target.value))}
+        placeholder="Fixed amount"
+      />
     </div>
   );
 }

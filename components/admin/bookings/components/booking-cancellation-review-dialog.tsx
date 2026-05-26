@@ -48,8 +48,30 @@ export function BookingCancellationReviewDialog({
   const maxRefundAmount = getMaxRefundAmount(booking);
   const maxRefundText = formatBookingMoney(maxRefundAmount);
   const requestedByOwner = booking.cancellationRequest?.requestedByRole === "owner";
+  const requestedByRenter = booking.cancellationRequest?.requestedByRole === "renter";
   const ownerPenalty = booking.cancellationRequest?.ownerPenaltyPreview;
+  const renterPenalty = booking.cancellationRequest?.renterPenaltyPreview;
   const ownerPenaltyAmount = formatBookingMoney(ownerPenalty?.penaltyAmount ?? null, ownerPenalty?.currency ?? "PHP");
+  const renterRentalRefundAmount = formatBookingMoney(
+    renterPenalty?.rentalRefundAmount ?? null,
+    renterPenalty?.currency ?? "PHP",
+  );
+  const renterDepositRefundAmount = formatBookingMoney(
+    renterPenalty?.securityDepositRefundAmount ?? null,
+    renterPenalty?.currency ?? "PHP",
+  );
+  const renterSuggestedRefundAmount = formatBookingMoney(
+    renterPenalty?.refundAmount ?? null,
+    renterPenalty?.currency ?? "PHP",
+  );
+  const renterRetainedAmount = formatBookingMoney(
+    renterPenalty?.retainedOwnerAmount ?? null,
+    renterPenalty?.currency ?? "PHP",
+  );
+  const hasRenterSuggestion =
+    requestedByRenter &&
+    renterPenalty != null &&
+    typeof renterPenalty.suggestedRefundType === "string";
   const ownerPenaltyRate =
     typeof ownerPenalty?.penaltyRate === "number" ? `${formatExactNumber(ownerPenalty.penaltyRate * 100)}%` : "Not set";
 
@@ -76,6 +98,21 @@ export function BookingCancellationReviewDialog({
     if (success) {
       onOpenChange(false);
     }
+  }
+
+  function applyRenterPolicySuggestion() {
+    if (noRefund) {
+      setRefundType("none");
+      setPartialAmount("");
+      setValidationError(null);
+      return;
+    }
+    const suggestion = renterPenalty?.suggestedRefundType;
+    if (suggestion !== "full" && suggestion !== "partial" && suggestion !== "none") return;
+
+    setRefundType(suggestion);
+    setPartialAmount(suggestion === "partial" ? String(renterPenalty?.refundAmount ?? "") : "");
+    setValidationError(null);
   }
 
   return (
@@ -108,6 +145,28 @@ export function BookingCancellationReviewDialog({
                 payouts for this listing.
               </p>
             ) : null}
+            {approving && hasRenterSuggestion ? (
+              <div className="mt-3 rounded-md border bg-muted/40 p-3">
+                <p className="font-medium">Renter cancellation policy</p>
+                <p className="mt-1 text-muted-foreground">
+                  Free cancellation window: {renterPenalty?.fullRefundWindowLabel ?? "Not set"}. No refund window:{" "}
+                  {renterPenalty?.noRefundWindowLabel ?? "Not set"} before start.
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Rental refund: {renterRentalRefundAmount}. Security deposit refund: {renterDepositRefundAmount}. Total
+                  refund: {renterSuggestedRefundAmount}. Owner retained rental amount: {renterRetainedAmount}.
+                </p>
+                {noRefund && (renterPenalty?.securityDepositRefundAmount ?? 0) > 0 ? (
+                  <p className="mt-1 text-muted-foreground">
+                    This payment method cannot be refunded through PayMongo. Record the security deposit refund for manual
+                    handling.
+                  </p>
+                ) : null}
+                <Button className="mt-2 h-8 px-2 text-xs" onClick={applyRenterPolicySuggestion} type="button" variant="secondary">
+                  Use policy suggestion
+                </Button>
+              </div>
+            ) : null}
             <p className="mt-1 text-muted-foreground">{booking.payment?.method}</p>
           </div>
           {approving ? (
@@ -118,6 +177,7 @@ export function BookingCancellationReviewDialog({
               refundType={refundType}
               setPartialAmount={setPartialAmount}
               setRefundType={setRefundType}
+              allowNoRefund={hasRenterSuggestion && renterPenalty?.suggestedRefundType === "none"}
             />
           ) : null}
           <Textarea onChange={(event) => setNotes(event.target.value)} placeholder="Admin notes" value={notes} />
