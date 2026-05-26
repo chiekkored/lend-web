@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { doc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
-import { CalendarClock, ListChecks, UserRound } from "lucide-react";
+import { CalendarClock, ListChecks, MessageCircle, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +30,7 @@ import {
   fetchFullVerificationSubmission,
   userDirectoryQueryKeys,
 } from "../data/user-directory-queries";
+import { UserSupportChatSheet } from "./user-support-chat-sheet";
 
 type UserViewSheetProps = {
   onOpenChange: (open: boolean) => void;
@@ -40,6 +41,7 @@ type UserViewSheetProps = {
 export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) {
   const [listingsOpen, setListingsOpen] = React.useState(false);
   const [bookingsOpen, setBookingsOpen] = React.useState(false);
+  const [supportChatOpen, setSupportChatOpen] = React.useState(false);
   const verificationMutation = useFullVerificationMutation(user);
   const displayName = getUserDisplayName(user);
   const initials = displayName
@@ -53,6 +55,7 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
     if (!open) {
       setListingsOpen(false);
       setBookingsOpen(false);
+      setSupportChatOpen(false);
     }
   }, [open]);
 
@@ -82,7 +85,7 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
 
           <div className="grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4">
             <Section title="Activity">
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 <Button
                   className="justify-center"
                   onClick={() => setListingsOpen(true)}
@@ -100,6 +103,15 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
                 >
                   <CalendarClock className="size-4" />
                   View bookings
+                </Button>
+                <Button
+                  className="justify-center"
+                  onClick={() => setSupportChatOpen(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  <MessageCircle className="size-4" />
+                  View support chat
                 </Button>
               </div>
             </Section>
@@ -183,6 +195,7 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
       </Sheet>
       <UserListingsSheet onOpenChange={setListingsOpen} open={listingsOpen} user={user} />
       <UserBookingsSheet onOpenChange={setBookingsOpen} open={bookingsOpen} user={user} />
+      <UserSupportChatSheet onOpenChange={setSupportChatOpen} open={supportChatOpen} user={user} />
     </>
   );
 }

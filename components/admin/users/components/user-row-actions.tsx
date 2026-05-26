@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Copy, ExternalLink, Mail, MoreVerticalIcon } from "lucide-react";
+import { Copy, ExternalLink, Mail, MessageCircle, MoreVerticalIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
 import type { AdminUser } from "@/lib/admin-users";
 
 import { UserViewSheet } from "./user-view-sheet";
+import { UserSupportChatSheet } from "./user-support-chat-sheet";
 
 type UserRowActionsProps = {
   user: AdminUser;
@@ -22,6 +23,7 @@ type UserRowActionsProps = {
 
 export function UserRowActions({ user }: UserRowActionsProps) {
   const [viewOpen, setViewOpen] = React.useState(false);
+  const [supportChatOpen, setSupportChatOpen] = React.useState(false);
 
   return (
     <div className="text-right">
@@ -41,6 +43,15 @@ export function UserRowActions({ user }: UserRowActionsProps) {
           >
             <ExternalLink />
             View details
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault();
+              setSupportChatOpen(true);
+            }}
+          >
+            <MessageCircle />
+            View support chat
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => copyToClipboard(user.uid)}>
             <Copy />
@@ -69,6 +80,11 @@ export function UserRowActions({ user }: UserRowActionsProps) {
       <UserViewSheet
         onOpenChange={setViewOpen}
         open={viewOpen}
+        user={user}
+      />
+      <UserSupportChatSheet
+        onOpenChange={setSupportChatOpen}
+        open={supportChatOpen}
         user={user}
       />
     </div>
