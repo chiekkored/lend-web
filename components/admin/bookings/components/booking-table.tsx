@@ -5,28 +5,49 @@ import {
   type AdminDataTablePaginationProps,
 } from "@/components/admin/admin-data-table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { AdminBooking } from "@/lib/admin-bookings";
+import type {
+  AdminBooking,
+  AdminCancellationRequestStatusFilter,
+} from "@/lib/admin-bookings";
 
 import { useBookingColumns } from "./booking-columns";
 
 export type BookingActionsMode = "all" | "cancellations" | "pending-damage";
 export type BookingStatusFilter = "all" | "pending" | "completed";
+export type BookingTableFilterValue =
+  | BookingStatusFilter
+  | AdminCancellationRequestStatusFilter;
+
+export type BookingTableFilterOption<
+  TValue extends BookingTableFilterValue = BookingTableFilterValue,
+> = {
+  label: string;
+  value: TValue;
+};
 
 type BookingTableProps = {
   actionsMode?: BookingActionsMode;
   data: AdminBooking[];
   error: string | null;
-  filterValue?: BookingStatusFilter;
+  filterOptions?: BookingTableFilterOption[];
+  filterValue?: BookingTableFilterValue;
   loading: boolean;
-  onFilterChange?: (value: BookingStatusFilter) => void;
+  onFilterChange?: (value: BookingTableFilterValue) => void;
   pagination?: AdminDataTablePaginationProps;
   storageKey?: string;
 };
+
+const defaultFilterOptions: BookingTableFilterOption<BookingStatusFilter>[] = [
+  { label: "Pending", value: "pending" },
+  { label: "Completed", value: "completed" },
+  { label: "All", value: "all" },
+];
 
 export function BookingTable({
   actionsMode = "all",
   data,
   error,
+  filterOptions = defaultFilterOptions,
   filterValue,
   loading,
   onFilterChange,
@@ -36,14 +57,19 @@ export function BookingTable({
   const columns = useBookingColumns({ actionsMode });
   const toolbarFilter =
     filterValue && onFilterChange ? (
-      <Select onValueChange={(value) => onFilterChange(value as BookingStatusFilter)} value={filterValue}>
+      <Select
+        onValueChange={(value) => onFilterChange(value as BookingTableFilterValue)}
+        value={filterValue}
+      >
         <SelectTrigger aria-label="Filter bookings" className="w-full sm:w-36">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="completed">Completed</SelectItem>
-          <SelectItem value="all">All</SelectItem>
+          {filterOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     ) : null;

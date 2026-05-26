@@ -3,13 +3,18 @@
 import * as React from "react";
 
 import { BookingTable } from "./components";
-import type { BookingStatusFilter } from "./components";
+import type {
+  BookingStatusFilter,
+  BookingTableFilterOption,
+  BookingTableFilterValue,
+} from "./components";
 import { useCancellationBookings } from "./hooks/use-cancellation-bookings";
 import { useBookings } from "./hooks/use-bookings";
 import { usePendingDamageBookings } from "./hooks/use-pending-damage-bookings";
 import {
   isCompletedDamageBooking,
   isPendingDamageBooking,
+  type AdminCancellationRequestStatusFilter,
   type AdminBooking,
 } from "@/lib/admin-bookings";
 
@@ -19,12 +24,29 @@ type BookingsPageProps = {
   mode?: BookingsPageMode;
 };
 
+const cancellationFilterOptions: BookingTableFilterOption<
+  AdminCancellationRequestStatusFilter
+>[] = [
+  { label: "All", value: "all" },
+  { label: "Pending", value: "Pending" },
+  { label: "Approved", value: "Approved" },
+  { label: "Rejected", value: "Rejected" },
+];
+
 export function BookingsPage({ mode = "all" }: BookingsPageProps) {
   const isCancellations = mode === "cancellations";
   const isPendingDamage = mode === "pending-damage";
-  const bookings = useBookings({ enabled: !isPendingDamage && !isCancellations });
+  const [statusFilter, setStatusFilter] = React.useState<BookingStatusFilter>(
+    isPendingDamage ? "pending" : "all",
+  );
+  const [cancellationStatusFilter, setCancellationStatusFilter] =
+    React.useState<AdminCancellationRequestStatusFilter>("all");
+  const bookings = useBookings({
+    enabled: !isPendingDamage && !isCancellations,
+  });
   const cancellationBookings = useCancellationBookings({
     enabled: isCancellations,
+    statusFilter: cancellationStatusFilter,
   });
   const pendingDamageBookings = usePendingDamageBookings({
     enabled: isPendingDamage,
@@ -39,14 +61,28 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
     : isCancellations
       ? cancellationBookings.pagination
       : bookings.pagination;
-  const [statusFilter, setStatusFilter] = React.useState<BookingStatusFilter>(
-    isPendingDamage ? "pending" : "all",
-  );
   const filteredData = isCancellations
     ? data
     : isPendingDamage
       ? data.filter((booking) => matchesDamageFilter(booking, statusFilter))
       : data.filter((booking) => matchesBookingStatusFilter(booking, statusFilter));
+  const tableFilterValue: BookingTableFilterValue = isCancellations
+    ? cancellationStatusFilter
+    : statusFilter;
+  const tableFilterOptions = isCancellations ? cancellationFilterOptions : undefined;
+  const handleFilterChange = React.useCallback(
+    (value: BookingTableFilterValue) => {
+      if (isCancellations) {
+        setCancellationStatusFilter(
+          value as AdminCancellationRequestStatusFilter,
+        );
+        return;
+      }
+
+      setStatusFilter(value as BookingStatusFilter);
+    },
+    [isCancellations],
+  );
 
   return (
     <div className="space-y-6">
@@ -69,9 +105,10 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
       <BookingTable
         data={filteredData}
         error={error}
-        filterValue={isCancellations ? undefined : statusFilter}
+        filterOptions={tableFilterOptions}
+        filterValue={tableFilterValue}
         loading={loading}
-        onFilterChange={isCancellations ? undefined : setStatusFilter}
+        onFilterChange={handleFilterChange}
         pagination={pagination}
         storageKey={
           isCancellations
@@ -80,10 +117,25 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
               ? "admin:bookings:pending-damage:column-visibility"
             : "admin:bookings:column-visibility"
         }
-        actionsMode={isPendingDamage ? "pending-damage" : isCancellations ? "cancellations" : "all"}
+        actionsMode={resolveBookingActionsMode({
+          isCancellations,
+          isPendingDamage,
+        })}
       />
     </div>
   );
+}
+
+function resolveBookingActionsMode({
+  isCancellations,
+  isPendingDamage,
+}: {
+  isCancellations: boolean;
+  isPendingDamage: boolean;
+}) {
+  if (isPendingDamage) return "pending-damage";
+  if (isCancellations) return "cancellations";
+  return "all";
 }
 
 function matchesBookingStatusFilter(

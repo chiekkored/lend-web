@@ -11,6 +11,18 @@ export type BookingStatus =
   | "Cancellation Requested"
   | string;
 
+export const adminCancellationRequestStatuses = [
+  "Pending",
+  "Approved",
+  "Rejected",
+] as const;
+
+export type AdminCancellationRequestStatus =
+  (typeof adminCancellationRequestStatuses)[number];
+export type AdminCancellationRequestStatusFilter =
+  | "all"
+  | AdminCancellationRequestStatus;
+
 export type BookingPerson = {
   uid: string | null;
   firstName: string | null;

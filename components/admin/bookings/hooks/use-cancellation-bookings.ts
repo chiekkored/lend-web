@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import type { AdminCancellationRequestStatusFilter } from "@/lib/admin-bookings";
 import { useAdminCursorPagination } from "@/lib/helpers/use-admin-cursor-pagination";
 
 import {
@@ -11,13 +12,20 @@ import {
 
 export function useCancellationBookings({
   enabled = true,
+  statusFilter = "all",
 }: {
   enabled?: boolean;
+  statusFilter?: AdminCancellationRequestStatusFilter;
 } = {}) {
-  const fetchPage = React.useCallback(fetchCancellationBookingsPage, []);
+  const fetchPage = React.useCallback(
+    (input: Parameters<typeof fetchCancellationBookingsPage>[0]) =>
+      fetchCancellationBookingsPage({ ...input, statusFilter }),
+    [statusFilter],
+  );
   const listenFirstPage = React.useCallback(
-    listenCancellationBookings,
-    [],
+    (input: Parameters<typeof listenCancellationBookings>[0]) =>
+      listenCancellationBookings({ ...input, statusFilter }),
+    [statusFilter],
   );
   const cancellations = useAdminCursorPagination({
     enabled,

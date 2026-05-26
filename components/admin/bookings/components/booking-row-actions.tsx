@@ -39,7 +39,8 @@ export function BookingRowActions({
   const [rejectCancellationOpen, setRejectCancellationOpen] =
     React.useState(false);
   const [damageReviewOpen, setDamageReviewOpen] = React.useState(false);
-  const hasCancellationRequest = booking.status === "Cancellation Requested";
+  const hasPendingCancellationRequest =
+    booking.cancellationRequest?.status === "Pending";
   const hasDamageReview =
     booking.settlement?.status === "admin_review_required" &&
     Boolean(booking.damageDeductionRequest);
@@ -80,7 +81,7 @@ export function BookingRowActions({
                 <RefreshCcw />
                 Update status
               </DropdownMenuItem>
-              {isCancellationMode && hasCancellationRequest ? (
+              {isCancellationMode && hasPendingCancellationRequest ? (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

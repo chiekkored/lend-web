@@ -10,14 +10,17 @@ import {
   startAfter,
   where,
   type DocumentData,
+  type QueryConstraint,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 import {
+  adminCancellationRequestStatuses,
   mapAdminBooking,
   mapAdminBookingMessage,
   type AdminBooking,
   type AdminBookingMessage,
+  type AdminCancellationRequestStatusFilter,
 } from "@/lib/admin-bookings";
 import {
   getFirebaseFirestore,
@@ -93,9 +96,11 @@ export async function fetchAdminBookingsPage({
 export async function fetchCancellationBookingsPage({
   cursor,
   pageSize,
+  statusFilter = "all",
 }: {
   cursor: AdminCursor;
   pageSize: number;
+  statusFilter?: AdminCancellationRequestStatusFilter;
 }): Promise<AdminCursorPage<AdminBooking>> {
   if (!hasFirebaseConfig) {
     throw new Error(
@@ -103,20 +108,13 @@ export async function fetchCancellationBookingsPage({
     );
   }
 
-  const cancellationsQuery = cursor
-    ? query(
-        collection(getFirebaseFirestore(), "bookings"),
-        where("status", "==", "Cancellation Requested"),
-        orderBy("createdAt", "desc"),
-        startAfter(cursor),
-        limit(pageSize),
-      )
-    : query(
-        collection(getFirebaseFirestore(), "bookings"),
-        where("status", "==", "Cancellation Requested"),
-        orderBy("createdAt", "desc"),
-        limit(pageSize),
-      );
+  const cancellationsCollection = collection(getFirebaseFirestore(), "bookings");
+  const constraints = cancellationBookingQueryConstraints({
+    cursor,
+    pageSize,
+    statusFilter,
+  });
+  const cancellationsQuery = query(cancellationsCollection, ...constraints);
   const snapshot = await getDocs(cancellationsQuery);
 
   return mapBookingPageSnapshot(snapshot.docs, pageSize);
@@ -201,10 +199,12 @@ export function listenCancellationBookings({
   onError,
   onNext,
   pageSize = BOOKING_QUEUE_LIVE_LIMIT,
+  statusFilter = "all",
 }: {
   onError: (error: Error) => void;
   onNext: (page: AdminCursorPage<AdminBooking>) => void;
   pageSize?: number;
+  statusFilter?: AdminCancellationRequestStatusFilter;
 }) {
   if (!hasFirebaseConfig) {
     onError(
@@ -218,14 +218,46 @@ export function listenCancellationBookings({
   return onSnapshot(
     query(
       collection(getFirebaseFirestore(), "bookings"),
-      where("status", "==", "Cancellation Requested"),
-      orderBy("createdAt", "desc"),
-      limit(pageSize),
+      ...cancellationBookingQueryConstraints({
+        cursor: null,
+        pageSize,
+        statusFilter,
+      }),
     ),
     (snapshot) =>
       onNext(mapBookingPageSnapshot(snapshot.docs, pageSize)),
     onError,
   );
+}
+
+function cancellationBookingQueryConstraints({
+  cursor,
+  pageSize,
+  statusFilter,
+}: {
+  cursor: AdminCursor;
+  pageSize: number;
+  statusFilter: AdminCancellationRequestStatusFilter;
+}): QueryConstraint[] {
+  const statusConstraint =
+    statusFilter === "all"
+      ? where(
+          "cancellationRequest.status",
+          "in",
+          [...adminCancellationRequestStatuses],
+        )
+      : where("cancellationRequest.status", "==", statusFilter);
+  const constraints: QueryConstraint[] = [
+    statusConstraint,
+    orderBy("createdAt", "desc"),
+  ];
+
+  if (cursor) {
+    constraints.push(startAfter(cursor));
+  }
+
+  constraints.push(limit(pageSize));
+  return constraints;
 }
 
 export function listenPendingDamageBookings({

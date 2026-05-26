@@ -36,11 +36,7 @@ type BookingCancellationViewSheetProps = {
   open: boolean;
 };
 
-export function BookingCancellationViewSheet({
-  booking,
-  onOpenChange,
-  open,
-}: BookingCancellationViewSheetProps) {
+export function BookingCancellationViewSheet({ booking, onOpenChange, open }: BookingCancellationViewSheetProps) {
   const [chatOpen, setChatOpen] = React.useState(false);
   const [approveOpen, setApproveOpen] = React.useState(false);
   const [rejectOpen, setRejectOpen] = React.useState(false);
@@ -79,9 +75,21 @@ export function BookingCancellationViewSheet({
 
           <div className="grid flex-1 auto-rows-min gap-4 overflow-y-auto overflow-x-hidden px-4 pb-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              <MetricTile icon={<Clock3 className="size-4" />} label="Requested" value={formatBookingDateTime(request?.requestedAt ?? null)} />
-              <MetricTile icon={<UserRound className="size-4" />} label="Requested by" value={request?.requestedByRole ?? "Not set"} />
-              <MetricTile icon={<RotateCcw className="size-4" />} label="Restore status" value={request?.previousStatus ?? "Not set"} />
+              <MetricTile
+                icon={<Clock3 className="size-4" />}
+                label="Requested"
+                value={formatBookingDateTime(request?.requestedAt ?? null)}
+              />
+              <MetricTile
+                icon={<UserRound className="size-4" />}
+                label="Requested by"
+                value={request?.requestedByRole ?? "Not set"}
+              />
+              <MetricTile
+                icon={<RotateCcw className="size-4" />}
+                label="Restore status"
+                value={request?.previousStatus ?? "Not set"}
+              />
             </div>
 
             <FocusedSection title="Cancellation reason">
@@ -97,9 +105,21 @@ export function BookingCancellationViewSheet({
 
             <FocusedSection title="Refund handling">
               <div className="grid gap-3 sm:grid-cols-3">
-                <MetricTile icon={<ReceiptText className="size-4" />} label="Paid amount" value={formatBookingMoney(booking.payment?.amount ?? booking.totalPrice)} />
-                <MetricTile icon={<ReceiptText className="size-4" />} label="Refund amount" value={formatBookingMoney(booking.payment?.refundAmount ?? null)} />
-                <MetricTile icon={<ReceiptText className="size-4" />} label="Refund status" value={request?.refundStatus ?? booking.payment?.refundStatus ?? "Not set"} />
+                <MetricTile
+                  icon={<ReceiptText className="size-4" />}
+                  label="Paid amount"
+                  value={formatBookingMoney(booking.payment?.amount ?? booking.totalPrice)}
+                />
+                <MetricTile
+                  icon={<ReceiptText className="size-4" />}
+                  label="Refund amount"
+                  value={formatBookingMoney(booking.payment?.refundAmount ?? null)}
+                />
+                <MetricTile
+                  icon={<ReceiptText className="size-4" />}
+                  label="Refund status"
+                  value={request?.refundStatus ?? booking.payment?.refundStatus ?? "Not set"}
+                />
               </div>
               {request?.refundError || booking.payment?.refundError ? (
                 <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive [overflow-wrap:anywhere]">
@@ -127,11 +147,14 @@ export function BookingCancellationViewSheet({
                     value={formatCancellationMoney(ownerPenalty?.remainingAmount ?? null, ownerPenalty?.currency)}
                   />
                 </div>
-                <DetailLine label="Listing after approval" value={ownerPenalty?.listingStatusAfterApproval ?? "Not set"} />
+                <DetailLine
+                  label="Listing after approval"
+                  value={ownerPenalty?.listingStatusAfterApproval ?? "Not set"}
+                />
               </FocusedSection>
             ) : null}
 
-            {(isApproved || isRejected) ? (
+            {isApproved || isRejected ? (
               <FocusedSection title="Review outcome">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <MetricTile label="Reviewed" value={formatBookingDateTime(request?.reviewedAt ?? null)} />
@@ -229,13 +252,7 @@ function CancellationOutcomeBanner({
   );
 }
 
-function FocusedSection({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title: string;
-}) {
+function FocusedSection({ children, title }: { children: React.ReactNode; title: string }) {
   return (
     <section className="grid gap-3 border-t pt-4">
       <h3 className="text-sm font-semibold">{title}</h3>
@@ -256,7 +273,13 @@ function MetricTile({
   value: React.ReactNode;
 }) {
   return (
-    <div className={emphasized ? "grid gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3" : "grid gap-2 rounded-md border bg-muted/30 p-3"}>
+    <div
+      className={
+        emphasized
+          ? "grid gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3"
+          : "grid gap-2 rounded-md border bg-muted/30 p-3"
+      }
+    >
       <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground">
         {icon}
         {label}
@@ -266,15 +289,7 @@ function MetricTile({
   );
 }
 
-function PartyTile({
-  label,
-  name,
-  uid,
-}: {
-  label: string;
-  name: string;
-  uid: string | null;
-}) {
+function PartyTile({ label, name, uid }: { label: string; name: string; uid: string | null }) {
   return (
     <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
       <div className="text-xs uppercase text-muted-foreground">{label}</div>
@@ -284,13 +299,7 @@ function PartyTile({
   );
 }
 
-function DetailLine({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function DetailLine({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex min-w-0 items-start justify-between gap-3 text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>

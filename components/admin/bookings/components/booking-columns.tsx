@@ -106,10 +106,23 @@ export function useBookingColumns({
       },
       {
         id: "status",
-        accessorFn: (booking) => booking.status ?? "",
-        header: "Status",
+        accessorFn: (booking) =>
+          actionsMode === "cancellations"
+            ? (booking.cancellationRequest?.status ?? "")
+            : (booking.status ?? ""),
+        header: actionsMode === "cancellations" ? "Request status" : "Status",
         cell: ({ row }) =>
-          row.original.status ? <StatusBadge value={row.original.status} /> : "Not set",
+          actionsMode === "cancellations" ? (
+            row.original.cancellationRequest?.status ? (
+              <StatusBadge value={row.original.cancellationRequest.status} />
+            ) : (
+              "Not set"
+            )
+          ) : row.original.status ? (
+            <StatusBadge value={row.original.status} />
+          ) : (
+            "Not set"
+          ),
       },
       {
         id: "createdAt",
