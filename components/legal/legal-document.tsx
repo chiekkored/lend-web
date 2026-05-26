@@ -33,6 +33,9 @@ export function LegalDocument({
             Lend
           </Link>
           <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+            <Link className="transition hover:text-foreground" href="/help-center">
+              Help Center
+            </Link>
             <Link className="transition hover:text-foreground" href="/privacy-policy">
               Privacy Policy
             </Link>

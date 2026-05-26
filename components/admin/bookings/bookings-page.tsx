@@ -60,7 +60,7 @@ export function BookingsPage({ mode = "all" }: BookingsPageProps) {
         </h2>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           {isCancellations
-            ? "Review renter cancellation requests before refunds begin."
+            ? "Review owner and renter cancellation requests, refunds, restored chats, and owner penalties."
             : isPendingDamage
               ? "View total loss and over-deposit damage support cases, evidence, and support chats."
             : "Track rental status, cancellation requests, disputes, and transaction health."}

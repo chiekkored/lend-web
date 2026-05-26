@@ -16,6 +16,7 @@ import type { AdminBooking } from "@/lib/admin-bookings";
 
 import type { BookingActionsMode } from "./booking-table";
 import { BookingCancellationReviewDialog } from "./booking-cancellation-review-dialog";
+import { BookingCancellationViewSheet } from "./booking-cancellation-view-sheet";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { BookingPendingDamageViewSheet } from "./booking-pending-damage-view-sheet";
 import { BookingStatusDialog } from "./booking-status-dialog";
@@ -120,11 +121,19 @@ export function BookingRowActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <BookingViewSheet
-        booking={booking}
-        onOpenChange={setViewOpen}
-        open={viewOpen}
-      />
+      {isCancellationMode ? (
+        <BookingCancellationViewSheet
+          booking={booking}
+          onOpenChange={setViewOpen}
+          open={viewOpen}
+        />
+      ) : (
+        <BookingViewSheet
+          booking={booking}
+          onOpenChange={setViewOpen}
+          open={viewOpen}
+        />
+      )}
       <BookingStatusDialog
         booking={booking}
         onOpenChange={setStatusOpen}

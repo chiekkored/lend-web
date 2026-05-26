@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { formatBookingMoney, getBookingAssetTitle, type AdminBooking } from "@/lib/admin-bookings";
+import { formatBookingMoney, formatExactNumber, getBookingAssetTitle, type AdminBooking } from "@/lib/admin-bookings";
 
 import { useBookingMutation } from "../hooks/use-booking-mutation";
 import {
@@ -47,6 +47,11 @@ export function BookingCancellationReviewDialog({
   const noRefund = approving && isNonRefundablePaymentMethod(booking);
   const maxRefundAmount = getMaxRefundAmount(booking);
   const maxRefundText = formatBookingMoney(maxRefundAmount);
+  const requestedByOwner = booking.cancellationRequest?.requestedByRole === "owner";
+  const ownerPenalty = booking.cancellationRequest?.ownerPenaltyPreview;
+  const ownerPenaltyAmount = formatBookingMoney(ownerPenalty?.penaltyAmount ?? null, ownerPenalty?.currency ?? "PHP");
+  const ownerPenaltyRate =
+    typeof ownerPenalty?.penaltyRate === "number" ? `${formatExactNumber(ownerPenalty.penaltyRate * 100)}%` : "Not set";
 
   React.useEffect(() => {
     if (open) {
@@ -79,7 +84,9 @@ export function BookingCancellationReviewDialog({
         <DialogHeader>
           <DialogTitle>{approving ? "Approve cancellation" : "Reject cancellation"}</DialogTitle>
           <DialogDescription>
-            {approving
+            {approving && requestedByOwner
+              ? "This cancels the booking, applies refund handling, and records the owner payout penalty."
+              : approving
               ? "This cancels the booking and applies the selected refund handling."
               : "This restores the booking and reopens the booking chat."}
           </DialogDescription>
@@ -88,9 +95,18 @@ export function BookingCancellationReviewDialog({
           <div className="rounded-md border p-4 text-sm">
             <p className="font-medium">{booking.id}</p>
             <p className="mt-1 text-muted-foreground">{getBookingAssetTitle(booking)}</p>
+            <p className="mt-1 text-muted-foreground">
+              Requested by: {booking.cancellationRequest?.requestedByRole ?? "Not set"}
+            </p>
             <p className="mt-1 text-muted-foreground">Reason: {booking.cancellationRequest?.reason ?? "Not set"}</p>
             {approving ? (
               <p className="mt-1 text-muted-foreground">Paid amount: {maxRefundText}</p>
+            ) : null}
+            {approving && requestedByOwner ? (
+              <p className="mt-1 text-muted-foreground">
+                Owner penalty: {ownerPenaltyRate} of expected payout ({ownerPenaltyAmount}), deducted from future
+                payouts for this listing.
+              </p>
             ) : null}
             <p className="mt-1 text-muted-foreground">{booking.payment?.method}</p>
           </div>

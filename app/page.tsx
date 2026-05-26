@@ -63,6 +63,9 @@ export default function LandingPage() {
         </div>
 
         <footer className="mt-16 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+          <Link className="transition hover:text-foreground" href="/help-center">
+            Help Center
+          </Link>
           <Link className="transition hover:text-foreground" href="/privacy-policy">
             Privacy Policy
           </Link>

@@ -47,7 +47,8 @@ const sections: LegalSection[] = [
       <>
         <strong>Location data:</strong> approximate or selected locations used
         to show nearby rentals, set listing or pickup locations, and support
-        booking logistics.
+        booking logistics, reports, support, safety review, and dispute
+        handling.
       </>,
       <>
         <strong>Listing data:</strong> asset title, category, description,
@@ -142,6 +143,10 @@ const sections: LegalSection[] = [
         <strong>Other users and admins:</strong> information necessary for a
         booking, listing, chat, review, report, handover, return, payout, or
         dispute may be visible to the relevant renter, owner, or Lend admin.
+        After a booking is confirmed, this may include names, phone numbers,
+        listing or pickup location details, booking dates, chat records,
+        handover or return status, reports, evidence, and settlement details
+        needed to coordinate or review the rental.
       </>,
       <>
         <strong>Authorities, advisers, or transaction parties:</strong> where
@@ -167,7 +172,7 @@ const sections: LegalSection[] = [
   {
     title: "Location, camera, photos, notifications, and biometrics",
     items: [
-      "Location permission helps show nearby rentals and set listing or pickup locations. You may continue with less precise or manually selected locations where the app allows it.",
+      "Location permission helps show nearby rentals and set listing or pickup locations. Listing locations may be based on your profile location or a custom pinned location and may be shown where needed for discovery, confirmed bookings, handover, return, support, safety, reports, or disputes. You may continue with less precise or manually selected locations where the app allows it.",
       "Camera and photo library access support listing photos, profile photos, chat media, verification photos, and QR code scanning or saving.",
       "Notifications support booking requests, chat replies, confirmations, verification updates, settlement updates, and reminders.",
       "Device biometrics, when enabled by you, are used locally for protected sign-in or account actions. Lend does not receive your device biometric template.",

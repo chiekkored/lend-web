@@ -35,11 +35,14 @@ const sections: LegalSection[] = [
       <p>
         Lend provides technology that helps owners list assets for rent and
         helps renters discover, book, pay for, receive, return, review, and
-        resolve rentals. Unless expressly stated otherwise, Lend is not the
-        owner, manufacturer, insurer, repairer, employer, agent, broker, or
-        guarantor of any listed asset or user. Owners and renters are
-        responsible for their own conduct, listings, handovers, returns, and
-        compliance with law.
+        resolve rentals. Lend is a peer-to-peer marketplace platform. Unless
+        expressly stated otherwise, Lend is not the owner, manufacturer,
+        insurer, repairer, employer, agent, broker, or guarantor of any listed
+        asset or user. Verification, platform records, support review, and admin
+        moderation are risk-reduction tools only. They do not guarantee user
+        behavior, asset condition, payment success, payout success, or dispute
+        outcome. Owners and renters are responsible for their own conduct,
+        listings, handovers, returns, and compliance with law.
       </p>
     ),
   },
@@ -57,6 +60,7 @@ const sections: LegalSection[] = [
     title: "Owners and listings",
     items: [
       "Owners must have the right to rent out the listed asset and must provide accurate titles, descriptions, photos, inclusions, availability, pricing, location, pickup instructions, condition details, and security deposit requirements.",
+      "Owners authorize Lend to use and show listing information, including the pinned listing location, as needed to operate discovery, booking, handover, return, support, safety, report, and dispute workflows.",
       "Listings must not be misleading, unsafe, unlawful, counterfeit, stolen, restricted, or otherwise prohibited by Lend policy or applicable law.",
       "Owners are responsible for asset condition, cleanliness, safety, lawful use, required permits or licenses, and accurate disclosure of material limitations or risks.",
       "Owners must honor confirmed bookings unless cancellation is allowed by Lend policy or required for safety, legal, or exceptional reasons.",
@@ -68,6 +72,7 @@ const sections: LegalSection[] = [
     items: [
       "Renters must review the listing, dates, price, security deposit, location, owner information, and applicable rules before booking.",
       "A booking is not confirmed until the required checkout flow succeeds and Lend records the booking as confirmed or booked.",
+      "Once a booking is confirmed, Lend may show the renter and owner information reasonably needed to coordinate the rental, including names, phone numbers, listing or pickup location details, booking dates, chat access, and handover or return status.",
       "Renters must use the asset carefully, lawfully, and only for the agreed rental period and ordinary intended purpose unless the owner expressly agrees otherwise.",
       "Renters must complete required QR handover and return checkpoints, return the asset on time and in substantially the same condition, and cooperate with settlement or dispute review.",
       "Renters are responsible for loss, damage, late return, misuse, unlawful use, missing inclusions, or other violations to the extent allowed by applicable law and Lend policy.",
@@ -101,6 +106,7 @@ const sections: LegalSection[] = [
       "After return, the owner may complete the rental or request a damage deduction with requested amount, reason, notes, and evidence where supported.",
       "The renter may accept or dispute a requested deduction, but all damage deduction requests still require Lend admin review before money movement is finalized.",
       "Lend admins may approve the requested amount, approve an adjusted amount, reject the deduction, require more information, or take other reasonable action under Lend policy.",
+      "Security deposits, damage requests, evidence review, verification, and admin decisions are not insurance and do not guarantee recovery for every lost, damaged, late-returned, misused, or missing item.",
     ],
   },
   {
@@ -178,13 +184,16 @@ const sections: LegalSection[] = [
       <p>
         Lend is provided on an as-is and as-available basis to the fullest extent
         permitted by law. We do not guarantee that listings are accurate, assets
-        are available or suitable, users will perform as promised, payments or
-        payouts will never fail, or the service will be uninterrupted or
-        error-free. To the fullest extent permitted by law, Lend will not be
-        liable for indirect, incidental, special, consequential, exemplary, or
-        punitive damages, lost profits, lost data, personal arrangements,
-        off-platform transactions, or user conduct. Nothing in these terms
-        excludes liability that cannot be excluded under applicable law.
+        are available, safe, lawful, undamaged, or suitable, users will perform
+        as promised, payments or payouts will never fail, security deposits will
+        cover every loss, or the service will be uninterrupted or error-free. To
+        the fullest extent permitted by law, Lend will not be liable for
+        indirect, incidental, special, consequential, exemplary, or punitive
+        damages, lost profits, lost data, personal arrangements, off-platform
+        transactions, user conduct, asset loss, asset damage, late return,
+        missing inclusions, misuse, or ordinary marketplace risk. Nothing in
+        these terms excludes liability that cannot be excluded under applicable
+        law.
       </p>
     ),
   },

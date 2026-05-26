@@ -85,12 +85,29 @@ export type AdminBooking = {
     reason: string | null;
     previousStatus: string | null;
     requestedBy: string | null;
+    requestedByRole: string | null;
     requestedAt: Date | null;
     reviewedBy: string | null;
     reviewedAt: Date | null;
     adminNotes: string | null;
     refundStatus: string | null;
     refundError: string | null;
+    ownerPenaltyPreview: {
+      penaltyRate: number | null;
+      penaltyBaseAmount: number | null;
+      penaltyAmount: number | null;
+      remainingAmount: number | null;
+      currency: string | null;
+      listingStatusAfterApproval: string | null;
+    } | null;
+    ownerPenalty: {
+      penaltyRate: number | null;
+      penaltyBaseAmount: number | null;
+      penaltyAmount: number | null;
+      remainingAmount: number | null;
+      currency: string | null;
+      listingStatusAfterApproval: string | null;
+    } | null;
   } | null;
   renter: BookingPerson | null;
   status: BookingStatus | null;
@@ -188,12 +205,15 @@ export function mapAdminBooking({
           reason: asString(cancellationRequest.reason),
           previousStatus: asString(cancellationRequest.previousStatus),
           requestedBy: asString(cancellationRequest.requestedBy),
+          requestedByRole: asString(cancellationRequest.requestedByRole),
           requestedAt: toDate(cancellationRequest.requestedAt),
           reviewedBy: asString(cancellationRequest.reviewedBy),
           reviewedAt: toDate(cancellationRequest.reviewedAt),
           adminNotes: asString(cancellationRequest.adminNotes),
           refundStatus: asString(cancellationRequest.refundStatus),
           refundError: asString(cancellationRequest.refundError),
+          ownerPenaltyPreview: mapOwnerPenaltyPreview(cancellationRequest.ownerPenaltyPreview),
+          ownerPenalty: mapOwnerPenaltyPreview(cancellationRequest.ownerPenalty),
         }
       : null,
     securityDeposit: {
@@ -256,6 +276,21 @@ export function mapAdminBooking({
     renter: mapBookingPerson(data.renter),
     status: asString(data.status),
     totalPrice: asNumber(data.totalPrice),
+  };
+}
+
+function mapOwnerPenaltyPreview(
+  value: unknown,
+): NonNullable<AdminBooking["cancellationRequest"]>["ownerPenaltyPreview"] {
+  const data = asRecord(value);
+  if (!data) return null;
+  return {
+    penaltyRate: asNumber(data.penaltyRate),
+    penaltyBaseAmount: asNumber(data.penaltyBaseAmount),
+    penaltyAmount: asNumber(data.penaltyAmount),
+    remainingAmount: asNumber(data.remainingAmount),
+    currency: asString(data.currency),
+    listingStatusAfterApproval: asString(data.listingStatusAfterApproval),
   };
 }
 
@@ -353,16 +388,24 @@ export function formatBookingDateTime(value: Date | null) {
   }).format(value);
 }
 
-export function formatBookingMoney(value: number | null) {
+export function formatBookingMoney(value: number | null, currency = "PHP") {
   if (value == null) {
     return "Not set";
   }
 
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value);
+  return `${currency || "PHP"} ${formatExactNumber(value)}`;
+}
+
+export function formatExactNumber(value: number | null) {
+  if (value == null) {
+    return "Not set";
+  }
+
+  if (!Number.isFinite(value)) {
+    return "Not set";
+  }
+
+  return addGrouping(toPlainNumberString(value));
 }
 
 function getPersonName(person: BookingPerson | null | undefined, fallback: string) {
@@ -414,6 +457,41 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function toPlainNumberString(value: number) {
+  const stringValue = String(value);
+  if (!/[eE]/.test(stringValue)) {
+    return stringValue;
+  }
+
+  const [coefficient, exponentValue] = stringValue.toLowerCase().split("e");
+  const exponent = Number(exponentValue);
+  if (!Number.isInteger(exponent)) return stringValue;
+
+  const negative = coefficient.startsWith("-");
+  const unsigned = negative ? coefficient.slice(1) : coefficient;
+  const [integerPart, fractionPart = ""] = unsigned.split(".");
+  const digits = `${integerPart}${fractionPart}`;
+  const decimalIndex = integerPart.length + exponent;
+
+  if (decimalIndex <= 0) {
+    return `${negative ? "-" : ""}0.${"0".repeat(Math.abs(decimalIndex))}${digits}`;
+  }
+
+  if (decimalIndex >= digits.length) {
+    return `${negative ? "-" : ""}${digits}${"0".repeat(decimalIndex - digits.length)}`;
+  }
+
+  return `${negative ? "-" : ""}${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`;
+}
+
+function addGrouping(value: string) {
+  const negative = value.startsWith("-");
+  const unsigned = negative ? value.slice(1) : value;
+  const [integerPart, fractionPart] = unsigned.split(".");
+  const groupedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${negative ? "-" : ""}${groupedInteger}${fractionPart != null ? `.${fractionPart}` : ""}`;
 }
 
 function toDate(value: unknown): Date | null {
