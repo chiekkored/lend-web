@@ -47,6 +47,7 @@ export function BookingCancellationViewSheet({ booking, onOpenChange, open }: Bo
   const isRejected = requestStatus === "Rejected";
   const ownerPenalty = request?.ownerPenalty ?? request?.ownerPenaltyPreview ?? null;
   const requestedByOwner = request?.requestedByRole === "owner";
+  const paidAmountBreakdown = buildPaidAmountBreakdown(booking);
 
   return (
     <>
@@ -74,11 +75,19 @@ export function BookingCancellationViewSheet({ booking, onOpenChange, open }: Bo
           </SheetHeader>
 
           <div className="grid flex-1 auto-rows-min gap-4 overflow-y-auto overflow-x-hidden px-4 pb-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4">
               <MetricTile
                 icon={<Clock3 className="size-4" />}
                 label="Requested"
                 value={formatBookingDateTime(request?.requestedAt ?? null)}
+              />
+              <MetricTile
+                icon={<Clock3 className="size-4" />}
+                label="Lead at request"
+                value={formatRemainingLeadTime({
+                  from: request?.requestedAt ?? null,
+                  to: booking.startDate,
+                })}
               />
               <MetricTile
                 icon={<UserRound className="size-4" />}
@@ -108,7 +117,7 @@ export function BookingCancellationViewSheet({ booking, onOpenChange, open }: Bo
                 <MetricTile
                   icon={<ReceiptText className="size-4" />}
                   label="Paid amount"
-                  value={formatBookingMoney(booking.payment?.amount ?? booking.totalPrice)}
+                  value={formatCancellationMoney(paidAmountBreakdown.total, paidAmountBreakdown.currency)}
                 />
                 <MetricTile
                   icon={<ReceiptText className="size-4" />}
@@ -120,6 +129,28 @@ export function BookingCancellationViewSheet({ booking, onOpenChange, open }: Bo
                   label="Refund status"
                   value={request?.refundStatus ?? booking.payment?.refundStatus ?? "Not set"}
                 />
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <div className="mb-2 text-xs uppercase text-muted-foreground">Paid amount calculation</div>
+                {paidAmountBreakdown.lines.length > 0 ? (
+                  <div className="grid gap-2">
+                    {paidAmountBreakdown.lines.map((line) => (
+                      <DetailLine
+                        key={line.label}
+                        label={line.label}
+                        value={formatCancellationMoney(line.amount, paidAmountBreakdown.currency)}
+                      />
+                    ))}
+                    <div className="border-t pt-2">
+                      <DetailLine
+                        label="Paid amount"
+                        value={formatCancellationMoney(paidAmountBreakdown.total, paidAmountBreakdown.currency)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Breakdown unavailable</p>
+                )}
               </div>
               {request?.refundError || booking.payment?.refundError ? (
                 <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive [overflow-wrap:anywhere]">
@@ -314,4 +345,112 @@ function formatPenaltyRate(value: number | null) {
 
 function formatCancellationMoney(value: number | null, currency: string | null | undefined) {
   return formatBookingMoney(value, currency ?? "PHP");
+}
+
+type PaidAmountBreakdown = {
+  currency: string | null;
+  lines: Array<{ label: string; amount: number }>;
+  total: number | null;
+};
+
+function buildPaidAmountBreakdown(booking: AdminBooking): PaidAmountBreakdown {
+  const pricingBreakdown = booking.payment?.pricingBreakdown ?? {};
+  const total = firstFiniteNumber([
+    booking.payment?.amount,
+    numberValue(pricingBreakdown.paymentAmount),
+    booking.totalPrice,
+  ]);
+  const rentalSubtotal = firstFiniteNumber([
+    booking.payment?.rentalSubtotal,
+    numberValue(pricingBreakdown.rentalSubtotal),
+  ]);
+  const securityDeposit = firstFiniteNumber([
+    numberValue(pricingBreakdown.securityDepositAmount),
+    booking.securityDeposit.enabled ? booking.securityDeposit.amount : null,
+  ]);
+  const calculatedProcessingFee =
+    total != null && rentalSubtotal != null
+      ? roundMoney(total - rentalSubtotal - (securityDeposit ?? 0))
+      : null;
+  const storedProcessingFee = positiveSum([
+    numberValue(pricingBreakdown.renterPlatformFee),
+    numberValue(pricingBreakdown.renterProcessingFee),
+  ]);
+  const processingFee =
+    calculatedProcessingFee != null && calculatedProcessingFee > 0
+      ? calculatedProcessingFee
+      : storedProcessingFee > 0
+        ? storedProcessingFee
+        : null;
+  const lines: PaidAmountBreakdown["lines"] = [];
+
+  if (rentalSubtotal != null && rentalSubtotal > 0) {
+    lines.push({ label: "Rental subtotal", amount: rentalSubtotal });
+  }
+
+  if (securityDeposit != null && securityDeposit > 0) {
+    lines.push({ label: "Security deposit", amount: securityDeposit });
+  }
+
+  if (processingFee != null && processingFee > 0) {
+    lines.push({ label: "Processing/platform fees", amount: processingFee });
+  }
+
+  return {
+    currency: booking.payment?.currency ?? null,
+    lines,
+    total,
+  };
+}
+
+function firstFiniteNumber(values: Array<number | null | undefined>) {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+
+  return null;
+}
+
+function numberValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function positiveSum(values: Array<number | null | undefined>): number {
+  return values.reduce<number>((sum, value) => {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return sum;
+    return sum + value;
+  }, 0);
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function formatRemainingLeadTime({ from, to }: { from: Date | null; to: Date | null }) {
+  if (!from || !to) return "Not set";
+
+  const diffMs = policyStartBoundary(to).getTime() - from.getTime();
+  if (diffMs <= 0) return "Started";
+
+  const totalHours = Math.max(Math.ceil(diffMs / (60 * 60 * 1000)), 1);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days <= 0) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  if (hours <= 0) return `${days} ${days === 1 ? "day" : "days"}`;
+  return `${days} ${days === 1 ? "day" : "days"} ${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
+
+function policyStartBoundary(startDate: Date) {
+  return new Date(Date.UTC(
+    startDate.getUTCFullYear(),
+    startDate.getUTCMonth(),
+    startDate.getUTCDate(),
+  ) - 8 * 60 * 60 * 1000);
 }

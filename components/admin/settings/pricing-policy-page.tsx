@@ -278,8 +278,10 @@ export function PricingPolicyPage() {
               onChange={(key, value) => updateCancellationPolicy(["no_refund_retention", key], value)}
             />
             <div className="text-sm text-muted-foreground">
-              Mobile displays these windows as days or hours. Cancellation penalties apply only to rental subtotal; security
-              deposits remain refundable and platform/payment fees remain in the platform wallet.
+              Mobile displays these windows as days or hours for normal-lead bookings. Bookings made less than 24 hours
+              before the rental starts are always non-refundable for the rental payment. Cancellation penalties apply only
+              to rental subtotal; security deposits remain refundable and platform/payment fees remain in the platform
+              wallet.
             </div>
           </div>
         </CardContent>

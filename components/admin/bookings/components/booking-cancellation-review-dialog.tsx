@@ -50,28 +50,41 @@ export function BookingCancellationReviewDialog({
   const requestedByOwner = booking.cancellationRequest?.requestedByRole === "owner";
   const requestedByRenter = booking.cancellationRequest?.requestedByRole === "renter";
   const ownerPenalty = booking.cancellationRequest?.ownerPenaltyPreview;
-  const renterPenalty = booking.cancellationRequest?.renterPenaltyPreview;
+  const renterPenalty = booking.cancellationRequest?.renterPenaltyPreview ?? null;
+  const renterDepositRefundValue = Number(renterPenalty?.securityDepositRefundAmount ?? 0);
+  const effectiveRenterSuggestion = getEffectiveRenterSuggestion({
+    renterPenalty,
+    shortLeadNoRefund: renterPenalty?.shortLeadNoRefund === true || isShortLeadBooking(booking),
+  });
   const ownerPenaltyAmount = formatBookingMoney(ownerPenalty?.penaltyAmount ?? null, ownerPenalty?.currency ?? "PHP");
   const renterRentalRefundAmount = formatBookingMoney(
-    renterPenalty?.rentalRefundAmount ?? null,
+    effectiveRenterSuggestion.shortLeadNoRefund ? 0 : renterPenalty?.rentalRefundAmount ?? null,
     renterPenalty?.currency ?? "PHP",
   );
   const renterDepositRefundAmount = formatBookingMoney(
-    renterPenalty?.securityDepositRefundAmount ?? null,
+    renterDepositRefundValue,
     renterPenalty?.currency ?? "PHP",
   );
   const renterSuggestedRefundAmount = formatBookingMoney(
-    renterPenalty?.refundAmount ?? null,
+    effectiveRenterSuggestion.refundAmount,
     renterPenalty?.currency ?? "PHP",
   );
   const renterRetainedAmount = formatBookingMoney(
-    renterPenalty?.retainedOwnerAmount ?? null,
+    effectiveRenterSuggestion.shortLeadNoRefund
+      ? renterPenalty?.refundBaseAmount ?? null
+      : renterPenalty?.retainedOwnerAmount ?? null,
     renterPenalty?.currency ?? "PHP",
   );
   const hasRenterSuggestion =
     requestedByRenter &&
     renterPenalty != null &&
     typeof renterPenalty.suggestedRefundType === "string";
+  const depositOnlySuggestion =
+    hasRenterSuggestion &&
+    effectiveRenterSuggestion.refundType === "partial" &&
+    effectiveRenterSuggestion.shortLeadNoRefund &&
+    renterDepositRefundValue > 0;
+  const shortLeadNoRefund = effectiveRenterSuggestion.shortLeadNoRefund;
   const ownerPenaltyRate =
     typeof ownerPenalty?.penaltyRate === "number" ? `${formatExactNumber(ownerPenalty.penaltyRate * 100)}%` : "Not set";
 
@@ -107,11 +120,11 @@ export function BookingCancellationReviewDialog({
       setValidationError(null);
       return;
     }
-    const suggestion = renterPenalty?.suggestedRefundType;
+    const suggestion = effectiveRenterSuggestion.refundType;
     if (suggestion !== "full" && suggestion !== "partial" && suggestion !== "none") return;
 
     setRefundType(suggestion);
-    setPartialAmount(suggestion === "partial" ? String(renterPenalty?.refundAmount ?? "") : "");
+    setPartialAmount(suggestion === "partial" ? String(effectiveRenterSuggestion.refundAmount ?? "") : "");
     setValidationError(null);
   }
 
@@ -152,18 +165,33 @@ export function BookingCancellationReviewDialog({
                   Free cancellation window: {renterPenalty?.fullRefundWindowLabel ?? "Not set"}. No refund window:{" "}
                   {renterPenalty?.noRefundWindowLabel ?? "Not set"} before start.
                 </p>
+                {shortLeadNoRefund ? (
+                  <p className="mt-1 text-muted-foreground">
+                    Booked less than 24 hours before start; rental payment is non-refundable.
+                  </p>
+                ) : null}
                 <p className="mt-1 text-muted-foreground">
                   Rental refund: {renterRentalRefundAmount}. Security deposit refund: {renterDepositRefundAmount}. Total
                   refund: {renterSuggestedRefundAmount}. Owner retained rental amount: {renterRetainedAmount}.
                 </p>
+                {depositOnlySuggestion ? (
+                  <p className="mt-1 font-medium text-muted-foreground">
+                    Policy suggestion: refund security deposit only.
+                  </p>
+                ) : null}
                 {noRefund && (renterPenalty?.securityDepositRefundAmount ?? 0) > 0 ? (
                   <p className="mt-1 text-muted-foreground">
                     This payment method cannot be refunded through PayMongo. Record the security deposit refund for manual
                     handling.
                   </p>
                 ) : null}
-                <Button className="mt-2 h-8 px-2 text-xs" onClick={applyRenterPolicySuggestion} type="button" variant="secondary">
-                  Use policy suggestion
+                <Button
+                  className="mt-2 h-8 px-2 text-xs"
+                  onClick={applyRenterPolicySuggestion}
+                  type="button"
+                  variant="secondary"
+                >
+                  {depositOnlySuggestion ? "Use deposit-only suggestion" : "Use policy suggestion"}
                 </Button>
               </div>
             ) : null}
@@ -177,7 +205,7 @@ export function BookingCancellationReviewDialog({
               refundType={refundType}
               setPartialAmount={setPartialAmount}
               setRefundType={setRefundType}
-              allowNoRefund={hasRenterSuggestion && renterPenalty?.suggestedRefundType === "none"}
+              allowNoRefund={hasRenterSuggestion && effectiveRenterSuggestion.refundType === "none"}
             />
           ) : null}
           <Textarea onChange={(event) => setNotes(event.target.value)} placeholder="Admin notes" value={notes} />
@@ -207,4 +235,41 @@ export function BookingCancellationReviewDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function isShortLeadBooking(booking: AdminBooking) {
+  if (!booking.createdAt || !booking.startDate) return false;
+  const leadHours = (policyStartBoundary(booking.startDate).getTime() - booking.createdAt.getTime()) / (60 * 60 * 1000);
+  return leadHours >= 0 && leadHours < 24;
+}
+
+function getEffectiveRenterSuggestion({
+  renterPenalty,
+  shortLeadNoRefund,
+}: {
+  renterPenalty: NonNullable<AdminBooking["cancellationRequest"]>["renterPenaltyPreview"];
+  shortLeadNoRefund: boolean;
+}) {
+  if (shortLeadNoRefund) {
+    const depositRefundAmount = Number(renterPenalty?.securityDepositRefundAmount ?? 0);
+    return {
+      refundAmount: depositRefundAmount > 0 ? depositRefundAmount : 0,
+      refundType: depositRefundAmount > 0 ? "partial" : "none",
+      shortLeadNoRefund,
+    } as const;
+  }
+
+  return {
+    refundAmount: renterPenalty?.refundAmount ?? null,
+    refundType: renterPenalty?.suggestedRefundType,
+    shortLeadNoRefund,
+  } as const;
+}
+
+function policyStartBoundary(startDate: Date) {
+  return new Date(Date.UTC(
+    startDate.getUTCFullYear(),
+    startDate.getUTCMonth(),
+    startDate.getUTCDate(),
+  ) - 8 * 60 * 60 * 1000);
 }

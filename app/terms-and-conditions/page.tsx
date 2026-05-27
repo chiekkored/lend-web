@@ -86,6 +86,7 @@ const sections: LegalSection[] = [
       "Prices, platform fees, payment method fees, wallet transfer fees, taxes, security deposits, refunds, and payout amounts may be calculated according to Lend policy, provider rules, and remote pricing configuration shown or applied at checkout.",
       "Owner funds are not released at payment time. Owner payout occurs only after the relevant completion, admin review, auto-completion, or settlement step is satisfied.",
       "Owners must maintain a valid payout destination before renters can pay for their listings. Renters may be required to maintain a valid deposit return destination before booking listings with security deposits.",
+      "Renter cancellations for bookings made less than 24 hours before the rental starts may be non-refundable for the rental payment under Lend policy. Security deposits remain subject to deposit, settlement, damage, and dispute rules.",
       "Refunds, cancellations, reversals, failed payments, payout failures, and provider errors are subject to Lend policy, payment provider rules, and applicable law.",
     ],
   },

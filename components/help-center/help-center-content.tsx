@@ -110,7 +110,7 @@ const questions: HelpQuestion[] = [
     topic: "booking-changes",
     question: "What happens if a booking is canceled?",
     answer:
-      "Refunds, date release, and any applicable fees depend on the booking status, payment provider status, Lend policy, and the reason for cancellation.",
+      "Refunds, date release, and any applicable fees depend on the booking status, payment provider status, Lend policy, and the reason for cancellation. If a renter books less than 24 hours before the rental starts, the rental payment is non-refundable if cancellation is approved, but the security deposit remains refundable unless a separate settlement issue applies.",
   },
   {
     topic: "booking-changes",

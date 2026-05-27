@@ -48,8 +48,11 @@ export type AdminBooking = {
   numDays: number | null;
   payment: {
     amount: number | null;
+    currency: string | null;
     method: string | null;
     details: Record<string, unknown>;
+    rentalSubtotal: number | null;
+    pricingBreakdown: Record<string, unknown>;
     transactionId: string | null;
     ownerPayoutAmount: number | null;
     refundStatus: string | null;
@@ -130,6 +133,7 @@ export type AdminBooking = {
       refundAmount: number | null;
       retainedOwnerAmount: number | null;
       manualSecurityDepositRefundAmount: number | null;
+      shortLeadNoRefund: boolean | null;
       suggestedRefundType: string | null;
       currency: string | null;
       fullRefundWindowLabel: string | null;
@@ -144,6 +148,7 @@ export type AdminBooking = {
       refundAmount: number | null;
       retainedOwnerAmount: number | null;
       manualSecurityDepositRefundAmount: number | null;
+      shortLeadNoRefund: boolean | null;
       suggestedRefundType: string | null;
       currency: string | null;
       fullRefundWindowLabel: string | null;
@@ -230,8 +235,11 @@ export function mapAdminBooking({
     payment: payment
       ? {
           amount: asNumber(payment.amount),
+          currency: asString(payment.currency),
           method: asString(payment.method),
           details: asRecord(payment.details) ?? {},
+          rentalSubtotal: asNumber(payment.rentalSubtotal),
+          pricingBreakdown: asRecord(payment.pricingBreakdown) ?? {},
           transactionId: asString(payment.transactionId),
           ownerPayoutAmount: asNumber(payment.ownerPayoutAmount),
           refundStatus: asString(payment.refundStatus),
@@ -337,6 +345,7 @@ function mapRenterPenaltyPreview(
     refundAmount: asNumber(data.refundAmount),
     retainedOwnerAmount: asNumber(data.retainedOwnerAmount),
     manualSecurityDepositRefundAmount: asNumber(data.manualSecurityDepositRefundAmount),
+    shortLeadNoRefund: asBoolean(data.shortLeadNoRefund),
     suggestedRefundType: asString(data.suggestedRefundType),
     currency: asString(data.currency),
     fullRefundWindowLabel: asString(data.fullRefundWindowLabel),
@@ -522,6 +531,10 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : null;
 }
 
 function toPlainNumberString(value: number) {
