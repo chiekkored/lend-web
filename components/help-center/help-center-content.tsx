@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  Bug,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Lock,
-  Mail,
-  MessageSquareWarning,
-} from "lucide-react";
+import { Bug, ChevronDown, ChevronRight, FileText, Lock, Mail, MessageSquareWarning } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -230,7 +222,7 @@ const questions: HelpQuestion[] = [
     topic: "privacy",
     question: "Will my contact details be shown?",
     answer:
-      "Your full name, phone number, and relevant listing or pickup location details may be shown to the other party once a booking is confirmed so the rental can be coordinated.",
+      "Your first name and relevant listing or pickup location details may be shown to the other party once a booking is confirmed so the rental can be coordinated.",
   },
   {
     topic: "privacy",
@@ -311,25 +303,25 @@ export function HelpCenterContent() {
           <p className="text-sm font-medium text-foreground">Browse by topic</p>
           <div className="-mx-6 overflow-x-auto px-6 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
             <div className="flex w-max gap-2 whitespace-nowrap pb-1">
-            {topics.map((topic) => {
-              const selected = selectedTopic === topic.id;
-              return (
-                <Button
-                  className={cn(
-                    "h-auto shrink-0 rounded-full px-3 py-2 text-sm",
-                    selected
-                      ? "shadow-none"
-                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                  key={topic.id}
-                  onClick={() => selectTopic(topic.id)}
-                  size="sm"
-                  variant={selected ? "default" : "secondary"}
-                >
-                  {topic.label}
-                </Button>
-              );
-            })}
+              {topics.map((topic) => {
+                const selected = selectedTopic === topic.id;
+                return (
+                  <Button
+                    className={cn(
+                      "h-auto shrink-0 rounded-full px-3 py-2 text-sm",
+                      selected
+                        ? "shadow-none"
+                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    )}
+                    key={topic.id}
+                    onClick={() => selectTopic(topic.id)}
+                    size="sm"
+                    variant={selected ? "default" : "secondary"}
+                  >
+                    {topic.label}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -337,12 +329,9 @@ export function HelpCenterContent() {
         <div className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-semibold tracking-normal text-foreground">
-                Questions and answers
-              </h2>
+              <h2 className="text-2xl font-semibold tracking-normal text-foreground">Questions and answers</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {visibleQuestions.length}{" "}
-                {visibleQuestions.length === 1 ? "answer" : "answers"} shown
+                {visibleQuestions.length} {visibleQuestions.length === 1 ? "answer" : "answers"} shown
               </p>
             </div>
           </div>
@@ -381,9 +370,7 @@ export function HelpCenterContent() {
         <section className="space-y-4 rounded-md bg-accent px-4 py-5">
           <div className="flex items-center gap-3">
             <Mail className="size-5 text-primary" />
-            <h2 className="text-xl font-semibold tracking-normal text-foreground">
-              Contact support
-            </h2>
+            <h2 className="text-xl font-semibold tracking-normal text-foreground">Contact support</h2>
           </div>
           <div className="space-y-3">
             {contactLinks.map((link) => (
@@ -395,9 +382,7 @@ export function HelpCenterContent() {
                 <link.icon className="mt-0.5 size-5 shrink-0 text-primary" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium text-foreground">{link.title}</span>
-                  <span className="mt-1 block text-sm leading-6 text-muted-foreground">
-                    {link.description}
-                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-muted-foreground">{link.description}</span>
                 </span>
                 <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
               </a>
@@ -422,8 +407,8 @@ export function HelpCenterContent() {
             <p className="font-medium text-foreground">Before contacting us</p>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">
-            Include your account email or phone, booking or listing details,
-            screenshots if safe to share, and the steps that caused the issue.
+            Include your account email or phone, booking or listing details, screenshots if safe to share, and the steps
+            that caused the issue.
           </p>
         </section>
       </aside>
