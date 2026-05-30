@@ -9,20 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Loader2, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  getFirebaseAuth,
-  hasFirebaseConfig,
-  missingFirebaseConfig,
-} from "@/lib/firebase";
+import { getFirebaseAuth, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
 
 const registerSchema = z
   .object({
@@ -68,9 +58,7 @@ export function AdminRegisterForm() {
     }
 
     if (!hasFirebaseConfig) {
-      setError(
-        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
-      );
+      setError(`Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`);
       return;
     }
 
@@ -88,21 +76,25 @@ export function AdminRegisterForm() {
         }),
       });
 
-      const body = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        error?:
+          | string
+          | {
+              message?: string;
+              status?: string;
+            };
+        message?: string;
+      } | null;
 
       if (!response.ok) {
-        setError(body?.error ?? "Unable to register admin account.");
+        const errorMessage = typeof body?.error === "string" ? body.error : (body?.error?.message ?? body?.message);
+
+        setError(errorMessage ?? "Unable to register admin account.");
         return;
       }
 
       const auth = getFirebaseAuth();
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password,
-      );
+      const credential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const token = await credential.user.getIdTokenResult(true);
 
       if (token.claims.admin !== true) {
@@ -112,9 +104,7 @@ export function AdminRegisterForm() {
 
       router.replace("/admin");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to register admin account.",
-      );
+      setError(err instanceof Error ? err.message : "Unable to register admin account.");
     }
   }
 
@@ -138,60 +128,28 @@ export function AdminRegisterForm() {
               placeholder="admin@example.com"
               {...register("email")}
             />
-            {errors.email ? (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            ) : null}
+            {errors.email ? <p className="text-sm text-destructive">{errors.email.message}</p> : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="displayName">Display name</Label>
-            <Input
-              id="displayName"
-              autoComplete="name"
-              placeholder="Admin"
-              {...register("displayName")}
-            />
+            <Input id="displayName" autoComplete="name" placeholder="Admin" {...register("displayName")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              {...register("password")}
-            />
-            {errors.password ? (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            ) : null}
+            <Input id="password" type="password" autoComplete="new-password" {...register("password")} />
+            {errors.password ? <p className="text-sm text-destructive">{errors.password.message}</p> : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              {...register("confirmPassword")}
-            />
+            <Input id="confirmPassword" type="password" autoComplete="new-password" {...register("confirmPassword")} />
             {errors.confirmPassword ? (
-              <p className="text-sm text-destructive">
-                {errors.confirmPassword.message}
-              </p>
+              <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
             ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="setupSecret">Setup secret</Label>
-            <Input
-              id="setupSecret"
-              type="password"
-              autoComplete="one-time-code"
-              {...register("setupSecret")}
-            />
-            {errors.setupSecret ? (
-              <p className="text-sm text-destructive">
-                {errors.setupSecret.message}
-              </p>
-            ) : null}
+            <Input id="setupSecret" type="password" autoComplete="one-time-code" {...register("setupSecret")} />
+            {errors.setupSecret ? <p className="text-sm text-destructive">{errors.setupSecret.message}</p> : null}
           </div>
           {error ? (
             <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
