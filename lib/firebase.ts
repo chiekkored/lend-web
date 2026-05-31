@@ -33,6 +33,8 @@ export const hasFirebaseConfig = missingFirebaseConfig.length === 0;
 export const useFirebaseEmulators =
   process.env.NODE_ENV !== "production" &&
   process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";
+const firebaseFunctionsRegion =
+  process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION || "asia-southeast1";
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -86,7 +88,7 @@ export function getFirebaseFirestore() {
 
 export function getFirebaseFunctions() {
   if (!functions) {
-    functions = getFunctions(getFirebaseApp());
+    functions = getFunctions(getFirebaseApp(), firebaseFunctionsRegion);
   }
 
   if (useFirebaseEmulators && !functionsEmulatorConnected) {
