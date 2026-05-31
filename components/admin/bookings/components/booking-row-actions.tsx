@@ -42,8 +42,8 @@ export function BookingRowActions({
   const hasPendingCancellationRequest =
     booking.cancellationRequest?.status === "Pending";
   const hasDamageReview =
-    booking.settlement?.status === "admin_review_required" &&
-    Boolean(booking.damageDeductionRequest);
+    Boolean(booking.disputeFlow) &&
+    !["resolved", "closed"].includes(booking.disputeFlow?.status ?? "");
   const isPendingDamageMode = actionsMode === "pending-damage";
   const isCancellationMode = actionsMode === "cancellations";
 

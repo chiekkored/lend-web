@@ -283,17 +283,19 @@ export function listenPendingDamageBookings({
   const queries = [
     query(
       bookingsCollection,
-      where("settlement.status", "in", [
-        "admin_review_required",
-        "damage_deduction_requested",
-        "support_pending",
+      where("disputeFlow.status", "in", [
+        "requested",
+        "disputed",
+        "support_review",
+        "outstanding_payment_pending",
+        "outstanding_paid",
       ]),
       orderBy("createdAt", "desc"),
       limit(pageSize),
     ),
     query(
       bookingsCollection,
-      where("settlement.supportStatus", "in", [
+      where("disputeFlow.supportStatus", "in", [
         "pending",
         "in_progress",
         "resolved",
@@ -304,10 +306,11 @@ export function listenPendingDamageBookings({
     ),
     query(
       bookingsCollection,
-      where("damageDeductionRequest.status", "in", [
-        "requested",
-        "support_pending",
-        "resolved",
+      where("depositFlow.status", "in", [
+        "awaiting_renter_response",
+        "disputed",
+        "support_review",
+        "outstanding_payment_pending",
       ]),
       orderBy("createdAt", "desc"),
       limit(pageSize),

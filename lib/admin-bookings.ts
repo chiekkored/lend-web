@@ -61,6 +61,72 @@ export type AdminBooking = {
     refundType: string | null;
     paymongoRefundId: string | null;
   } | null;
+  paymentFlow: {
+    amount: number | null;
+    checkoutId: string | null;
+    currency: string | null;
+    method: string | null;
+    methodDetails: Record<string, unknown>;
+    paymongoPaymentId: string | null;
+    paymongoPaymentIntentId: string | null;
+    provider: string | null;
+    refundAmount: number | null;
+    refundError: string | null;
+    refundStatus: string | null;
+    refundType: string | null;
+    transactionId: string | null;
+  } | null;
+  priceBreakdown: {
+    rentalSubtotal: number | null;
+    securityDepositAmount: number | null;
+    renterPlatformFee: number | null;
+    renterProcessingFee: number | null;
+    paymentAmount: number | null;
+    ownerProcessingFee: number | null;
+    ownerPayoutAmount: number | null;
+    ownerPayoutTransferFee: number | null;
+    renterDepositReturnTransferFee: number | null;
+    securityDepositCollectionProcessingFee: number | null;
+    currency: string | null;
+  };
+  depositFlow: {
+    amount: number;
+    approvedDeductionAmount: number | null;
+    depositCoveredAmount: number | null;
+    depositReturnAmount: number | null;
+    required: boolean;
+    requestedDeductionAmount: number | null;
+    renterResponse: string | null;
+    status: string | null;
+  } | null;
+  disputeFlow: {
+    adminNotes: string | null;
+    approvedAmount: number | null;
+    depositCoveredAmount: number | null;
+    evidenceUrls: string[];
+    notes: string | null;
+    outstandingAmount: number | null;
+    outstandingPaymentRequestId: string | null;
+    outstandingPaymentStatus: string | null;
+    paidOutstandingAmount: number | null;
+    reason: string | null;
+    remainingSecurityDeposit: number | null;
+    renterResponse: string | null;
+    renterSupportChatId: string | null;
+    ownerSupportChatId: string | null;
+    requestedAmount: number | null;
+    status: string | null;
+    supportStatus: string | null;
+  } | null;
+  payoutFlow: {
+    depositReturnAmount: number | null;
+    depositReturnStatus: string | null;
+    ownerPayoutAmount: number | null;
+    ownerPayoutError: string | null;
+    ownerPayoutGrossAmount: number | null;
+    ownerPayoutStatus: string | null;
+    ownerPayoutTransferFee: number | null;
+  } | null;
   securityDeposit: {
     enabled: boolean;
     amount: number;
@@ -211,10 +277,20 @@ export function mapAdminBooking({
   const data = snapshot.data();
   const asset = asRecord(data.asset);
   const payment = asRecord(data.payment);
+  const paymentFlow = asRecord(data.paymentFlow);
+  const priceBreakdown = asRecord(data.priceBreakdown);
+  const depositFlow = asRecord(data.depositFlow);
+  const disputeFlow = asRecord(data.disputeFlow);
+  const payoutFlow = asRecord(data.payoutFlow);
   const cancellationRequest = asRecord(data.cancellationRequest);
   const securityDeposit = asRecord(data.securityDeposit);
   const settlement = asRecord(data.settlement);
   const damageDeductionRequest = asRecord(data.damageDeductionRequest);
+  const mappedPaymentFlow = mapPaymentFlow(paymentFlow, payment);
+  const mappedPriceBreakdown = mapPriceBreakdown(priceBreakdown, payment);
+  const mappedDepositFlow = mapDepositFlow(depositFlow, securityDeposit);
+  const mappedDisputeFlow = mapDisputeFlow(disputeFlow, damageDeductionRequest, settlement);
+  const mappedPayoutFlow = mapPayoutFlow(payoutFlow, settlement, payment);
 
   return {
     id: asString(data.id) ?? snapshot.id,
@@ -232,23 +308,25 @@ export function mapAdminBooking({
     startDate: toDate(data.startDate),
     endDate: toDate(data.endDate),
     numDays: asNumber(data.numDays),
-    payment: payment
+    payment: payment || paymentFlow
       ? {
-          amount: asNumber(payment.amount),
-          currency: asString(payment.currency),
-          method: asString(payment.method),
-          details: asRecord(payment.details) ?? {},
-          rentalSubtotal: asNumber(payment.rentalSubtotal),
-          pricingBreakdown: asRecord(payment.pricingBreakdown) ?? {},
-          transactionId: asString(payment.transactionId),
-          ownerPayoutAmount: asNumber(payment.ownerPayoutAmount),
-          refundStatus: asString(payment.refundStatus),
-          refundError: asString(payment.refundError),
-          refundAmount: asNumber(payment.refundAmount),
-          refundType: asString(payment.refundType),
-          paymongoRefundId: asString(payment.paymongoRefundId),
+          amount: asNumber(payment?.amount) ?? mappedPaymentFlow?.amount ?? null,
+          currency: asString(payment?.currency) ?? mappedPaymentFlow?.currency ?? null,
+          method: asString(payment?.method) ?? mappedPaymentFlow?.method ?? null,
+          details: asRecord(payment?.details) ?? mappedPaymentFlow?.methodDetails ?? {},
+          rentalSubtotal: asNumber(payment?.rentalSubtotal) ?? mappedPriceBreakdown.rentalSubtotal,
+          pricingBreakdown: asRecord(payment?.pricingBreakdown) ?? priceBreakdown ?? {},
+          transactionId: asString(payment?.transactionId) ?? mappedPaymentFlow?.transactionId ?? null,
+          ownerPayoutAmount: asNumber(payment?.ownerPayoutAmount) ?? mappedPriceBreakdown.ownerPayoutAmount,
+          refundStatus: asString(payment?.refundStatus) ?? mappedPaymentFlow?.refundStatus ?? null,
+          refundError: asString(payment?.refundError) ?? mappedPaymentFlow?.refundError ?? null,
+          refundAmount: asNumber(payment?.refundAmount) ?? mappedPaymentFlow?.refundAmount ?? null,
+          refundType: asString(payment?.refundType) ?? mappedPaymentFlow?.refundType ?? null,
+          paymongoRefundId: asString(payment?.paymongoRefundId),
         }
       : null,
+    paymentFlow: mappedPaymentFlow,
+    priceBreakdown: mappedPriceBreakdown,
     cancellationRequest: cancellationRequest
       ? {
           status: asString(cancellationRequest.status),
@@ -269,65 +347,222 @@ export function mapAdminBooking({
         }
       : null,
     securityDeposit: {
-      enabled: securityDeposit?.enabled === true,
-      amount: asNumber(securityDeposit?.amount) ?? 0,
+      enabled: mappedDepositFlow?.required ?? securityDeposit?.enabled === true,
+      amount: mappedDepositFlow?.amount ?? asNumber(securityDeposit?.amount) ?? 0,
     },
-    settlement: settlement
+    depositFlow: mappedDepositFlow,
+    disputeFlow: mappedDisputeFlow,
+    payoutFlow: mappedPayoutFlow,
+    settlement: settlement || depositFlow || disputeFlow || payoutFlow
       ? {
-          status: asString(settlement.status),
-          depositStatus: asString(settlement.depositStatus),
-          renterResponse: asString(settlement.renterResponse),
+          status: asString(settlement?.status) ?? mappedDisputeFlow?.status ?? mappedDepositFlow?.status ?? null,
+          depositStatus: asString(settlement?.depositStatus) ?? mappedDepositFlow?.status ?? null,
+          renterResponse: asString(settlement?.renterResponse) ?? mappedDisputeFlow?.renterResponse ?? null,
           approvedDamageDeductionAmount: asNumber(
-            settlement.approvedDamageDeductionAmount,
-          ),
+            settlement?.approvedDamageDeductionAmount,
+          ) ?? mappedDisputeFlow?.approvedAmount ?? mappedDepositFlow?.approvedDeductionAmount ?? null,
           depositCoveredDamageAmount: asNumber(
-            settlement.depositCoveredDamageAmount,
-          ),
-          outstandingDamageAmount: asNumber(settlement.outstandingDamageAmount),
-          depositReturnAmount: asNumber(settlement.depositReturnAmount),
-          ownerPayoutAmount: asNumber(settlement.ownerPayoutAmount),
-          supportStatus: asString(settlement.supportStatus),
-          renterSupportChatId: asString(settlement.renterSupportChatId),
-          ownerSupportChatId: asString(settlement.ownerSupportChatId),
+            settlement?.depositCoveredDamageAmount,
+          ) ?? mappedDisputeFlow?.depositCoveredAmount ?? null,
+          outstandingDamageAmount: asNumber(settlement?.outstandingDamageAmount) ?? mappedDisputeFlow?.outstandingAmount ?? null,
+          depositReturnAmount: asNumber(settlement?.depositReturnAmount) ?? mappedDepositFlow?.depositReturnAmount ?? mappedPayoutFlow?.depositReturnAmount ?? null,
+          ownerPayoutAmount: asNumber(settlement?.ownerPayoutAmount) ?? mappedPayoutFlow?.ownerPayoutAmount ?? null,
+          supportStatus: asString(settlement?.supportStatus) ?? mappedDisputeFlow?.supportStatus ?? null,
+          renterSupportChatId: asString(settlement?.renterSupportChatId) ?? mappedDisputeFlow?.renterSupportChatId ?? null,
+          ownerSupportChatId: asString(settlement?.ownerSupportChatId) ?? mappedDisputeFlow?.ownerSupportChatId ?? null,
           damageBalancePaymentStatus: asString(
-            settlement.damageBalancePaymentStatus,
-          ),
+            settlement?.damageBalancePaymentStatus,
+          ) ?? mappedDisputeFlow?.outstandingPaymentStatus ?? null,
           damageBalancePaymentRequestId: asString(
-            settlement.damageBalancePaymentRequestId,
-          ),
+            settlement?.damageBalancePaymentRequestId,
+          ) ?? mappedDisputeFlow?.outstandingPaymentRequestId ?? null,
           damageBalanceRequestedAmount: asNumber(
-            settlement.damageBalanceRequestedAmount,
-          ),
+            settlement?.damageBalanceRequestedAmount,
+          ) ?? mappedDisputeFlow?.outstandingAmount ?? null,
           ownerDamageBalancePayoutStatus: asString(
-            settlement.ownerDamageBalancePayoutStatus,
-          ),
+            settlement?.ownerDamageBalancePayoutStatus,
+          ) ?? mappedPayoutFlow?.ownerPayoutStatus ?? null,
         }
       : null,
-    damageDeductionRequest: damageDeductionRequest
+    damageDeductionRequest: damageDeductionRequest || disputeFlow
       ? {
-          requestedAmount: asNumber(damageDeductionRequest.requestedAmount),
-          approvedAmount: asNumber(damageDeductionRequest.approvedAmount),
-          reason: asString(damageDeductionRequest.reason),
-          notes: asString(damageDeductionRequest.notes),
-          evidenceUrls: asStringArray(damageDeductionRequest.evidenceUrls),
+          requestedAmount: asNumber(damageDeductionRequest?.requestedAmount) ?? mappedDisputeFlow?.requestedAmount ?? null,
+          approvedAmount: asNumber(damageDeductionRequest?.approvedAmount) ?? mappedDisputeFlow?.approvedAmount ?? null,
+          reason: asString(damageDeductionRequest?.reason) ?? mappedDisputeFlow?.reason ?? null,
+          notes: asString(damageDeductionRequest?.notes) ?? mappedDisputeFlow?.notes ?? null,
+          evidenceUrls: asStringArray(damageDeductionRequest?.evidenceUrls ?? mappedDisputeFlow?.evidenceUrls),
           requiresSupportReview:
-            damageDeductionRequest.requiresSupportReview === true,
+            damageDeductionRequest?.requiresSupportReview === true || (mappedDisputeFlow?.outstandingAmount ?? 0) > 0,
           overDepositRequested:
-            damageDeductionRequest.overDepositRequested === true,
-          renterResponse: asString(damageDeductionRequest.renterResponse),
-          status: asString(damageDeductionRequest.status),
-          adminNotes: asString(damageDeductionRequest.adminNotes),
+            damageDeductionRequest?.overDepositRequested === true || (mappedDisputeFlow?.outstandingAmount ?? 0) > 0,
+          renterResponse: asString(damageDeductionRequest?.renterResponse) ?? mappedDisputeFlow?.renterResponse ?? null,
+          status: asString(damageDeductionRequest?.status) ?? mappedDisputeFlow?.status ?? null,
+          adminNotes: asString(damageDeductionRequest?.adminNotes) ?? mappedDisputeFlow?.adminNotes ?? null,
           renterSupportChatId: asString(
-            damageDeductionRequest.renterSupportChatId,
-          ),
+            damageDeductionRequest?.renterSupportChatId,
+          ) ?? mappedDisputeFlow?.renterSupportChatId ?? null,
           ownerSupportChatId: asString(
-            damageDeductionRequest.ownerSupportChatId,
-          ),
+            damageDeductionRequest?.ownerSupportChatId,
+          ) ?? mappedDisputeFlow?.ownerSupportChatId ?? null,
         }
       : null,
     renter: mapBookingPerson(data.renter),
     status: asString(data.status),
     totalPrice: asNumber(data.totalPrice),
+  };
+}
+
+function mapPaymentFlow(
+  value: unknown,
+  legacyPayment?: Record<string, unknown> | null,
+): AdminBooking["paymentFlow"] {
+  const data = asRecord(value);
+  if (!data && !legacyPayment) return null;
+  return {
+    amount: asNumber(data?.amount) ?? asNumber(legacyPayment?.amount),
+    checkoutId: asString(data?.checkoutId) ?? asString(legacyPayment?.checkoutId),
+    currency: asString(data?.currency) ?? asString(legacyPayment?.currency),
+    method: asString(data?.method) ?? asString(legacyPayment?.method),
+    methodDetails:
+      asRecord(data?.methodDetails) ?? asRecord(legacyPayment?.details) ?? {},
+    paymongoPaymentId:
+      asString(data?.paymongoPaymentId) ?? asString(legacyPayment?.paymongoPaymentId),
+    paymongoPaymentIntentId:
+      asString(data?.paymongoPaymentIntentId) ??
+      asString(legacyPayment?.paymongoPaymentIntentId),
+    provider: asString(data?.provider) ?? asString(legacyPayment?.provider),
+    refundAmount: asNumber(data?.refundAmount) ?? asNumber(legacyPayment?.refundAmount),
+    refundError: asString(data?.refundError) ?? asString(legacyPayment?.refundError),
+    refundStatus:
+      asString(data?.refundStatus) ?? asString(legacyPayment?.refundStatus),
+    refundType: asString(data?.refundType) ?? asString(legacyPayment?.refundType),
+    transactionId:
+      asString(data?.transactionId) ?? asString(legacyPayment?.transactionId),
+  };
+}
+
+function mapPriceBreakdown(
+  value: unknown,
+  legacyPayment?: Record<string, unknown> | null,
+): AdminBooking["priceBreakdown"] {
+  const data = asRecord(value) ?? asRecord(legacyPayment?.pricingBreakdown);
+  return {
+    rentalSubtotal:
+      asNumber(data?.rentalSubtotal) ?? asNumber(legacyPayment?.rentalSubtotal),
+    securityDepositAmount: asNumber(data?.securityDepositAmount),
+    renterPlatformFee: asNumber(data?.renterPlatformFee),
+    renterProcessingFee: asNumber(data?.renterProcessingFee),
+    paymentAmount: asNumber(data?.paymentAmount) ?? asNumber(legacyPayment?.amount),
+    ownerProcessingFee: asNumber(data?.ownerProcessingFee),
+    ownerPayoutAmount:
+      asNumber(data?.ownerPayoutAmount) ?? asNumber(legacyPayment?.ownerPayoutAmount),
+    ownerPayoutTransferFee: asNumber(data?.ownerPayoutTransferFee),
+    renterDepositReturnTransferFee: asNumber(data?.renterDepositReturnTransferFee),
+    securityDepositCollectionProcessingFee: asNumber(
+      data?.securityDepositCollectionProcessingFee,
+    ),
+    currency: asString(data?.currency) ?? asString(legacyPayment?.currency),
+  };
+}
+
+function mapDepositFlow(
+  value: unknown,
+  legacySecurityDeposit?: Record<string, unknown> | null,
+): AdminBooking["depositFlow"] {
+  const data = asRecord(value);
+  if (!data && !legacySecurityDeposit) return null;
+  const amount =
+    asNumber(data?.amount) ??
+    asNumber(legacySecurityDeposit?.amount) ??
+    0;
+  return {
+    amount,
+    approvedDeductionAmount: asNumber(data?.approvedDeductionAmount),
+    depositCoveredAmount: asNumber(data?.depositCoveredAmount),
+    depositReturnAmount: asNumber(data?.depositReturnAmount),
+    required: data?.required === true || legacySecurityDeposit?.enabled === true,
+    requestedDeductionAmount: asNumber(data?.requestedDeductionAmount),
+    renterResponse: asString(data?.renterResponse),
+    status: asString(data?.status),
+  };
+}
+
+function mapDisputeFlow(
+  value: unknown,
+  legacyRequest?: Record<string, unknown> | null,
+  legacySettlement?: Record<string, unknown> | null,
+): AdminBooking["disputeFlow"] {
+  const data = asRecord(value);
+  if (!data && !legacyRequest && !legacySettlement) return null;
+  return {
+    adminNotes: asString(data?.adminNotes) ?? asString(legacyRequest?.adminNotes),
+    approvedAmount:
+      asNumber(data?.approvedAmount) ??
+      asNumber(legacyRequest?.approvedAmount) ??
+      asNumber(legacySettlement?.approvedDamageDeductionAmount),
+    depositCoveredAmount:
+      asNumber(data?.depositCoveredAmount) ??
+      asNumber(legacySettlement?.depositCoveredDamageAmount),
+    evidenceUrls: asStringArray(data?.evidenceUrls ?? legacyRequest?.evidenceUrls),
+    notes: asString(data?.notes) ?? asString(legacyRequest?.notes),
+    outstandingAmount:
+      asNumber(data?.outstandingAmount) ??
+      asNumber(legacySettlement?.outstandingDamageAmount),
+    outstandingPaymentRequestId:
+      asString(data?.outstandingPaymentRequestId) ??
+      asString(legacySettlement?.damageBalancePaymentRequestId),
+    outstandingPaymentStatus:
+      asString(data?.outstandingPaymentStatus) ??
+      asString(legacySettlement?.damageBalancePaymentStatus),
+    paidOutstandingAmount: asNumber(data?.paidOutstandingAmount),
+    reason: asString(data?.reason) ?? asString(legacyRequest?.reason),
+    remainingSecurityDeposit: asNumber(data?.remainingSecurityDeposit),
+    renterResponse:
+      asString(data?.renterResponse) ??
+      asString(legacyRequest?.renterResponse) ??
+      asString(legacySettlement?.renterResponse),
+    renterSupportChatId:
+      asString(data?.renterSupportChatId) ??
+      asString(legacyRequest?.renterSupportChatId) ??
+      asString(legacySettlement?.renterSupportChatId),
+    ownerSupportChatId:
+      asString(data?.ownerSupportChatId) ??
+      asString(legacyRequest?.ownerSupportChatId) ??
+      asString(legacySettlement?.ownerSupportChatId),
+    requestedAmount:
+      asNumber(data?.requestedAmount) ?? asNumber(legacyRequest?.requestedAmount),
+    status:
+      asString(data?.status) ??
+      asString(legacyRequest?.status) ??
+      asString(legacySettlement?.status),
+    supportStatus:
+      asString(data?.supportStatus) ?? asString(legacySettlement?.supportStatus),
+  };
+}
+
+function mapPayoutFlow(
+  value: unknown,
+  legacySettlement?: Record<string, unknown> | null,
+  legacyPayment?: Record<string, unknown> | null,
+): AdminBooking["payoutFlow"] {
+  const data = asRecord(value);
+  if (!data && !legacySettlement && !legacyPayment) return null;
+  return {
+    depositReturnAmount:
+      asNumber(data?.depositReturnAmount) ??
+      asNumber(legacySettlement?.depositReturnAmount),
+    depositReturnStatus:
+      asString(data?.depositReturnStatus) ??
+      asString(legacySettlement?.depositReturnStatus),
+    ownerPayoutAmount:
+      asNumber(data?.ownerPayoutAmount) ??
+      asNumber(legacySettlement?.ownerPayoutAmount) ??
+      asNumber(legacyPayment?.ownerPayoutAmount),
+    ownerPayoutError: asString(data?.ownerPayoutError),
+    ownerPayoutGrossAmount: asNumber(data?.ownerPayoutGrossAmount),
+    ownerPayoutStatus:
+      asString(data?.ownerPayoutStatus) ?? asString(legacyPayment?.payoutStatus),
+    ownerPayoutTransferFee: asNumber(data?.ownerPayoutTransferFee),
   };
 }
 
@@ -420,17 +655,16 @@ export function buildBookingSearchText(booking: AdminBooking) {
 
 export function isPendingDamageBooking(booking: AdminBooking) {
   return (
-    booking.settlement?.status === "support_pending" ||
-    booking.settlement?.status === "admin_review_required" ||
-    ["pending", "in_progress"].includes(booking.settlement?.supportStatus ?? "")
+    Boolean(booking.disputeFlow) &&
+    !["resolved", "closed"].includes(booking.disputeFlow?.status ?? "") &&
+    !["resolved", "closed"].includes(booking.disputeFlow?.supportStatus ?? "")
   );
 }
 
 export function isCompletedDamageBooking(booking: AdminBooking) {
   return (
-    booking.settlement?.status === "completed" ||
-    booking.damageDeductionRequest?.status === "resolved" ||
-    ["resolved", "closed"].includes(booking.settlement?.supportStatus ?? "")
+    booking.disputeFlow?.status === "resolved" ||
+    ["resolved", "closed"].includes(booking.disputeFlow?.supportStatus ?? "")
   );
 }
 
@@ -462,7 +696,7 @@ export function formatBookingDateTime(value: Date | null) {
   }).format(value);
 }
 
-export function formatBookingMoney(value: number | null, currency = "PHP") {
+export function formatBookingMoney(value: number | null | undefined, currency = "PHP") {
   if (value == null) {
     return "Not set";
   }
@@ -470,7 +704,7 @@ export function formatBookingMoney(value: number | null, currency = "PHP") {
   return `${currency || "PHP"} ${formatExactNumber(value)}`;
 }
 
-export function formatExactNumber(value: number | null) {
+export function formatExactNumber(value: number | null | undefined) {
   if (value == null) {
     return "Not set";
   }

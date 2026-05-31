@@ -57,15 +57,6 @@ type StatusRefundOptions = {
   refundType?: "full" | "partial" | "none";
 };
 
-const settlementAdminActions = {
-  createDamageSupportChat: "admin_create_damage_support_chat",
-  releaseDamageBalancePayment: "admin_release_damage_balance_payment",
-  resolveDamageDeduction: "admin_resolve_damage_deduction",
-  sendDamageBalancePaymentRequest: "admin_send_damage_balance_payment_request",
-  sendDamageSupportMessage: "admin_send_damage_support_message",
-  updateDamageSupportRequest: "admin_update_damage_support_request",
-} as const;
-
 export function useBookingMutation(booking: AdminBooking) {
   const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
@@ -198,11 +189,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminSettleDepositDispute",
       );
       const result = await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.resolveDamageDeduction,
         decision,
         approvedAmount: approvedAmount ?? null,
         adminNotes: adminNotes?.trim() || null,
@@ -244,11 +234,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminCreateDisputeSupportChat",
       );
       const result = await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.createDamageSupportChat,
         target,
       });
       const data = result.data as DamageSupportChatResponse;
@@ -293,11 +282,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminUpdateDisputeSupportRequest",
       );
       const result = await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.updateDamageSupportRequest,
         supportStatus,
         adminNotes: adminNotes?.trim() || null,
       });
@@ -361,11 +349,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminSendDisputeSupportMessage",
       );
       await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.sendDamageSupportMessage,
         chatId,
         target,
         text,
@@ -409,11 +396,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminRequestOutstandingDamagePayment",
       );
       const result = await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.sendDamageBalancePaymentRequest,
         chatId,
         amount,
       });
@@ -464,11 +450,10 @@ export function useBookingMutation(booking: AdminBooking) {
     try {
       const callable = httpsCallable(
         getFirebaseFunctions(),
-        "updateBookingSettlement",
+        "adminReleaseOutstandingDamageSettlement",
       );
       const result = await callable({
         bookingId: booking.id,
-        action: settlementAdminActions.releaseDamageBalancePayment,
       });
       const releaseResult = getReleaseDamageBalanceResult(
         result.data as ReleaseDamageBalanceResponse,

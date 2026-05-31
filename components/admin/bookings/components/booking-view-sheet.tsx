@@ -76,6 +76,17 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
     queryFn: () => fetchAdminUser(renterUid ?? ""),
     queryKey: userDirectoryQueryKeys.user(renterUid),
   });
+  const paymentAmount = booking.priceBreakdown.paymentAmount ?? booking.paymentFlow?.amount;
+  const hasPaymentFlow =
+    Boolean(booking.paymentFlow) ||
+    hasMoney(booking.priceBreakdown.rentalSubtotal) ||
+    hasMoney(paymentAmount) ||
+    hasMoney(booking.priceBreakdown.ownerPayoutAmount);
+  const hasDepositOrPayout =
+    Boolean(booking.depositFlow) ||
+    Boolean(booking.payoutFlow) ||
+    booking.securityDeposit.enabled;
+  const dispute = booking.disputeFlow;
 
   return (
     <>
@@ -162,62 +173,74 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
               </Button>
             </Section>
 
-            <Section title="Payment and totals">
-              <DetailRow label="Total" value={formatBookingMoney(booking.totalPrice)} />
-              <DetailRow
-                label="Security deposit"
-                value={
-                  booking.securityDeposit.enabled
-                    ? formatBookingMoney(booking.securityDeposit.amount)
-                    : "Disabled"
-                }
-              />
-              <DetailRow label="Payment method" value={booking.payment?.method ?? "Not set"} />
-              <DetailRow label="Transaction ID" value={booking.payment?.transactionId ?? "Not set"} />
-              <DetailRow label="Owner payout amount" value={formatBookingMoney(booking.payment?.ownerPayoutAmount ?? null)} />
-              <DetailRow label="Refund status" value={booking.payment?.refundStatus ?? "Not set"} />
-              <DetailRow label="Refund ID" value={booking.payment?.paymongoRefundId ?? "Not set"} />
-              <DetailRow label="Refund error" value={booking.payment?.refundError ?? "Not set"} />
-            </Section>
+            {hasPaymentFlow ? (
+              <Section title="Payment and totals">
+                {booking.paymentFlow?.checkoutId ? <DetailRow label="Checkout ID" value={booking.paymentFlow.checkoutId} /> : null}
+                {booking.paymentFlow?.method ? <DetailRow label="Payment method" value={booking.paymentFlow.method} /> : null}
+                {booking.paymentFlow?.transactionId ? <DetailRow label="Transaction ID" value={booking.paymentFlow.transactionId} /> : null}
+                <DetailRow
+                  label="Rental subtotal"
+                  value={formatBookingMoney(booking.priceBreakdown.rentalSubtotal ?? booking.totalPrice)}
+                />
+                {booking.securityDeposit.enabled ? (
+                  <DetailRow label="Security deposit" value={formatBookingMoney(booking.securityDeposit.amount)} />
+                ) : null}
+                {hasMoney(booking.priceBreakdown.renterProcessingFee) ? (
+                  <DetailRow label="Renter processing fee" value={formatBookingMoney(booking.priceBreakdown.renterProcessingFee)} />
+                ) : null}
+                {hasMoney(paymentAmount) ? <DetailRow label="Total payment" value={formatBookingMoney(paymentAmount)} /> : null}
+                {hasMoney(booking.priceBreakdown.ownerProcessingFee) ? (
+                  <DetailRow label="Owner processing fee" value={formatBookingMoney(booking.priceBreakdown.ownerProcessingFee)} />
+                ) : null}
+                {hasMoney(booking.priceBreakdown.ownerPayoutAmount) ? (
+                  <DetailRow label="Owner payout estimate" value={formatBookingMoney(booking.priceBreakdown.ownerPayoutAmount)} />
+                ) : null}
+                {booking.paymentFlow?.refundStatus ? <DetailRow label="Refund status" value={booking.paymentFlow.refundStatus} /> : null}
+                {booking.paymentFlow?.refundError ? <DetailRow label="Refund error" value={booking.paymentFlow.refundError} /> : null}
+              </Section>
+            ) : null}
 
-            <Section title="Settlement">
-              <DetailRow
-                label="Settlement status"
-                value={booking.settlement?.status ? <StatusBadge value={booking.settlement.status} /> : "Not set"}
-              />
-              <DetailRow label="Deposit status" value={booking.settlement?.depositStatus ?? "Not set"} />
-              <DetailRow label="Renter response" value={booking.settlement?.renterResponse ?? "Not set"} />
-              <DetailRow
-                label="Approved damage deduction"
-                value={formatBookingMoney(booking.settlement?.approvedDamageDeductionAmount ?? null)}
-              />
-              <DetailRow
-                label="Deposit return amount"
-                value={formatBookingMoney(booking.settlement?.depositReturnAmount ?? null)}
-              />
-              <DetailRow
-                label="Outstanding damage amount"
-                value={formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null)}
-              />
-              <DetailRow label="Support status" value={booking.settlement?.supportStatus ?? "Not set"} />
-              <DetailRow label="Renter support chat" value={booking.settlement?.renterSupportChatId ?? "Not set"} />
-              <DetailRow label="Owner support chat" value={booking.settlement?.ownerSupportChatId ?? "Not set"} />
-              {booking.damageDeductionRequest ? (
-                <>
-                  <DetailRow
-                    label="Requested deduction"
-                    value={formatBookingMoney(booking.damageDeductionRequest.requestedAmount)}
-                  />
-                  <DetailRow label="Damage reason" value={booking.damageDeductionRequest.reason ?? "Not set"} />
-                  <DetailRow label="Owner notes" value={booking.damageDeductionRequest.notes ?? "Not set"} />
-                  <DetailRow
-                    label="Evidence photos"
-                    value={String(booking.damageDeductionRequest.evidenceUrls.length)}
-                  />
-                  <DetailRow label="Admin notes" value={booking.damageDeductionRequest.adminNotes ?? "Not set"} />
-                </>
-              ) : null}
-            </Section>
+            {hasDepositOrPayout ? (
+              <Section title="Deposit and payout">
+                {booking.depositFlow?.status ? (
+                  <DetailRow label="Deposit status" value={<StatusBadge value={booking.depositFlow.status} />} />
+                ) : null}
+                {booking.payoutFlow?.ownerPayoutStatus ? (
+                  <DetailRow label="Owner payout status" value={booking.payoutFlow.ownerPayoutStatus} />
+                ) : null}
+                {booking.payoutFlow?.depositReturnStatus ? (
+                  <DetailRow label="Deposit return status" value={booking.payoutFlow.depositReturnStatus} />
+                ) : null}
+                {hasMoney(booking.payoutFlow?.ownerPayoutAmount) ? (
+                  <DetailRow label="Final owner payout" value={formatBookingMoney(booking.payoutFlow?.ownerPayoutAmount)} />
+                ) : null}
+                {hasMoney(booking.payoutFlow?.depositReturnAmount) ? (
+                  <DetailRow label="Deposit return amount" value={formatBookingMoney(booking.payoutFlow?.depositReturnAmount)} />
+                ) : null}
+              </Section>
+            ) : null}
+
+            {dispute ? (
+              <Section title="Dispute">
+                {dispute.status ? <DetailRow label="Dispute status" value={<StatusBadge value={dispute.status} />} /> : null}
+                {hasMoney(dispute.requestedAmount) ? (
+                  <DetailRow label="Requested deduction" value={formatBookingMoney(dispute.requestedAmount)} />
+                ) : null}
+                {dispute.reason ? <DetailRow label="Damage reason" value={dispute.reason} /> : null}
+                {dispute.renterResponse ? <DetailRow label="Renter response" value={dispute.renterResponse} /> : null}
+                {hasMoney(dispute.approvedAmount) ? (
+                  <DetailRow label="Approved deduction" value={formatBookingMoney(dispute.approvedAmount)} />
+                ) : null}
+                {hasMoney(dispute.outstandingAmount) ? (
+                  <DetailRow label="Outstanding balance" value={formatBookingMoney(dispute.outstandingAmount)} />
+                ) : null}
+                {dispute.supportStatus ? <DetailRow label="Support status" value={dispute.supportStatus} /> : null}
+                {dispute.renterSupportChatId ? <DetailRow label="Renter support chat" value={dispute.renterSupportChatId} /> : null}
+                {dispute.ownerSupportChatId ? <DetailRow label="Owner support chat" value={dispute.ownerSupportChatId} /> : null}
+                {dispute.evidenceUrls.length > 0 ? <DetailRow label="Evidence photos" value={String(dispute.evidenceUrls.length)} /> : null}
+                {dispute.adminNotes ? <DetailRow label="Admin notes" value={dispute.adminNotes} /> : null}
+              </Section>
+            ) : null}
 
             {booking.cancellationRequest ? (
               <Section title="Cancellation request">
@@ -401,6 +424,10 @@ function DetailRow({
       </span>
     </div>
   );
+}
+
+function hasMoney(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function findCachedUser(
