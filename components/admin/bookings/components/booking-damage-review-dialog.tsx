@@ -93,92 +93,132 @@ export function BookingDamageReviewDialog({
     }
   }
 
+  async function onRejectSupportRequest() {
+    setValidationError(null);
+    const success = await reviewDamageDeduction({
+      decision: "reject",
+      approvedAmount: 0,
+      adminNotes,
+    });
+    if (success) {
+      onOpenChange(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Review damage deduction</DialogTitle>
-          <DialogDescription>Approve, adjust, or reject the requested security deposit deduction.</DialogDescription>
+          <DialogTitle>{isSupportReviewRequest ? "Reject damage request" : "Review damage deduction"}</DialogTitle>
+          <DialogDescription>
+            {isSupportReviewRequest
+              ? "Reject this support-review damage request."
+              : "Approve, adjust, or reject the requested security deposit deduction."}
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4">
-          <div className="rounded-md border p-4 text-sm">
-            <p className="font-medium">{getBookingAssetTitle(booking)}</p>
-            <p className="mt-1 text-muted-foreground">Booking: {booking.id}</p>
-            <p className="mt-1 text-muted-foreground">
-              Requested: {formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Deposit: {formatBookingMoney(depositAmount)}
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Renter response: {booking.damageDeductionRequest?.renterResponse ?? "Not set"}
-            </p>
-            <p className="mt-1 text-muted-foreground">Reason: {booking.damageDeductionRequest?.reason ?? "Not set"}</p>
-            {isSupportReviewRequest ? (
+        {isSupportReviewRequest ? (
+          <div className="grid gap-4">
+            <div className="rounded-md border p-4 text-sm">
+              <p className="font-medium">{getBookingAssetTitle(booking)}</p>
+              <p className="mt-1 text-muted-foreground">Booking: {booking.id}</p>
+              <p className="mt-1 text-muted-foreground">Deposit: {formatBookingMoney(depositAmount)}</p>
+              <p className="mt-1 text-muted-foreground">Reason: {booking.damageDeductionRequest?.reason ?? "Not set"}</p>
+              <p className="mt-1 text-muted-foreground">Evidence photos: {booking.damageDeductionRequest?.evidenceUrls.length ?? 0}</p>
               <p className="mt-2 rounded-md bg-muted px-3 py-2 text-muted-foreground">
-                Above-deposit approval will be recorded as a pending Lend Support balance. Separate support chats can
-                be created for the renter and owner after approval.
+                The owner did not submit an amount for this support-review case. Use the support chats to discuss the
+                case; reject here only when the request should be declined.
               </p>
+            </div>
+            <Textarea
+              disabled={submitting}
+              onChange={(event) => setAdminNotes(event.target.value)}
+              placeholder="Admin notes"
+              value={adminNotes}
+            />
+            {validationError || error ? (
+              <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <span>{validationError ?? error}</span>
+              </div>
             ) : null}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="damage-decision">Decision</Label>
-            <Select onValueChange={(value) => setDecision(value as DamageReviewDecision)} value={decision}>
-              <SelectTrigger id="damage-decision">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {damageReviewDecisions.map((nextDecision) => (
-                  <SelectItem key={nextDecision} value={nextDecision}>
-                    {formatDamageReviewDecisionLabel(nextDecision)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {decision === "approve_adjusted" ? (
+        ) : (
+          <div className="grid gap-4">
+            <div className="rounded-md border p-4 text-sm">
+              <p className="font-medium">{getBookingAssetTitle(booking)}</p>
+              <p className="mt-1 text-muted-foreground">Booking: {booking.id}</p>
+              <p className="mt-1 text-muted-foreground">
+                Requested: {formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Deposit: {formatBookingMoney(depositAmount)}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Renter response: {booking.damageDeductionRequest?.renterResponse ?? "Not set"}
+              </p>
+              <p className="mt-1 text-muted-foreground">Reason: {booking.damageDeductionRequest?.reason ?? "Not set"}</p>
+            </div>
             <div className="grid gap-2">
-              <Label htmlFor="approved-amount">Approved amount</Label>
-              <Input
-                disabled={submitting}
-                id="approved-amount"
-                inputMode="decimal"
-                min="0"
-                onChange={(event) => setApprovedAmount(event.target.value)}
-                placeholder={isSupportReviewRequest ? "Enter support review amount" : "Enter amount"}
-                type="number"
-                value={approvedAmount}
-              />
-              {isSupportReviewRequest ? (
-                <p className="text-xs text-muted-foreground">
-                  Amounts above {formatBookingMoney(depositAmount)} stay pending with Lend Support.
-                </p>
-              ) : null}
+              <Label htmlFor="damage-decision">Decision</Label>
+              <Select onValueChange={(value) => setDecision(value as DamageReviewDecision)} value={decision}>
+                <SelectTrigger id="damage-decision">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {damageReviewDecisions.map((nextDecision) => (
+                    <SelectItem key={nextDecision} value={nextDecision}>
+                      {formatDamageReviewDecisionLabel(nextDecision)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : null}
-          <Textarea
-            disabled={submitting}
-            onChange={(event) => setAdminNotes(event.target.value)}
-            placeholder="Admin notes"
-            value={adminNotes}
-          />
-          {validationError || error ? (
-            <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <span>{validationError ?? error}</span>
-            </div>
-          ) : null}
-        </div>
+            {decision === "approve_adjusted" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="approved-amount">Approved amount</Label>
+                <Input
+                  disabled={submitting}
+                  id="approved-amount"
+                  inputMode="decimal"
+                  min="0"
+                  onChange={(event) => setApprovedAmount(event.target.value)}
+                  placeholder="Enter amount"
+                  type="number"
+                  value={approvedAmount}
+                />
+              </div>
+            ) : null}
+            <Textarea
+              disabled={submitting}
+              onChange={(event) => setAdminNotes(event.target.value)}
+              placeholder="Admin notes"
+              value={adminNotes}
+            />
+            {validationError || error ? (
+              <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <span>{validationError ?? error}</span>
+              </div>
+            ) : null}
+          </div>
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button disabled={submitting} type="button" variant="outline">
               Cancel
             </Button>
           </DialogClose>
-          <Button disabled={submitting} onClick={onConfirm} type="button">
-            {submitting ? <Loader2 className="animate-spin" /> : null}
-            Submit review
-          </Button>
+          {isSupportReviewRequest ? (
+            <Button disabled={submitting} onClick={onRejectSupportRequest} type="button" variant="destructive">
+              {submitting ? <Loader2 className="animate-spin" /> : null}
+              Reject request
+            </Button>
+          ) : (
+            <Button disabled={submitting} onClick={onConfirm} type="button">
+              {submitting ? <Loader2 className="animate-spin" /> : null}
+              Submit review
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

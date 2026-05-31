@@ -287,7 +287,7 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Support chats become available after the request enters admin review or support handling.
+                    Support chats become available after the request enters admin review.
                   </p>
                 )}
               </div>
@@ -440,6 +440,8 @@ function DamageStatusFlow({ booking, stage }: { booking: AdminBooking; stage: Da
 }
 
 function DamageCaseHero({ booking, stage, status }: { booking: AdminBooking; stage: DamageCaseStage; status: string }) {
+  const isSupportReviewRequest = booking.damageDeductionRequest?.requiresSupportReview === true;
+
   return (
     <section className="grid gap-4 rounded-md border bg-muted/30 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -454,8 +456,8 @@ function DamageCaseHero({ booking, stage, status }: { booking: AdminBooking; sta
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard
-          label="Requested"
-          value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+          label={isSupportReviewRequest ? "Support review" : "Requested"}
+          value={isSupportReviewRequest ? "No amount set" : formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
         />
         <MetricCard
           label="Approved"
@@ -571,12 +573,17 @@ function StagePanel({
   supportStatus: DamageSupportStatus;
 }) {
   if (stage === "admin_review") {
+    const isSupportReviewRequest = booking.damageDeductionRequest?.requiresSupportReview === true;
     return (
       <>
-        <DetailRow
-          label="Requested amount"
-          value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
-        />
+        {isSupportReviewRequest ? (
+          <DetailRow label="Requested amount" value="Not set by owner" />
+        ) : (
+          <DetailRow
+            label="Requested amount"
+            value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+          />
+        )}
         <DetailRow
           label="Security deposit"
           value={booking.securityDeposit.enabled ? formatBookingMoney(booking.securityDeposit.amount) : "Disabled"}
@@ -593,7 +600,7 @@ function StagePanel({
           onClick={onReview}
           type="button"
         >
-          Review request
+          {isSupportReviewRequest ? "Reject request" : "Review request"}
         </Button>
       </>
     );
@@ -1160,7 +1167,6 @@ function getDamageFlowSteps(): DamageFlowStep[] {
   return [
     { key: "damage_requested", label: "Damage requested" },
     { key: "admin_review", label: "Admin review" },
-    { key: "support_handling", label: "Support handling" },
     { key: "balance_paid", label: "Balance payment" },
     { key: "owner_payout", label: "Owner payout" },
     { key: "resolved", label: "Resolved" },
@@ -1169,7 +1175,7 @@ function getDamageFlowSteps(): DamageFlowStep[] {
 
 function getDamageFlowCurrentIndex(booking: AdminBooking, stage: DamageCaseStage) {
   if (stage === "resolved") {
-    return 5;
+    return 4;
   }
 
   if (
@@ -1177,7 +1183,7 @@ function getDamageFlowCurrentIndex(booking: AdminBooking, stage: DamageCaseStage
     booking.settlement?.ownerDamageBalancePayoutStatus === "succeeded" ||
     booking.settlement?.ownerDamageBalancePayoutStatus === "failed"
   ) {
-    return 4;
+    return 3;
   }
 
   if (
@@ -1186,14 +1192,10 @@ function getDamageFlowCurrentIndex(booking: AdminBooking, stage: DamageCaseStage
     booking.settlement?.damageBalancePaymentStatus === "paid" ||
     booking.settlement?.damageBalancePaymentStatus === "failed"
   ) {
-    return 3;
-  }
-
-  if (stage === "support_handling") {
     return 2;
   }
 
-  if (stage === "admin_review") {
+  if (stage === "admin_review" || stage === "support_handling") {
     return 1;
   }
 
@@ -1306,7 +1308,7 @@ function getStagePanelTitle(stage: DamageCaseStage) {
     case "admin_review":
       return "Review needed";
     case "support_handling":
-      return "Support handling";
+      return "Support chats";
     case "balance_paid":
       return "Payment received";
     case "resolved":
@@ -1323,7 +1325,7 @@ function getStageTitle(stage: DamageCaseStage) {
     case "admin_review":
       return "Admin review required";
     case "support_handling":
-      return "Support case in progress";
+      return "Support chat active";
     case "balance_paid":
       return "Damage balance paid";
     case "resolved":
@@ -1339,9 +1341,12 @@ function getStageDescription(stage: DamageCaseStage, booking: AdminBooking) {
   const reason = booking.damageDeductionRequest?.reason ?? "damage";
   switch (stage) {
     case "admin_review":
+      if (booking.damageDeductionRequest?.requiresSupportReview) {
+        return `Review the ${reason} request, support chats, and evidence. Reject only if the request should be declined.`;
+      }
       return `Review the ${reason} request and decide the approved damage amount.`;
     case "support_handling":
-      return "Coordinate support chats, payment requests, and admin notes for the approved damage amount.";
+      return "Use support chats, payment requests, and admin notes for this damage case.";
     case "balance_paid":
       return "The renter paid the outstanding balance. Release the paid balance to the owner when ready.";
     case "resolved":
