@@ -29,14 +29,18 @@ import { useBookingMutation } from "../hooks/use-booking-mutation";
 
 type BookingDamageReviewDialogProps = {
   booking: AdminBooking;
+  initialDecision?: DamageReviewDecision;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  rejectOnly?: boolean;
 };
 
 export function BookingDamageReviewDialog({
   booking,
+  initialDecision = "approve_adjusted",
   onOpenChange,
   open,
+  rejectOnly = false,
 }: BookingDamageReviewDialogProps) {
   const [decision, setDecision] = React.useState<DamageReviewDecision>("approve_adjusted");
   const [approvedAmount, setApprovedAmount] = React.useState("");
@@ -50,6 +54,7 @@ export function BookingDamageReviewDialog({
     booking.damageDeductionRequest?.requiresSupportReview === true ||
     reason === "Total loss/damage" ||
     reason === "Higher than security deposit";
+  const isRejectOnly = rejectOnly || isSupportReviewRequest;
   const defaultApprovedAmount = String(
     booking.damageDeductionRequest?.approvedAmount ??
       (isSupportReviewRequest ? depositAmount : requestedAmount),
@@ -57,12 +62,12 @@ export function BookingDamageReviewDialog({
 
   React.useEffect(() => {
     if (!open) return;
-    setDecision("approve_adjusted");
+    setDecision(initialDecision);
     setApprovedAmount(defaultApprovedAmount);
     setAdminNotes("");
     setValidationError(null);
     resetError();
-  }, [defaultApprovedAmount, isSupportReviewRequest, open, resetError]);
+  }, [defaultApprovedAmount, initialDecision, isSupportReviewRequest, open, resetError]);
 
   async function onConfirm() {
     setValidationError(null);
@@ -109,24 +114,29 @@ export function BookingDamageReviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isSupportReviewRequest ? "Reject damage request" : "Review damage deduction"}</DialogTitle>
+          <DialogTitle>{isRejectOnly ? "Reject damage request" : "Review damage deduction"}</DialogTitle>
           <DialogDescription>
-            {isSupportReviewRequest
-              ? "Reject this support-review damage request."
-              : "Approve, adjust, or reject the requested security deposit deduction."}
+            {isRejectOnly
+              ? "Reject this damage request and finish the settlement without a deduction."
+              : booking.damageDeductionRequest?.status === "disputed" || booking.disputeFlow?.status === "disputed"
+                ? "The renter disputed this damage request. Approve the owner request, change the amount, or reject it."
+                : "Approve, adjust, or reject the requested security deposit deduction."}
           </DialogDescription>
         </DialogHeader>
-        {isSupportReviewRequest ? (
+        {isRejectOnly ? (
           <div className="grid gap-4">
             <div className="rounded-md border p-4 text-sm">
               <p className="font-medium">{getBookingAssetTitle(booking)}</p>
               <p className="mt-1 text-muted-foreground">Booking: {booking.id}</p>
               <p className="mt-1 text-muted-foreground">Deposit: {formatBookingMoney(depositAmount)}</p>
+              <p className="mt-1 text-muted-foreground">
+                Requested: {formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+              </p>
               <p className="mt-1 text-muted-foreground">Reason: {booking.damageDeductionRequest?.reason ?? "Not set"}</p>
               <p className="mt-1 text-muted-foreground">Evidence photos: {booking.damageDeductionRequest?.evidenceUrls.length ?? 0}</p>
               <p className="mt-2 rounded-md bg-muted px-3 py-2 text-muted-foreground">
-                The owner did not submit an amount for this support-review case. Use the support chats to discuss the
-                case; reject here only when the request should be declined.
+                Use this only when the damage request should be declined. This will settle the booking with no damage
+                deduction.
               </p>
             </div>
             <Textarea
@@ -208,7 +218,7 @@ export function BookingDamageReviewDialog({
               Cancel
             </Button>
           </DialogClose>
-          {isSupportReviewRequest ? (
+          {isRejectOnly ? (
             <Button disabled={submitting} onClick={onRejectSupportRequest} type="button" variant="destructive">
               {submitting ? <Loader2 className="animate-spin" /> : null}
               Reject request

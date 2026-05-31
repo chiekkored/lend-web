@@ -162,7 +162,7 @@ const questions: HelpQuestion[] = [
     topic: "evidence",
     question: "Can evidence be rejected?",
     answer:
-      "Evidence may be incomplete, unclear, unrelated, late, or inconsistent with platform records. Admin review decisions depend on available records, submissions, and Lend policy.",
+      "Evidence may be incomplete, unclear, unrelated, late, or inconsistent with platform records. Lend Support review decisions depend on available records, submissions, and Lend policy.",
   },
   {
     topic: "payments",

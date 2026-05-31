@@ -14,17 +14,14 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          These Terms and Conditions govern your access to and use of Lend, a
-          rental marketplace operated by <strong>[LEGAL_ENTITY_NAME]</strong>,{" "}
-          with business address at <strong>[BUSINESS_ADDRESS]</strong>. By
-          creating an account, browsing listings, posting assets, booking a
-          rental, paying through checkout, chatting, submitting verification, or
-          otherwise using Lend, you agree to these terms.
+          These Terms and Conditions govern your access to and use of Lend, a rental marketplace operated by{" "}
+          <strong>[LEGAL_ENTITY_NAME]</strong>, with business address at <strong>[BUSINESS_ADDRESS]</strong>. By
+          creating an account, browsing listings, posting assets, booking a rental, paying through checkout, chatting,
+          submitting verification, or otherwise using Lend, you agree to these terms.
         </p>
         <p>
-          If you do not agree, do not use Lend. If you are using Lend for a
-          business, organization, or another person, you represent that you have
-          authority to bind them to these terms.
+          If you do not agree, do not use Lend. If you are using Lend for a business, organization, or another person,
+          you represent that you have authority to bind them to these terms.
         </p>
       </>
     ),
@@ -33,16 +30,13 @@ const sections: LegalSection[] = [
     title: "What Lend provides",
     body: (
       <p>
-        Lend provides technology that helps owners list assets for rent and
-        helps renters discover, book, pay for, receive, return, review, and
-        resolve rentals. Lend is a peer-to-peer marketplace platform. Unless
-        expressly stated otherwise, Lend is not the owner, manufacturer,
-        insurer, repairer, employer, agent, broker, or guarantor of any listed
-        asset or user. Verification, platform records, support review, and admin
-        moderation are risk-reduction tools only. They do not guarantee user
-        behavior, asset condition, payment success, payout success, or dispute
-        outcome. Owners and renters are responsible for their own conduct,
-        listings, handovers, returns, and compliance with law.
+        Lend provides technology that helps owners list assets for rent and helps renters discover, book, pay for,
+        receive, return, review, and resolve rentals. Lend is a peer-to-peer marketplace platform. Unless expressly
+        stated otherwise, Lend is not the owner, manufacturer, insurer, repairer, employer, agent, broker, or guarantor
+        of any listed asset or user. Verification, platform records, support review, and admin moderation are
+        risk-reduction tools only. They do not guarantee user behavior, asset condition, payment success, payout
+        success, or dispute outcome. Owners and renters are responsible for their own conduct, listings, handovers,
+        returns, and compliance with law.
       </p>
     ),
   },
@@ -94,11 +88,10 @@ const sections: LegalSection[] = [
     title: "Security deposits and damage deductions",
     body: (
       <p>
-        Some listings may require a security deposit. Security deposits are
-        intended to help cover approved loss, damage, missing items, late return,
-        or other covered claims. Deposit collection, holding, deduction, and
-        return may depend on PayMongo wallet payout capabilities, Lend settlement
-        rules, and the information supplied by the owner and renter.
+        Some listings may require a security deposit. Security deposits are intended to help cover approved loss,
+        damage, missing items, late return, or other covered claims. Deposit collection, holding, deduction, and return
+        may depend on PayMongo wallet payout capabilities, Lend settlement rules, and the information supplied by the
+        owner and renter.
       </p>
     ),
     items: [
@@ -124,7 +117,7 @@ const sections: LegalSection[] = [
       "Reviews and ratings must reflect genuine experiences and must not be fraudulent, abusive, discriminatory, defamatory, retaliatory, or irrelevant.",
       "Users may report listings, chats, bookings, or other users. Reports should be truthful and supported by relevant details where possible.",
       "Lend may moderate, remove, hide, archive, restrict, suspend, ban, or take account or listing action when content or conduct violates these terms, creates risk, or may violate law.",
-      "Admin review decisions are based on available platform records, user submissions, provider status, and Lend policy. Users must cooperate and provide accurate information during review.",
+      "Lend Support review decisions are based on available platform records, user submissions, provider status, and Lend policy. Users must cooperate and provide accurate information during review.",
     ],
   },
   {
@@ -141,13 +134,10 @@ const sections: LegalSection[] = [
     title: "Third-party services",
     body: (
       <p>
-        Lend depends on third-party services including Firebase and Google Cloud,
-        Google Maps, PayMongo, verification providers such as Didit, app stores,
-        and sign-in providers such as Apple, Google, or Facebook where enabled.
-        These services may have their own terms, fees, limits, downtime,
-        verification requirements, and privacy practices. Lend is not
-        responsible for third-party service failures beyond what applicable law
-        requires.
+        Lend depends on third-party services including Firebase and Google Cloud, Google Maps, PayMongo, verification
+        providers such as Didit, app stores, and sign-in providers such as Apple, Google, or Facebook where enabled.
+        These services may have their own terms, fees, limits, downtime, verification requirements, and privacy
+        practices. Lend is not responsible for third-party service failures beyond what applicable law requires.
       </p>
     ),
   },
@@ -155,14 +145,11 @@ const sections: LegalSection[] = [
     title: "User content and license",
     body: (
       <p>
-        You retain ownership of content you submit, such as listing photos,
-        descriptions, messages, reports, evidence, reviews, and profile content.
-        You grant Lend a non-exclusive, worldwide, royalty-free license to host,
-        store, reproduce, display, transmit, moderate, adapt for formatting, and
-        use that content as needed to operate, secure, improve, market, and
-        enforce the service. You represent that you have the rights needed to
-        provide the content and that it does not violate law or another person&apos;s
-        rights.
+        You retain ownership of content you submit, such as listing photos, descriptions, messages, reports, evidence,
+        reviews, and profile content. You grant Lend a non-exclusive, worldwide, royalty-free license to host, store,
+        reproduce, display, transmit, moderate, adapt for formatting, and use that content as needed to operate, secure,
+        improve, market, and enforce the service. You represent that you have the rights needed to provide the content
+        and that it does not violate law or another person&apos;s rights.
       </p>
     ),
   },
@@ -170,12 +157,10 @@ const sections: LegalSection[] = [
     title: "Privacy",
     body: (
       <p>
-        Lend handles personal data according to the Privacy Policy. The Privacy
-        Policy explains what data we collect, why we use it, the third-party
-        services involved, retention practices, security measures, and user
-        rights. By using Lend, you acknowledge that marketplace operation
-        requires processing account, listing, booking, payment, location,
-        verification, chat, report, review, and technical data.
+        Lend handles personal data according to the Privacy Policy. The Privacy Policy explains what data we collect,
+        why we use it, the third-party services involved, retention practices, security measures, and user rights. By
+        using Lend, you acknowledge that marketplace operation requires processing account, listing, booking, payment,
+        location, verification, chat, report, review, and technical data.
       </p>
     ),
   },
@@ -183,18 +168,14 @@ const sections: LegalSection[] = [
     title: "Disclaimers and limits of liability",
     body: (
       <p>
-        Lend is provided on an as-is and as-available basis to the fullest extent
-        permitted by law. We do not guarantee that listings are accurate, assets
-        are available, safe, lawful, undamaged, or suitable, users will perform
-        as promised, payments or payouts will never fail, security deposits will
-        cover every loss, or the service will be uninterrupted or error-free. To
-        the fullest extent permitted by law, Lend will not be liable for
-        indirect, incidental, special, consequential, exemplary, or punitive
-        damages, lost profits, lost data, personal arrangements, off-platform
-        transactions, user conduct, asset loss, asset damage, late return,
-        missing inclusions, misuse, or ordinary marketplace risk. Nothing in
-        these terms excludes liability that cannot be excluded under applicable
-        law.
+        Lend is provided on an as-is and as-available basis to the fullest extent permitted by law. We do not guarantee
+        that listings are accurate, assets are available, safe, lawful, undamaged, or suitable, users will perform as
+        promised, payments or payouts will never fail, security deposits will cover every loss, or the service will be
+        uninterrupted or error-free. To the fullest extent permitted by law, Lend will not be liable for indirect,
+        incidental, special, consequential, exemplary, or punitive damages, lost profits, lost data, personal
+        arrangements, off-platform transactions, user conduct, asset loss, asset damage, late return, missing
+        inclusions, misuse, or ordinary marketplace risk. Nothing in these terms excludes liability that cannot be
+        excluded under applicable law.
       </p>
     ),
   },
@@ -202,12 +183,10 @@ const sections: LegalSection[] = [
     title: "Indemnity",
     body: (
       <p>
-        To the extent permitted by law, you agree to defend, indemnify, and hold
-        harmless Lend, its officers, directors, employees, contractors, service
-        providers, and affiliates from claims, damages, losses, liabilities,
-        costs, and expenses arising from your listings, bookings, assets,
-        content, conduct, breach of these terms, violation of law, or violation
-        of another person&apos;s rights.
+        To the extent permitted by law, you agree to defend, indemnify, and hold harmless Lend, its officers, directors,
+        employees, contractors, service providers, and affiliates from claims, damages, losses, liabilities, costs, and
+        expenses arising from your listings, bookings, assets, content, conduct, breach of these terms, violation of
+        law, or violation of another person&apos;s rights.
       </p>
     ),
   },
@@ -224,13 +203,11 @@ const sections: LegalSection[] = [
     title: "Governing law and dispute handling",
     body: (
       <p>
-        These terms are governed by the laws of <strong>[GOVERNING_LAW]</strong>
-        , unless mandatory consumer protection or other applicable law provides
-        otherwise. Before filing a formal claim, you agree to contact{" "}
-        <strong>[SUPPORT_EMAIL]</strong> with enough information for us to
-        investigate and attempt to resolve the issue. For unresolved disputes,
-        venue, process, and escalation will follow applicable law and any final
-        dispute policy published by Lend.
+        These terms are governed by the laws of <strong>[GOVERNING_LAW]</strong>, unless mandatory consumer protection
+        or other applicable law provides otherwise. Before filing a formal claim, you agree to contact{" "}
+        <strong>[SUPPORT_EMAIL]</strong> with enough information for us to investigate and attempt to resolve the issue.
+        For unresolved disputes, venue, process, and escalation will follow applicable law and any final dispute policy
+        published by Lend.
       </p>
     ),
   },
@@ -238,9 +215,8 @@ const sections: LegalSection[] = [
     title: "Contact",
     body: (
       <p>
-        Questions about these terms may be sent to{" "}
-        <strong>[LEGAL_ENTITY_NAME]</strong> at <strong>[SUPPORT_EMAIL]</strong>
-        , <strong>[PRIVACY_EMAIL]</strong>, or <strong>[DPO_CONTACT]</strong>.
+        Questions about these terms may be sent to <strong>[LEGAL_ENTITY_NAME]</strong> at{" "}
+        <strong>[SUPPORT_EMAIL]</strong>, <strong>[PRIVACY_EMAIL]</strong>, or <strong>[DPO_CONTACT]</strong>.
       </p>
     ),
   },

@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Toast } from "@/components/ui/toast";
@@ -42,9 +41,9 @@ import {
   getBookingOwnerName,
   getBookingRenterId,
   getBookingRenterName,
-  damageSupportStatuses,
   type AdminBooking,
   type AdminBookingMessage,
+  type DamageReviewDecision,
   type DamageSupportChatTarget,
   type DamageSupportStatus,
 } from "@/lib/admin-bookings";
@@ -64,6 +63,7 @@ type ActionToast = {
 };
 type DamageCaseStage =
   | "admin_review"
+  | "disputed_review"
   | "support_handling"
   | "balance_paid"
   | "resolved"
@@ -98,29 +98,27 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     booking.settlement?.damageBalancePaymentStatus === "paid" &&
     booking.settlement?.ownerDamageBalancePayoutStatus !== "processing" &&
     booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
-  const [updateOpen, setUpdateOpen] = React.useState(false);
+  const canRejectSupportHandling =
+    isSupportHandling &&
+    !["pending", "paid"].includes(booking.settlement?.damageBalancePaymentStatus ?? "") &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "processing" &&
+    booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  const [reviewDecision, setReviewDecision] = React.useState<DamageReviewDecision>("approve_adjusted");
   const [bookingChatOpen, setBookingChatOpen] = React.useState(false);
   const [chatTarget, setChatTarget] = React.useState<DamageSupportChatTarget | null>(null);
   const [toast, setToast] = React.useState<ActionToast | null>(null);
-  const [updateRequestMessage, setUpdateRequestMessage] = React.useState<string | null>(null);
   const [releaseBalanceMessage, setReleaseBalanceMessage] = React.useState<string | null>(null);
-  const [supportStatus, setSupportStatus] = React.useState<DamageSupportStatus>(initialSupportStatus);
-  const [adminNotes, setAdminNotes] = React.useState(booking.damageDeductionRequest?.adminNotes ?? "");
+  const supportStatus = initialSupportStatus;
+  const adminNotes = booking.damageDeductionRequest?.adminNotes ?? "";
   const [renterSupportChatId, setRenterSupportChatId] = React.useState(
     booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
   );
   const [ownerSupportChatId, setOwnerSupportChatId] = React.useState(
     booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
   );
-  const {
-    createDamageSupportChat,
-    error,
-    resetError,
-    releaseDamageBalancePayment,
-    submitting,
-    updateDamageSupportRequest,
-  } = useBookingMutation(booking);
+  const { createDamageSupportChat, error, resetError, releaseDamageBalancePayment, submitting } =
+    useBookingMutation(booking);
   const evidenceUrls = booking.damageDeductionRequest?.evidenceUrls ?? [];
   const stage = getDamageCaseStage(booking);
   const primaryStatus =
@@ -136,8 +134,6 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
 
   React.useEffect(() => {
     if (!open) return;
-    setSupportStatus(initialSupportStatus);
-    setAdminNotes(booking.damageDeductionRequest?.adminNotes ?? "");
     setRenterSupportChatId(
       booking.settlement?.renterSupportChatId ?? booking.damageDeductionRequest?.renterSupportChatId ?? null,
     );
@@ -145,10 +141,9 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
       booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
     );
     setToast(null);
-    setUpdateRequestMessage(null);
     setReleaseBalanceMessage(null);
     resetError();
-  }, [booking, initialSupportStatus, open, resetError]);
+  }, [booking, open, resetError]);
 
   async function onCreateSupportChat(target: DamageSupportChatTarget) {
     const chatId = await createDamageSupportChat(target);
@@ -158,32 +153,6 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     } else {
       setOwnerSupportChatId(chatId);
     }
-  }
-
-  async function onUpdateRequest(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setUpdateRequestMessage(null);
-    const result = await updateDamageSupportRequest({
-      adminNotes,
-      supportStatus,
-    });
-    if (result.success) {
-      setToast({
-        message: "Support request updated.",
-        title: "Success",
-        variant: "success",
-      });
-      setUpdateOpen(false);
-      return;
-    }
-
-    const message = result.error ?? "Unable to update support request.";
-    setUpdateRequestMessage(message);
-    setToast({
-      message: "Please try again.",
-      title: "Unable to update support request",
-      variant: "error",
-    });
   }
 
   async function onReleaseDamageBalancePayment() {
@@ -205,6 +174,11 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
       title: "Unable to release paid balance",
       variant: "error",
     });
+  }
+
+  function openReviewDialog(decision: DamageReviewDecision = "approve_adjusted") {
+    setReviewDecision(decision);
+    setReviewOpen(true);
   }
 
   return (
@@ -235,13 +209,9 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
                 canReleaseDamageBalancePayment={canReleaseDamageBalancePayment}
                 evidenceCount={evidenceUrls.length}
                 isAdminReviewRequired={isAdminReviewRequired}
-                isSupportHandling={isSupportHandling}
+                canRejectSupportHandling={canRejectSupportHandling}
                 onReleaseDamageBalancePayment={onReleaseDamageBalancePayment}
-                onReview={() => setReviewOpen(true)}
-                onUpdate={() => {
-                  setUpdateRequestMessage(null);
-                  setUpdateOpen(true);
-                }}
+                onReview={openReviewDialog}
                 releaseBalanceMessage={releaseBalanceMessage}
                 stage={stage}
                 submitting={submitting}
@@ -322,55 +292,15 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
         </SheetContent>
       </Sheet>
 
-      <BookingDamageReviewDialog booking={booking} onOpenChange={setReviewOpen} open={reviewOpen} />
+      <BookingDamageReviewDialog
+        booking={booking}
+        initialDecision={reviewDecision}
+        onOpenChange={setReviewOpen}
+        open={reviewOpen}
+        rejectOnly={stage === "support_handling"}
+      />
 
       <BookingChatSheet booking={booking} onOpenChange={setBookingChatOpen} open={bookingChatOpen} />
-
-      <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update support request</DialogTitle>
-            <DialogDescription>{booking.id}</DialogDescription>
-          </DialogHeader>
-          <form className="grid gap-4" onSubmit={onUpdateRequest}>
-            <div className="grid gap-2">
-              <Label htmlFor={`support-status-${booking.id}`}>Support status</Label>
-              <Select onValueChange={(value) => setSupportStatus(value as DamageSupportStatus)} value={supportStatus}>
-                <SelectTrigger id={`support-status-${booking.id}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {damageSupportStatuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {formatSupportStatusLabel(status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Textarea
-              disabled={submitting}
-              onChange={(event) => setAdminNotes(event.target.value)}
-              placeholder="Admin notes"
-              value={adminNotes}
-            />
-            <DialogFooter>
-              <div className="grid w-full gap-2">
-                <div className="flex justify-end gap-2">
-                  <Button disabled={submitting} type="submit">
-                    {submitting ? <Loader2 className="animate-spin" /> : null}
-                    Save
-                  </Button>
-                  <Button disabled={submitting} onClick={() => setUpdateOpen(false)} type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </div>
-                {updateRequestMessage ? <ActionMessage text={updateRequestMessage} /> : null}
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <SupportChatSheet
         booking={booking}
@@ -457,7 +387,11 @@ function DamageCaseHero({ booking, stage, status }: { booking: AdminBooking; sta
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard
           label={isSupportReviewRequest ? "Support review" : "Requested"}
-          value={isSupportReviewRequest ? "No amount set" : formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+          value={
+            isSupportReviewRequest
+              ? "No amount set"
+              : formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)
+          }
         />
         <MetricCard
           label="Approved"
@@ -547,12 +481,11 @@ function StagePanel({
   adminNotes,
   booking,
   canReleaseDamageBalancePayment,
+  canRejectSupportHandling,
   evidenceCount,
   isAdminReviewRequired,
-  isSupportHandling,
   onReleaseDamageBalancePayment,
   onReview,
-  onUpdate,
   releaseBalanceMessage,
   stage,
   submitting,
@@ -561,17 +494,63 @@ function StagePanel({
   adminNotes: string;
   booking: AdminBooking;
   canReleaseDamageBalancePayment: boolean;
+  canRejectSupportHandling: boolean;
   evidenceCount: number;
   isAdminReviewRequired: boolean;
-  isSupportHandling: boolean;
   onReleaseDamageBalancePayment: () => void;
-  onReview: () => void;
-  onUpdate: () => void;
+  onReview: (decision?: DamageReviewDecision) => void;
   releaseBalanceMessage: string | null;
   stage: DamageCaseStage;
   submitting: boolean;
   supportStatus: DamageSupportStatus;
 }) {
+  if (stage === "disputed_review") {
+    return (
+      <>
+        <DetailRow
+          label="Requested amount"
+          value={formatBookingMoney(booking.damageDeductionRequest?.requestedAmount ?? null)}
+        />
+        <DetailRow
+          label="Security deposit"
+          value={booking.securityDeposit.enabled ? formatBookingMoney(booking.securityDeposit.amount) : "Disabled"}
+        />
+        <DetailRow label="Renter response" value={<StatusBadge value="disputed" />} />
+        <DetailRow label="Owner notes" value={booking.damageDeductionRequest?.notes ?? "Not set"} />
+        <DetailRow label="Evidence photos" value={String(evidenceCount)} />
+        <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button
+            className="justify-center"
+            disabled={submitting}
+            onClick={() => onReview("approve_adjusted")}
+            type="button"
+          >
+            Change amount
+          </Button>
+          <Button
+            className="justify-center"
+            disabled={submitting}
+            onClick={() => onReview("approve_full")}
+            type="button"
+            variant="secondary"
+          >
+            Approve requested fee
+          </Button>
+          <Button
+            className="justify-center"
+            disabled={submitting}
+            onClick={() => onReview("reject")}
+            type="button"
+            variant="destructive"
+          >
+            Reject request
+          </Button>
+        </div>
+      </>
+    );
+  }
+
   if (stage === "admin_review") {
     const isSupportReviewRequest = booking.damageDeductionRequest?.requiresSupportReview === true;
     return (
@@ -597,7 +576,7 @@ function StagePanel({
         <Button
           className="w-full justify-center"
           disabled={submitting || !isAdminReviewRequired}
-          onClick={onReview}
+          onClick={() => onReview()}
           type="button"
         >
           {isSupportReviewRequest ? "Reject request" : "Review request"}
@@ -643,23 +622,25 @@ function StagePanel({
           }
         />
         <DetailRow label="Admin notes" value={adminNotes || "Not set"} />
-        <div className="flex flex-col gap-2 sm:flex-row">
+        {canRejectSupportHandling ? (
           <Button
-            className="flex-1"
-            disabled={submitting || !isSupportHandling}
-            onClick={onUpdate}
+            className="w-full justify-center"
+            disabled={submitting}
+            onClick={() => onReview()}
             type="button"
-            variant="outline"
+            variant="destructive"
           >
-            Update request
+            Reject damage request
           </Button>
-          {canReleaseDamageBalancePayment ? (
+        ) : null}
+        {canReleaseDamageBalancePayment ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button className="flex-1" disabled={submitting} onClick={onReleaseDamageBalancePayment} type="button">
               {submitting ? <Loader2 className="animate-spin" /> : null}
               Release paid balance
             </Button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
         {releaseBalanceMessage ? <ActionMessage text={releaseBalanceMessage} /> : null}
       </>
     );
@@ -1166,7 +1147,7 @@ function isUrl(value: string) {
 function getDamageFlowSteps(): DamageFlowStep[] {
   return [
     { key: "damage_requested", label: "Damage requested" },
-    { key: "admin_review", label: "Admin review" },
+    { key: "admin_review", label: "Lend Support review" },
     { key: "balance_paid", label: "Balance payment" },
     { key: "owner_payout", label: "Owner payout" },
     { key: "resolved", label: "Resolved" },
@@ -1196,6 +1177,10 @@ function getDamageFlowCurrentIndex(booking: AdminBooking, stage: DamageCaseStage
   }
 
   if (stage === "admin_review" || stage === "support_handling") {
+    return 1;
+  }
+
+  if (stage === "disputed_review") {
     return 1;
   }
 
@@ -1254,19 +1239,6 @@ function normalizeSupportStatus(value: string | null | undefined): DamageSupport
   return "pending";
 }
 
-function formatSupportStatusLabel(status: DamageSupportStatus) {
-  switch (status) {
-    case "in_progress":
-      return "In progress";
-    case "resolved":
-      return "Resolved";
-    case "closed":
-      return "Closed";
-    default:
-      return "Pending";
-  }
-}
-
 function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
   if (
     booking.settlement?.damageBalancePaymentStatus === "paid" &&
@@ -1288,6 +1260,10 @@ function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
     return "admin_review";
   }
 
+  if (isRenterDisputedDamageRequest(booking)) {
+    return "disputed_review";
+  }
+
   if (
     booking.settlement?.status === "support_pending" ||
     booking.settlement?.supportStatus === "pending" ||
@@ -1303,10 +1279,16 @@ function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
   return "unknown";
 }
 
+function isRenterDisputedDamageRequest(booking: AdminBooking) {
+  return booking.damageDeductionRequest?.status === "disputed" || booking.disputeFlow?.status === "disputed";
+}
+
 function getStagePanelTitle(stage: DamageCaseStage) {
   switch (stage) {
     case "admin_review":
       return "Review needed";
+    case "disputed_review":
+      return "Renter disputed";
     case "support_handling":
       return "Support chats";
     case "balance_paid":
@@ -1323,7 +1305,9 @@ function getStagePanelTitle(stage: DamageCaseStage) {
 function getStageTitle(stage: DamageCaseStage) {
   switch (stage) {
     case "admin_review":
-      return "Admin review required";
+      return "Lend Support review required";
+    case "disputed_review":
+      return "Renter disputed the request";
     case "support_handling":
       return "Support chat active";
     case "balance_paid":
@@ -1345,6 +1329,8 @@ function getStageDescription(stage: DamageCaseStage, booking: AdminBooking) {
         return `Review the ${reason} request, support chats, and evidence. Reject only if the request should be declined.`;
       }
       return `Review the ${reason} request and decide the approved damage amount.`;
+    case "disputed_review":
+      return "The renter declined the owner damage fee. Approve the requested fee, change the amount, or reject it.";
     case "support_handling":
       return "Use support chats, payment requests, and admin notes for this damage case.";
     case "balance_paid":
@@ -1361,6 +1347,7 @@ function getStageDescription(stage: DamageCaseStage, booking: AdminBooking) {
 function getStageIcon(stage: DamageCaseStage) {
   switch (stage) {
     case "admin_review":
+    case "disputed_review":
       return <AlertTriangle className="size-4 text-destructive" />;
     case "support_handling":
       return <MessageSquareText className="size-4 text-primary" />;
