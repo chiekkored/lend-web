@@ -107,7 +107,7 @@ export function BookingStatusDialog({ booking, onOpenChange, open }: BookingStat
               <div className="grid gap-1 text-sm">
                 <p className="font-medium">Refund handling</p>
                 <p className="text-muted-foreground">
-                  Paid amount: {formatBookingMoney(maxRefundAmount)}
+                  Refundable amount: {formatBookingMoney(maxRefundAmount)}
                 </p>
               </div>
               <BookingRefundOptions

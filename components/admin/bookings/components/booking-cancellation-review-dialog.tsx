@@ -150,7 +150,7 @@ export function BookingCancellationReviewDialog({
             </p>
             <p className="mt-1 text-muted-foreground">Reason: {booking.cancellationRequest?.reason ?? "Not set"}</p>
             {approving ? (
-              <p className="mt-1 text-muted-foreground">Paid amount: {maxRefundText}</p>
+              <p className="mt-1 text-muted-foreground">Refundable amount: {maxRefundText}</p>
             ) : null}
             {approving && requestedByOwner ? (
               <p className="mt-1 text-muted-foreground">

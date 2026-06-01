@@ -84,7 +84,9 @@ export function BookingRefundOptions({
             type="number"
             value={partialAmount}
           />
-          <p className="text-xs text-muted-foreground">Maximum refund: {maxRefundText}</p>
+          <p className="text-xs text-muted-foreground">
+            Maximum refundable amount: {maxRefundText}. Processing fees are not included.
+          </p>
         </div>
       ) : null}
     </div>
@@ -134,14 +136,23 @@ export function buildRefundOptions({
 }
 
 export function getMaxRefundAmount(booking: AdminBooking) {
+  const rentalSubtotal = firstPositiveNumber([
+    booking.priceBreakdown.rentalSubtotal,
+    booking.payment?.rentalSubtotal,
+    booking.totalPrice,
+  ]);
+  const securityDepositAmount = firstPositiveNumber([
+    booking.priceBreakdown.securityDepositAmount,
+    booking.depositFlow?.amount,
+  ]);
+  const refundableAmount = (rentalSubtotal ?? 0) + (securityDepositAmount ?? 0);
+  if (refundableAmount > 0) {
+    return refundableAmount;
+  }
+
   const paidAmount = booking.payment?.amount;
   if (paidAmount != null && Number.isFinite(paidAmount) && paidAmount > 0) {
     return paidAmount;
-  }
-
-  const legacyTotal = booking.totalPrice;
-  if (legacyTotal != null && Number.isFinite(legacyTotal) && legacyTotal > 0) {
-    return legacyTotal;
   }
 
   return null;
@@ -164,4 +175,13 @@ function RefundNotice({ children }: { children: React.ReactNode }) {
       <span>{children}</span>
     </div>
   );
+}
+
+function firstPositiveNumber(values: Array<number | null | undefined>) {
+  for (const value of values) {
+    if (value != null && Number.isFinite(value) && value > 0) {
+      return value;
+    }
+  }
+  return null;
 }
