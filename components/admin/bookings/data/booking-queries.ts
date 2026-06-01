@@ -284,7 +284,6 @@ export function listenPendingDamageBookings({
     query(
       bookingsCollection,
       where("disputeFlow.status", "in", [
-        "requested",
         "disputed",
         "support_review",
         "outstanding_payment_pending",
@@ -307,7 +306,6 @@ export function listenPendingDamageBookings({
     query(
       bookingsCollection,
       where("depositFlow.status", "in", [
-        "awaiting_renter_response",
         "disputed",
         "support_review",
         "outstanding_payment_pending",

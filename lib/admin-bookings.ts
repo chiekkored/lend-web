@@ -291,6 +291,20 @@ export function mapAdminBooking({
   const mappedDepositFlow = mapDepositFlow(depositFlow, securityDeposit);
   const mappedDisputeFlow = mapDisputeFlow(disputeFlow, damageDeductionRequest, settlement);
   const mappedPayoutFlow = mapPayoutFlow(payoutFlow, settlement, payment);
+  const bookingStatus = asString(data.status);
+  const isCompletedBooking = bookingStatus?.toLowerCase() === "completed";
+  const isResolvedDamageCase =
+    isCompletedBooking ||
+    mappedDisputeFlow?.status === "resolved" ||
+    asString(damageDeductionRequest?.status) === "resolved" ||
+    asString(settlement?.status)?.toLowerCase() === "completed";
+  const resolvedDamageOutstandingAmount = mappedDisputeFlow?.outstandingAmount ?? 0;
+  const hasDamageBalance =
+    (mappedDisputeFlow?.paidOutstandingAmount ?? 0) > 0 || (!isResolvedDamageCase && resolvedDamageOutstandingAmount > 0);
+  const mappedDamageBalancePaymentStatus =
+    mappedDisputeFlow?.outstandingPaymentStatus === "paid"
+      ? "paid"
+      : asString(settlement?.damageBalancePaymentStatus) ?? mappedDisputeFlow?.outstandingPaymentStatus ?? null;
 
   return {
     id: asString(data.id) ?? snapshot.id,
@@ -355,7 +369,9 @@ export function mapAdminBooking({
     payoutFlow: mappedPayoutFlow,
     settlement: settlement || depositFlow || disputeFlow || payoutFlow
       ? {
-          status: asString(settlement?.status) ?? mappedDisputeFlow?.status ?? mappedDepositFlow?.status ?? null,
+          status: isResolvedDamageCase
+            ? "completed"
+            : asString(settlement?.status) ?? mappedDisputeFlow?.status ?? mappedDepositFlow?.status ?? null,
           depositStatus: asString(settlement?.depositStatus) ?? mappedDepositFlow?.status ?? null,
           renterResponse: asString(settlement?.renterResponse) ?? mappedDisputeFlow?.renterResponse ?? null,
           approvedDamageDeductionAmount: asNumber(
@@ -367,21 +383,28 @@ export function mapAdminBooking({
           outstandingDamageAmount: asNumber(settlement?.outstandingDamageAmount) ?? mappedDisputeFlow?.outstandingAmount ?? null,
           depositReturnAmount: asNumber(settlement?.depositReturnAmount) ?? mappedDepositFlow?.depositReturnAmount ?? mappedPayoutFlow?.depositReturnAmount ?? null,
           ownerPayoutAmount: asNumber(settlement?.ownerPayoutAmount) ?? mappedPayoutFlow?.ownerPayoutAmount ?? null,
-          supportStatus: asString(settlement?.supportStatus) ?? mappedDisputeFlow?.supportStatus ?? null,
+          supportStatus: isResolvedDamageCase
+            ? "resolved"
+            : asString(settlement?.supportStatus) ?? mappedDisputeFlow?.supportStatus ?? null,
           renterSupportChatId: asString(settlement?.renterSupportChatId) ?? mappedDisputeFlow?.renterSupportChatId ?? null,
           ownerSupportChatId: asString(settlement?.ownerSupportChatId) ?? mappedDisputeFlow?.ownerSupportChatId ?? null,
-          damageBalancePaymentStatus: asString(
-            settlement?.damageBalancePaymentStatus,
-          ) ?? mappedDisputeFlow?.outstandingPaymentStatus ?? null,
+          damageBalancePaymentStatus:
+            isResolvedDamageCase && !hasDamageBalance
+              ? null
+              : mappedDamageBalancePaymentStatus,
           damageBalancePaymentRequestId: asString(
             settlement?.damageBalancePaymentRequestId,
           ) ?? mappedDisputeFlow?.outstandingPaymentRequestId ?? null,
-          damageBalanceRequestedAmount: asNumber(
-            settlement?.damageBalanceRequestedAmount,
-          ) ?? mappedDisputeFlow?.outstandingAmount ?? null,
-          ownerDamageBalancePayoutStatus: asString(
-            settlement?.ownerDamageBalancePayoutStatus,
-          ) ?? mappedPayoutFlow?.ownerPayoutStatus ?? null,
+          damageBalanceRequestedAmount:
+            isResolvedDamageCase && !hasDamageBalance
+              ? null
+              : asNumber(settlement?.damageBalanceRequestedAmount) ?? mappedDisputeFlow?.outstandingAmount ?? null,
+          ownerDamageBalancePayoutStatus:
+            isResolvedDamageCase && !hasDamageBalance
+              ? null
+              : asString(settlement?.ownerDamageBalancePayoutStatus) ??
+                (hasDamageBalance ? mappedPayoutFlow?.ownerPayoutStatus : null) ??
+                null,
         }
       : null,
     damageDeductionRequest: damageDeductionRequest || disputeFlow
@@ -396,7 +419,9 @@ export function mapAdminBooking({
           overDepositRequested:
             damageDeductionRequest?.overDepositRequested === true || (mappedDisputeFlow?.outstandingAmount ?? 0) > 0,
           renterResponse: asString(damageDeductionRequest?.renterResponse) ?? mappedDisputeFlow?.renterResponse ?? null,
-          status: asString(damageDeductionRequest?.status) ?? mappedDisputeFlow?.status ?? null,
+          status: isResolvedDamageCase
+            ? "resolved"
+            : asString(damageDeductionRequest?.status) ?? mappedDisputeFlow?.status ?? null,
           adminNotes: asString(damageDeductionRequest?.adminNotes) ?? mappedDisputeFlow?.adminNotes ?? null,
           renterSupportChatId: asString(
             damageDeductionRequest?.renterSupportChatId,
@@ -407,7 +432,7 @@ export function mapAdminBooking({
         }
       : null,
     renter: mapBookingPerson(data.renter),
-    status: asString(data.status),
+    status: bookingStatus,
     totalPrice: asNumber(data.totalPrice),
   };
 }
@@ -654,10 +679,17 @@ export function buildBookingSearchText(booking: AdminBooking) {
 }
 
 export function isPendingDamageBooking(booking: AdminBooking) {
+  const status = booking.disputeFlow?.status ?? "";
+  const supportStatus = booking.disputeFlow?.supportStatus ?? "";
+  const depositStatus = booking.depositFlow?.status ?? "";
+  const waitingForRenterResponse =
+    status === "requested" || depositStatus === "awaiting_renter_response";
+
   return (
     Boolean(booking.disputeFlow) &&
-    !["resolved", "closed"].includes(booking.disputeFlow?.status ?? "") &&
-    !["resolved", "closed"].includes(booking.disputeFlow?.supportStatus ?? "")
+    !waitingForRenterResponse &&
+    !["resolved", "closed"].includes(status) &&
+    !["resolved", "closed"].includes(supportStatus)
   );
 }
 

@@ -32,14 +32,24 @@ type DamageSupportUpdateResponse = {
   supportStatus?: unknown;
 };
 type DamageReviewResponse = {
+  approvedDeductionAmount?: unknown;
   approvedDamageDeductionAmount?: unknown;
+  bookingStatus?: unknown;
   depositCoveredDamageAmount?: unknown;
+  depositReturnAmount?: unknown;
+  ownerPayoutAmount?: unknown;
   outstandingDamageAmount?: unknown;
   status?: unknown;
   supportStatus?: unknown;
 };
 type DamagePaymentRequestResponse = {
+  approvedDamageDeductionAmount?: unknown;
+  depositCoveredDamageAmount?: unknown;
+  depositReturnAmount?: unknown;
+  outstandingDamageAmount?: unknown;
   paymentRequestId?: unknown;
+  status?: unknown;
+  supportStatus?: unknown;
 };
 type ReleaseDamageBalanceResponse = {
   alreadyReleased?: boolean;
@@ -409,12 +419,36 @@ export function useBookingMutation(booking: AdminBooking) {
         settlement: currentBooking.settlement
           ? {
               ...currentBooking.settlement,
+              approvedDamageDeductionAmount: readNumber(
+                data.approvedDamageDeductionAmount,
+                currentBooking.settlement.approvedDamageDeductionAmount,
+              ),
+              depositCoveredDamageAmount: readNumber(
+                data.depositCoveredDamageAmount,
+                currentBooking.settlement.depositCoveredDamageAmount,
+              ),
+              depositReturnAmount: readNumber(
+                data.depositReturnAmount,
+                currentBooking.settlement.depositReturnAmount,
+              ),
+              outstandingDamageAmount: readNumber(
+                data.outstandingDamageAmount,
+                currentBooking.settlement.outstandingDamageAmount,
+              ),
               damageBalancePaymentRequestId:
                 typeof data.paymentRequestId === "string"
                   ? data.paymentRequestId
                   : currentBooking.settlement.damageBalancePaymentRequestId,
               damageBalancePaymentStatus: "pending",
               damageBalanceRequestedAmount: amount,
+              status:
+                typeof data.status === "string"
+                  ? data.status
+                  : currentBooking.settlement.status,
+              supportStatus:
+                typeof data.supportStatus === "string"
+                  ? data.supportStatus
+                  : currentBooking.settlement.supportStatus,
             }
           : currentBooking.settlement,
       }));
@@ -547,10 +581,12 @@ function patchDamageReviewCache({
   response: DamageReviewResponse;
 }) {
   const status = typeof response.status === "string" ? response.status : null;
+  const bookingStatus =
+    typeof response.bookingStatus === "string" ? response.bookingStatus : null;
   const supportStatus =
     typeof response.supportStatus === "string" ? response.supportStatus : null;
   const approvedAmount = readNumber(
-    response.approvedDamageDeductionAmount,
+    response.approvedDamageDeductionAmount ?? response.approvedDeductionAmount,
     decision === "reject"
       ? 0
       : booking.damageDeductionRequest?.approvedAmount,
@@ -563,20 +599,55 @@ function patchDamageReviewCache({
     response.outstandingDamageAmount,
     booking.settlement?.outstandingDamageAmount,
   );
-  const resolved = status === "completed";
+  const depositReturnAmount = readNumber(
+    response.depositReturnAmount,
+    booking.settlement?.depositReturnAmount,
+  );
+  const ownerPayoutAmount = readNumber(
+    response.ownerPayoutAmount,
+    booking.settlement?.ownerPayoutAmount,
+  );
+  const resolved = status === "completed" || status === "resolved";
   const supportPending = status === "support_pending";
+  const nextBookingStatus =
+    resolved || bookingStatus?.toLowerCase() === "completed"
+      ? "Completed"
+      : currentStatusFallback(bookingStatus);
+  const hasOutstandingDamage = (outstandingDamageAmount ?? 0) > 0;
 
   patchCachedAdminBooking(queryClient, booking, (currentBooking) => ({
     ...currentBooking,
-    status: resolved ? "Completed" : currentBooking.status,
+    status: nextBookingStatus ?? currentBooking.status,
     settlement: currentBooking.settlement
       ? {
           ...currentBooking.settlement,
-          status: status ?? currentBooking.settlement.status,
-          supportStatus: supportStatus ?? currentBooking.settlement.supportStatus,
+          status: resolved
+            ? "completed"
+            : status ?? currentBooking.settlement.status,
+          supportStatus: resolved
+            ? "resolved"
+            : supportStatus ?? currentBooking.settlement.supportStatus,
           approvedDamageDeductionAmount: approvedAmount,
           depositCoveredDamageAmount,
           outstandingDamageAmount,
+          depositReturnAmount,
+          ownerPayoutAmount,
+          damageBalancePaymentStatus:
+            resolved && !hasOutstandingDamage
+              ? null
+              : currentBooking.settlement.damageBalancePaymentStatus,
+          damageBalancePaymentRequestId:
+            resolved && !hasOutstandingDamage
+              ? null
+              : currentBooking.settlement.damageBalancePaymentRequestId,
+          damageBalanceRequestedAmount:
+            resolved && !hasOutstandingDamage
+              ? null
+              : currentBooking.settlement.damageBalanceRequestedAmount,
+          ownerDamageBalancePayoutStatus:
+            resolved && !hasOutstandingDamage
+              ? null
+              : currentBooking.settlement.ownerDamageBalancePayoutStatus,
         }
       : {
           approvedDamageDeductionAmount: approvedAmount,
@@ -584,17 +655,33 @@ function patchDamageReviewCache({
           damageBalancePaymentStatus: null,
           damageBalanceRequestedAmount: null,
           depositCoveredDamageAmount,
-          depositReturnAmount: null,
+          depositReturnAmount,
           depositStatus: null,
           outstandingDamageAmount,
           ownerDamageBalancePayoutStatus: null,
-          ownerPayoutAmount: null,
+          ownerPayoutAmount,
           ownerSupportChatId: null,
           renterResponse: null,
           renterSupportChatId: null,
-          status,
-          supportStatus,
+          status: resolved ? "completed" : status,
+          supportStatus: resolved ? "resolved" : supportStatus,
         },
+    depositFlow: currentBooking.depositFlow
+      ? {
+          ...currentBooking.depositFlow,
+          approvedDeductionAmount: approvedAmount,
+          depositCoveredAmount: depositCoveredDamageAmount,
+          depositReturnAmount,
+          status: resolved
+            ? !currentBooking.securityDeposit.enabled ||
+              currentBooking.securityDeposit.amount <= 0
+              ? "none"
+              : (depositReturnAmount ?? 0) > 0
+                ? "return_processing"
+                : "deducted"
+            : currentBooking.depositFlow.status,
+        }
+      : currentBooking.depositFlow,
     damageDeductionRequest: currentBooking.damageDeductionRequest
       ? {
           ...currentBooking.damageDeductionRequest,
@@ -608,6 +695,10 @@ function patchDamageReviewCache({
         }
       : currentBooking.damageDeductionRequest,
   }));
+}
+
+function currentStatusFallback(status: string | null) {
+  return status?.toLowerCase() === "completed" ? "Completed" : null;
 }
 
 function patchSupportChatId(

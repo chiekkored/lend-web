@@ -122,14 +122,16 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
   const evidenceUrls = booking.damageDeductionRequest?.evidenceUrls ?? [];
   const stage = getDamageCaseStage(booking);
   const primaryStatus =
-    stage === "admin_review"
+    isCompletedBooking(booking)
+      ? "Completed"
+      : stage === "admin_review"
       ? "admin_review_required"
       : stage === "support_handling"
         ? supportStatus
         : stage === "balance_paid"
           ? "paid"
           : stage === "resolved"
-            ? "resolved"
+            ? "Completed"
             : (booking.settlement?.status ?? booking.damageDeductionRequest?.status ?? "pending");
 
   React.useEffect(() => {
@@ -847,7 +849,7 @@ function SupportChatSheet({
   const [messagesLoading, setMessagesLoading] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
-  const [paymentAmount, setPaymentAmount] = React.useState(String(booking.settlement?.outstandingDamageAmount ?? ""));
+  const [paymentAmount, setPaymentAmount] = React.useState("");
   const { error, resetError, sendDamageBalancePaymentRequest, sendDamageSupportMessage, submitting } =
     useBookingMutation(booking);
   const trimmedMessage = messageText.trim();
@@ -861,7 +863,10 @@ function SupportChatSheet({
   const securityDepositText = booking.securityDeposit.enabled
     ? formatBookingMoney(booking.securityDeposit.amount)
     : "Disabled";
-  const outstandingDamageBalanceText = formatBookingMoney(booking.settlement?.outstandingDamageAmount ?? null);
+  const requestedDamageBalanceText = formatBookingMoney(booking.settlement?.damageBalanceRequestedAmount ?? null);
+  const paymentRequestCopy = booking.securityDeposit.enabled
+    ? "Enter the additional damage balance beyond the security deposit. Lend Support decides this amount after reviewing the case."
+    : "Enter the full damage payment that Lend Support decided to request from the renter.";
   const canRequestDamageBalancePayment =
     target === "renter" &&
     Boolean(chatId) &&
@@ -872,9 +877,9 @@ function SupportChatSheet({
   React.useEffect(() => {
     if (!open) return;
     setMessageText("");
-    setPaymentAmount(String(booking.settlement?.outstandingDamageAmount ?? ""));
+    setPaymentAmount("");
     resetError();
-  }, [booking.settlement?.outstandingDamageAmount, open, resetError]);
+  }, [open, resetError]);
 
   React.useEffect(() => {
     if (!open || !chatId) {
@@ -1001,22 +1006,22 @@ function SupportChatSheet({
           </DialogHeader>
           <form className="grid gap-4" onSubmit={onSendPaymentRequest}>
             <div className="grid gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-              <p className="text-muted-foreground">
-                Enter only the amount beyond the security deposit. This is not the full damage amount or a new security
-                deposit.
-              </p>
+              <p className="text-muted-foreground">{paymentRequestCopy}</p>
               <div className="grid gap-1">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Security deposit</span>
                   <span className="font-medium">{securityDepositText}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Outstanding damage balance</span>
-                  <span className="font-medium">{outstandingDamageBalanceText}</span>
-                </div>
+                {booking.settlement?.damageBalanceRequestedAmount ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Requested balance</span>
+                    <span className="font-medium">{requestedDamageBalanceText}</span>
+                  </div>
+                ) : null}
               </div>
               <p className="text-xs text-muted-foreground">
-                Example: if the deposit is PHP 500 and approved damage is PHP 700, request PHP 200.
+                Example: with a PHP 500 deposit and PHP 700 support-approved damage, request PHP 200. With no deposit,
+                request the full support-approved damage amount.
               </p>
             </div>
             <div className="grid gap-2">
@@ -1240,6 +1245,10 @@ function normalizeSupportStatus(value: string | null | undefined): DamageSupport
 }
 
 function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
+  if (isCompletedBooking(booking)) {
+    return "resolved";
+  }
+
   if (
     booking.settlement?.damageBalancePaymentStatus === "paid" &&
     booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded"
@@ -1281,6 +1290,10 @@ function getDamageCaseStage(booking: AdminBooking): DamageCaseStage {
 
 function isRenterDisputedDamageRequest(booking: AdminBooking) {
   return booking.damageDeductionRequest?.status === "disputed" || booking.disputeFlow?.status === "disputed";
+}
+
+function isCompletedBooking(booking: AdminBooking) {
+  return booking.status === "Completed" || booking.status?.toLowerCase() === "completed";
 }
 
 function getStagePanelTitle(stage: DamageCaseStage) {
