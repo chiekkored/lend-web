@@ -3,12 +3,32 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { doc, increment, serverTimestamp, writeBatch } from "firebase/firestore";
-import { CalendarClock, ListChecks, MessageCircle, UserRound } from "lucide-react";
+import { httpsCallable } from "firebase/functions";
+import { CalendarClock, CircleDollarSign, ListChecks, Loader2, MessageCircle, UserRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { Toast } from "@/components/ui/toast";
 import { fetchAdminBookings, bookingQueryKeys } from "@/components/admin/bookings/data/booking-queries";
 import { BookingViewSheet } from "@/components/admin/bookings/components/booking-view-sheet";
 import { fetchAdminListings, listingQueryKeys } from "@/components/admin/listings/data/listing-queries";
@@ -24,7 +44,7 @@ import {
 import { formatListingDate, formatListingPrice, type AdminListing } from "@/lib/admin-listings";
 import { formatUserDate, getUserDisplayName, type AdminUser } from "@/lib/admin-users";
 import { buildApprovedVerificationUserUpdate } from "@/lib/admin-verification";
-import { getFirebaseFirestore, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
+import { getFirebaseFirestore, getFirebaseFunctions, hasFirebaseConfig, missingFirebaseConfig } from "@/lib/firebase";
 
 import {
   fetchFullVerificationSubmission,
@@ -38,11 +58,22 @@ type UserViewSheetProps = {
   user: AdminUser;
 };
 
+type ActionToast = {
+  message: string;
+  title: string;
+  variant: "success" | "error";
+};
+type ManualPayoutDestinationKind = "auto" | "deposit_return" | "payout_destination";
+
 export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) {
   const [listingsOpen, setListingsOpen] = React.useState(false);
   const [bookingsOpen, setBookingsOpen] = React.useState(false);
   const [supportChatOpen, setSupportChatOpen] = React.useState(false);
+  const [manualPayoutOpen, setManualPayoutOpen] = React.useState(false);
+  const [toast, setToast] = React.useState<ActionToast | null>(null);
   const verificationMutation = useFullVerificationMutation(user);
+  const manualPayoutMutation = useManualUserPayoutMutation(user);
+  const resetManualPayoutMutation = manualPayoutMutation.reset;
   const displayName = getUserDisplayName(user);
   const initials = displayName
     .split(" ")
@@ -56,8 +87,11 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
       setListingsOpen(false);
       setBookingsOpen(false);
       setSupportChatOpen(false);
+      setManualPayoutOpen(false);
+      setToast(null);
+      resetManualPayoutMutation();
     }
-  }, [open]);
+  }, [resetManualPayoutMutation, open]);
 
   return (
     <>
@@ -85,7 +119,7 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
 
           <div className="grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4">
             <Section title="Activity">
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <Button
                   className="justify-center"
                   onClick={() => setListingsOpen(true)}
@@ -112,6 +146,15 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
                 >
                   <MessageCircle className="size-4" />
                   View support chat
+                </Button>
+                <Button
+                  className="justify-center"
+                  onClick={() => setManualPayoutOpen(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  <CircleDollarSign className="size-4" />
+                  Send money
                 </Button>
               </div>
             </Section>
@@ -196,7 +239,149 @@ export function UserViewSheet({ onOpenChange, open, user }: UserViewSheetProps) 
       <UserListingsSheet onOpenChange={setListingsOpen} open={listingsOpen} user={user} />
       <UserBookingsSheet onOpenChange={setBookingsOpen} open={bookingsOpen} user={user} />
       <UserSupportChatSheet onOpenChange={setSupportChatOpen} open={supportChatOpen} user={user} />
+      <ManualUserPayoutDialog
+        mutation={manualPayoutMutation}
+        onOpenChange={setManualPayoutOpen}
+        onSuccess={(status) => {
+          setToast({
+            message: status ? `Manual money transfer is ${status}.` : "Manual money transfer was submitted.",
+            title: "Money transfer submitted",
+            variant: "success",
+          });
+        }}
+        open={manualPayoutOpen}
+        user={user}
+      />
+      {toast ? (
+        <Toast message={toast.message} onDismiss={() => setToast(null)} title={toast.title} variant={toast.variant} />
+      ) : null}
     </>
+  );
+}
+
+function ManualUserPayoutDialog({
+  mutation,
+  onOpenChange,
+  onSuccess,
+  open,
+  user,
+}: {
+  mutation: ReturnType<typeof useManualUserPayoutMutation>;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: (status: string | null) => void;
+  open: boolean;
+  user: AdminUser;
+}) {
+  const [amount, setAmount] = React.useState("");
+  const [destinationKind, setDestinationKind] = React.useState<ManualPayoutDestinationKind>("auto");
+  const [reason, setReason] = React.useState("");
+  const [idempotencyKey, setIdempotencyKey] = React.useState(() => createIdempotencyKey());
+  const parsedAmount = Number(amount);
+  const resetMutation = mutation.reset;
+  const amountError =
+    amount.trim() && (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !hasAtMostTwoDecimalPlaces(amount))
+      ? "Enter an amount greater than 0 with up to 2 decimal places."
+      : null;
+  const reasonError = reason.trim().length > 500 ? "Reason must be 500 characters or fewer." : null;
+  const disabled =
+    mutation.submitting ||
+    Boolean(amountError) ||
+    Boolean(reasonError) ||
+    !amount.trim() ||
+    !reason.trim();
+
+  React.useEffect(() => {
+    if (open) {
+      setAmount("");
+      setDestinationKind("auto");
+      setReason("");
+      setIdempotencyKey(createIdempotencyKey());
+      resetMutation();
+    }
+  }, [open, resetMutation]);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (disabled) return;
+
+    const result = await mutation.sendManualPayout({
+      amount: parsedAmount,
+      destinationKind,
+      idempotencyKey,
+      reason,
+    });
+
+    if (result.success) {
+      onSuccess(result.status ?? null);
+      onOpenChange(false);
+    }
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Send money to user</DialogTitle>
+          <DialogDescription>
+            Send a manual Lend-funded money return to {getUserDisplayName(user)}.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={onSubmit}>
+          <div className="grid gap-2">
+            <Label htmlFor={`manual-payout-amount-${user.uid}`}>Amount</Label>
+            <Input
+              id={`manual-payout-amount-${user.uid}`}
+              inputMode="decimal"
+              min="0.01"
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="0.00"
+              step="0.01"
+              type="number"
+              value={amount}
+            />
+            {amountError ? <p className="text-sm text-destructive">{amountError}</p> : null}
+          </div>
+          <div className="grid gap-2">
+            <Label>Destination</Label>
+            <Select
+              disabled={mutation.submitting}
+              onValueChange={(value) => setDestinationKind(value as ManualPayoutDestinationKind)}
+              value={destinationKind}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose destination" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto destination</SelectItem>
+                <SelectItem value="deposit_return">Deposit return destination</SelectItem>
+                <SelectItem value="payout_destination">Payout destination</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`manual-payout-reason-${user.uid}`}>Reason</Label>
+            <Textarea
+              id={`manual-payout-reason-${user.uid}`}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Describe the Lend lapse or reason for this manual return."
+              value={reason}
+            />
+            {reasonError ? <p className="text-sm text-destructive">{reasonError}</p> : null}
+          </div>
+          {mutation.error ? <p className="text-sm text-destructive">{mutation.error}</p> : null}
+          <DialogFooter>
+            <Button disabled={mutation.submitting} onClick={() => onOpenChange(false)} type="button" variant="outline">
+              Cancel
+            </Button>
+            <Button disabled={disabled} type="submit">
+              {mutation.submitting ? <Loader2 className="animate-spin" /> : <CircleDollarSign className="size-4" />}
+              Send money
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -484,6 +669,80 @@ function formatVerificationValue(value: unknown) {
   }
 
   return typeof value === "string" && value.trim() ? value : String(value);
+}
+
+function useManualUserPayoutMutation(user: AdminUser) {
+  const [error, setError] = React.useState<string | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  const reset = React.useCallback(() => setError(null), []);
+
+  const sendManualPayout = React.useCallback(
+    async ({
+      amount,
+      destinationKind,
+      idempotencyKey,
+      reason,
+    }: {
+      amount: number;
+      destinationKind: ManualPayoutDestinationKind;
+      idempotencyKey: string;
+      reason: string;
+    }) => {
+      setError(null);
+
+      if (!hasFirebaseConfig) {
+        setError(`Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`);
+        return { success: false };
+      }
+
+      setSubmitting(true);
+      try {
+        const callable = httpsCallable(getFirebaseFunctions(), "adminSendManualUserPayout");
+        const result = await callable({
+          uid: user.uid,
+          amount,
+          currency: "PHP",
+          destinationKind,
+          idempotencyKey,
+          reason: reason.trim(),
+        });
+        const data = result.data as { status?: unknown; success?: unknown };
+
+        if (data.success === false) {
+          setError("Unable to send money.");
+          return { success: false };
+        }
+
+        return {
+          success: true,
+          status: typeof data.status === "string" ? data.status : null,
+        };
+      } catch (err) {
+        console.error("[user-view-sheet] manual payout failed", err);
+        setError("Unable to send money to this user.");
+        return { success: false };
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [user.uid],
+  );
+
+  return React.useMemo(
+    () => ({ error, reset, sendManualPayout, submitting }),
+    [error, reset, sendManualPayout, submitting],
+  );
+}
+
+function createIdempotencyKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID().replaceAll("-", "");
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function hasAtMostTwoDecimalPlaces(value: string) {
+  return /^\d+(\.\d{1,2})?$/.test(value.trim());
 }
 
 function useFullVerificationMutation(user: AdminUser) {

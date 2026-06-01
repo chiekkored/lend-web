@@ -50,7 +50,7 @@ import {
 import { getFirebaseStorage } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
-import { CachedUserViewSheet } from "../../entity-detail-sheets";
+import { CachedBookingViewSheet, CachedUserViewSheet } from "../../entity-detail-sheets";
 import { BookingChatSheet } from "./booking-chat-sheet";
 import { BookingDamageReviewDialog } from "./booking-damage-review-dialog";
 import { listenAdminBookingMessages } from "../data/booking-queries";
@@ -105,8 +105,11 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     booking.settlement?.ownerDamageBalancePayoutStatus !== "succeeded";
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [reviewDecision, setReviewDecision] = React.useState<DamageReviewDecision>("approve_adjusted");
+  const [bookingDetailsOpen, setBookingDetailsOpen] = React.useState(false);
   const [bookingChatOpen, setBookingChatOpen] = React.useState(false);
   const [chatTarget, setChatTarget] = React.useState<DamageSupportChatTarget | null>(null);
+  const [ownerProfileOpen, setOwnerProfileOpen] = React.useState(false);
+  const [renterProfileOpen, setRenterProfileOpen] = React.useState(false);
   const [toast, setToast] = React.useState<ActionToast | null>(null);
   const [releaseBalanceMessage, setReleaseBalanceMessage] = React.useState<string | null>(null);
   const supportStatus = initialSupportStatus;
@@ -142,6 +145,9 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     setOwnerSupportChatId(
       booking.settlement?.ownerSupportChatId ?? booking.damageDeductionRequest?.ownerSupportChatId ?? null,
     );
+    setBookingDetailsOpen(false);
+    setOwnerProfileOpen(false);
+    setRenterProfileOpen(false);
     setToast(null);
     setReleaseBalanceMessage(null);
     resetError();
@@ -266,12 +272,36 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
             </Section>
 
             <Section title="Booking context">
+              <Button
+                className="w-full justify-between"
+                onClick={() => setBookingDetailsOpen(true)}
+                type="button"
+                variant="outline"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <ReceiptText className="size-4" />
+                  View booking
+                </span>
+                <span className="max-w-40 truncate text-muted-foreground">{booking.id}</span>
+              </Button>
               <div className="grid gap-3 sm:grid-cols-2">
-                <InfoTile icon={<UserRound className="size-4" />} label="Owner" value={getBookingOwnerName(booking)} />
+                <InfoTile
+                  icon={<UserRound className="size-4" />}
+                  label="Owner"
+                  value={
+                    <UserContextButton disabled={!getBookingOwnerId(booking)} onClick={() => setOwnerProfileOpen(true)}>
+                      {getBookingOwnerName(booking)}
+                    </UserContextButton>
+                  }
+                />
                 <InfoTile
                   icon={<UserRound className="size-4" />}
                   label="Renter"
-                  value={getBookingRenterName(booking)}
+                  value={
+                    <UserContextButton disabled={!getBookingRenterId(booking)} onClick={() => setRenterProfileOpen(true)}>
+                      {getBookingRenterName(booking)}
+                    </UserContextButton>
+                  }
                 />
                 <InfoTile label="Start" value={formatBookingDate(booking.startDate)} />
                 <InfoTile label="End" value={formatBookingDate(booking.endDate)} />
@@ -303,6 +333,25 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
       />
 
       <BookingChatSheet booking={booking} onOpenChange={setBookingChatOpen} open={bookingChatOpen} />
+
+      <CachedBookingViewSheet
+        assetId={booking.assetId}
+        bookingId={booking.id}
+        onOpenChange={setBookingDetailsOpen}
+        open={bookingDetailsOpen}
+      />
+
+      <CachedUserViewSheet
+        onOpenChange={setOwnerProfileOpen}
+        open={ownerProfileOpen}
+        uid={getBookingOwnerId(booking)}
+      />
+
+      <CachedUserViewSheet
+        onOpenChange={setRenterProfileOpen}
+        open={renterProfileOpen}
+        uid={getBookingRenterId(booking)}
+      />
 
       <SupportChatSheet
         booking={booking}
@@ -703,6 +752,28 @@ function InfoTile({ icon, label, value }: { icon?: React.ReactNode; label: strin
       </div>
       <div className="min-w-0 [overflow-wrap:anywhere]">{value}</div>
     </div>
+  );
+}
+
+function UserContextButton({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      className="h-auto min-h-0 justify-start px-0 py-0 text-left font-normal"
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+      variant="link"
+    >
+      <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
+    </Button>
   );
 }
 
