@@ -84,19 +84,47 @@ export function BookingCancellationReviewDialog({
     effectiveRenterSuggestion.refundType === "partial" &&
     effectiveRenterSuggestion.shortLeadNoRefund &&
     renterDepositRefundValue > 0;
+  const suggestedRefundTypeLabel = getSuggestedRefundTypeLabel({
+    depositOnlySuggestion,
+    noRefund,
+    refundType: effectiveRenterSuggestion.refundType,
+  });
   const shortLeadNoRefund = effectiveRenterSuggestion.shortLeadNoRefund;
   const ownerPenaltyRate =
     typeof ownerPenalty?.penaltyRate === "number" ? `${formatExactNumber(ownerPenalty.penaltyRate * 100)}%` : "Not set";
 
   React.useEffect(() => {
-    if (open) {
-      setNotes("");
-      setPartialAmount("");
-      setRefundType("full");
-      setValidationError(null);
-      resetError();
+    if (!open) {
+      return;
     }
-  }, [open, resetError]);
+
+    setNotes("");
+    setValidationError(null);
+    resetError();
+
+    if (noRefund) {
+      setRefundType("none");
+      setPartialAmount("");
+      return;
+    }
+
+    const suggestedRefundType = effectiveRenterSuggestion.refundType;
+    if (hasRenterSuggestion && isRefundType(suggestedRefundType)) {
+      setRefundType(suggestedRefundType);
+      setPartialAmount(suggestedRefundType === "partial" ? String(effectiveRenterSuggestion.refundAmount ?? "") : "");
+      return;
+    }
+
+    setRefundType("full");
+    setPartialAmount("");
+  }, [
+    effectiveRenterSuggestion.refundAmount,
+    effectiveRenterSuggestion.refundType,
+    hasRenterSuggestion,
+    noRefund,
+    open,
+    resetError,
+  ]);
 
   async function onConfirm() {
     setValidationError(null);
@@ -111,21 +139,6 @@ export function BookingCancellationReviewDialog({
     if (success) {
       onOpenChange(false);
     }
-  }
-
-  function applyRenterPolicySuggestion() {
-    if (noRefund) {
-      setRefundType("none");
-      setPartialAmount("");
-      setValidationError(null);
-      return;
-    }
-    const suggestion = effectiveRenterSuggestion.refundType;
-    if (suggestion !== "full" && suggestion !== "partial" && suggestion !== "none") return;
-
-    setRefundType(suggestion);
-    setPartialAmount(suggestion === "partial" ? String(effectiveRenterSuggestion.refundAmount ?? "") : "");
-    setValidationError(null);
   }
 
   return (
@@ -185,14 +198,7 @@ export function BookingCancellationReviewDialog({
                     handling.
                   </p>
                 ) : null}
-                <Button
-                  className="mt-2 h-8 px-2 text-xs"
-                  onClick={applyRenterPolicySuggestion}
-                  type="button"
-                  variant="secondary"
-                >
-                  {depositOnlySuggestion ? "Use deposit-only suggestion" : "Use policy suggestion"}
-                </Button>
+                <p className="mt-2 font-semibold">Suggested refund type: {suggestedRefundTypeLabel}</p>
               </div>
             ) : null}
             <p className="mt-1 text-muted-foreground">{booking.payment?.method}</p>
@@ -264,6 +270,27 @@ function getEffectiveRenterSuggestion({
     refundType: renterPenalty?.suggestedRefundType,
     shortLeadNoRefund,
   } as const;
+}
+
+function getSuggestedRefundTypeLabel({
+  depositOnlySuggestion,
+  noRefund,
+  refundType,
+}: {
+  depositOnlySuggestion: boolean;
+  noRefund: boolean;
+  refundType: string | null | undefined;
+}) {
+  if (noRefund) return "No refund";
+  if (depositOnlySuggestion) return "Security deposit only";
+  if (refundType === "full") return "Full refund";
+  if (refundType === "partial") return "Partial refund";
+  if (refundType === "none") return "No refund";
+  return "Not set";
+}
+
+function isRefundType(value: string | null | undefined): value is RefundType {
+  return value === "full" || value === "partial" || value === "none";
 }
 
 function policyStartBoundary(startDate: Date) {
