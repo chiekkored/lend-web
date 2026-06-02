@@ -54,6 +54,8 @@ const sections: LegalSection[] = [
         <strong>Listing data:</strong> asset title, category, description,
         inclusions, photos, pricing, availability, location, security deposit
         settings, owner information, ratings, reviews, and listing status.
+        Listing submissions and edits may be processed by automated and
+        AI-assisted moderation tools before publication.
       </>,
       <>
         <strong>Booking and transaction data:</strong> selected dates, booking
@@ -147,6 +149,9 @@ const sections: LegalSection[] = [
         listing or pickup location details, booking dates, chat records,
         handover or return status, reports, evidence, and settlement details
         needed to coordinate or review the rental.
+        Listing content and photos may also be shared with service providers
+        that help Lend perform automated or AI-assisted safety and policy
+        review.
       </>,
       <>
         <strong>Authorities, advisers, or transaction parties:</strong> where

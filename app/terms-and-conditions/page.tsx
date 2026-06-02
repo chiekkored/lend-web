@@ -58,6 +58,7 @@ const sections: LegalSection[] = [
       "Listings must not be misleading, unsafe, unlawful, counterfeit, stolen, restricted, or otherwise prohibited by Lend policy or applicable law.",
       "Owners are responsible for asset condition, cleanliness, safety, lawful use, required permits or licenses, and accurate disclosure of material limitations or risks.",
       "Owners must honor confirmed bookings unless cancellation is allowed by Lend policy or required for safety, legal, or exceptional reasons.",
+      "New listings and listing content edits may be reviewed by automated tools, AI-assisted moderation, and Lend admins before they become publicly visible.",
       "Lend may review, edit, reject, hide, archive, delete, rank, suppress from recommendations, or moderate listings to protect users, comply with law, or improve marketplace quality.",
     ],
   },

@@ -78,7 +78,7 @@ const questions: HelpQuestion[] = [
     topic: "listing",
     question: "What do I need before publishing a listing?",
     answer:
-      "You need accurate item details, photos, pricing, availability, a pinned listing location, required payout details, and any security deposit settings that apply.",
+      "You need accurate item details, photos, pricing, availability, a pinned listing location, required payout details, and any security deposit settings that apply. New listings and listing edits may be reviewed by AI-assisted moderation and Lend admins before they become public.",
   },
   {
     topic: "listing",

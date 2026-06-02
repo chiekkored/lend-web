@@ -52,6 +52,18 @@ const adminReportsNavGroup = {
   ],
 } as const;
 
+const adminListingReviewNavGroup = {
+  title: "Listing Reviews",
+  icon: ShieldCheck,
+  items: [
+    {
+      title: "AI Review Queue",
+      href: "/admin/listing-reviews",
+      icon: ShieldCheck,
+    },
+  ],
+} as const;
+
 const adminUsersNavGroup = {
   title: "Users",
   icon: Users,
@@ -116,7 +128,7 @@ export const adminSidebarGroups = [
   },
   {
     title: "Moderation",
-    groups: [adminReportsNavGroup],
+    groups: [adminListingReviewNavGroup, adminReportsNavGroup],
   },
   {
     title: "Accounts",
