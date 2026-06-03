@@ -41,6 +41,14 @@ type PricingPolicy = {
   wallet_transfer_fee: FeeRule;
 };
 
+export type { PricingPolicy };
+
+type PricingPolicyEditorProps = {
+  error?: string | null;
+  onChange: (policy: PricingPolicy) => void;
+  policy: PricingPolicy;
+};
+
 const methodRows = [
   { key: "card.domestic", label: "Cards - domestic", path: ["card", "domestic"] },
   { key: "card.international", label: "Cards - international", path: ["card", "international"] },
@@ -106,53 +114,6 @@ export function PricingPolicyPage() {
     }
   }
 
-  function updateRule(path: readonly string[], patch: Partial<FeeRule>) {
-    setPolicy((current) => {
-      if (!current) return current;
-      const next = structuredClone(current);
-      let cursor: Record<string, unknown> = next.payment_method_fees;
-      path.forEach((part, index) => {
-        if (index === path.length - 1) {
-          cursor[part] = {
-            ...defaultRuleFor(path),
-            ...(isRecord(cursor[part]) ? cursor[part] : {}),
-            ...patch,
-          };
-          return;
-        }
-        if (!isRecord(cursor[part])) {
-          cursor[part] = {};
-        }
-        cursor = cursor[part] as Record<string, unknown>;
-      });
-      return next;
-    });
-  }
-
-  function updateTopLevelRule(key: "platform_fee" | "wallet_transfer_fee", patch: Partial<FeeRule>) {
-    setPolicy((current) => (current ? { ...current, [key]: { ...current[key], ...patch } } : current));
-  }
-
-  function updatePaymentMethodVat(rateBps: number) {
-    setPolicy((current) => (current ? { ...current, payment_method_fee_vat_rate_bps: rateBps } : current));
-  }
-
-  function updateCancellationPolicy(path: readonly string[], value: number | string) {
-    setPolicy((current) => {
-      if (!current) return current;
-      const next = structuredClone(current);
-      let cursor: Record<string, unknown> = next.renter_cancellation_policy as unknown as Record<string, unknown>;
-      path.forEach((part, index) => {
-        if (index === path.length - 1) {
-          cursor[part] = value;
-          return;
-        }
-        cursor = cursor[part] as Record<string, unknown>;
-      });
-      return next;
-    });
-  }
-
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading pricing policy...</div>;
   }
@@ -184,6 +145,61 @@ export function PricingPolicyPage() {
 
       {error ? <div className="text-sm text-destructive">{error}</div> : null}
       {savedAt ? <div className="text-sm text-muted-foreground">Last published locally at {savedAt}</div> : null}
+
+      <PricingPolicyEditor error={null} onChange={setPolicy} policy={policy} />
+    </div>
+  );
+}
+
+export function PricingPolicyEditor({
+  error,
+  onChange,
+  policy,
+}: PricingPolicyEditorProps) {
+  function updateRule(path: readonly string[], patch: Partial<FeeRule>) {
+    const next = structuredClone(policy);
+    let cursor: Record<string, unknown> = next.payment_method_fees;
+    path.forEach((part, index) => {
+      if (index === path.length - 1) {
+        cursor[part] = {
+          ...defaultRuleFor(path),
+          ...(isRecord(cursor[part]) ? cursor[part] : {}),
+          ...patch,
+        };
+        return;
+      }
+      if (!isRecord(cursor[part])) {
+        cursor[part] = {};
+      }
+      cursor = cursor[part] as Record<string, unknown>;
+    });
+    onChange(next);
+  }
+
+  function updateTopLevelRule(key: "platform_fee" | "wallet_transfer_fee", patch: Partial<FeeRule>) {
+    onChange({ ...policy, [key]: { ...policy[key], ...patch } });
+  }
+
+  function updatePaymentMethodVat(rateBps: number) {
+    onChange({ ...policy, payment_method_fee_vat_rate_bps: rateBps });
+  }
+
+  function updateCancellationPolicy(path: readonly string[], value: number | string) {
+    const next = structuredClone(policy);
+    let cursor: Record<string, unknown> = next.renter_cancellation_policy as unknown as Record<string, unknown>;
+    path.forEach((part, index) => {
+      if (index === path.length - 1) {
+        cursor[part] = value;
+        return;
+      }
+      cursor = cursor[part] as Record<string, unknown>;
+    });
+    onChange(next);
+  }
+
+  return (
+    <div className="space-y-6">
+      {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
       <Card>
         <CardHeader>

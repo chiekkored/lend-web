@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  SlidersHorizontal,
   Users,
   UserCheck,
   UserCog,
@@ -124,6 +125,18 @@ const adminBookingsNavGroup = {
   ],
 } as const;
 
+const adminSettingsNavGroup = {
+  title: "Settings",
+  icon: Settings,
+  items: [
+    {
+      title: "Remote Configs",
+      href: "/admin/settings/remote-configs",
+      icon: SlidersHorizontal,
+    },
+  ],
+} as const;
+
 export const adminSidebarGroups = [
   {
     title: "General",
@@ -146,7 +159,7 @@ export const adminSidebarGroups = [
   },
   {
     title: "System",
-    items: [{ title: "Settings", href: "/admin/settings", icon: Settings }],
+    groups: [adminSettingsNavGroup],
   },
 ] as const;
 
