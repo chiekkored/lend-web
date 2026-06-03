@@ -39,7 +39,7 @@ export type AdminBooking = {
   asset: {
     id: string | null;
     title: string | null;
-    category: string | null;
+    categoryName: string | null;
     owner: BookingPerson | null;
   } | null;
   createdAt: Date | null;
@@ -314,7 +314,7 @@ export function mapAdminBooking({
       ? {
           id: asString(asset.id) ?? assetId,
           title: asString(asset.title),
-          category: asString(asset.category),
+          categoryName: asString(asset.categoryName),
           owner: mapBookingPerson(asset.owner),
         }
       : null,

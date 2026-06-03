@@ -26,7 +26,10 @@ export type ListingReviewSubmission = {
   listing: {
     title: string | null;
     description: string | null;
-    category: string | null;
+    categoryId: string | null;
+    categoryName: string | null;
+    subcategoryId: string | null;
+    subcategoryName: string | null;
     rates: Record<string, unknown> | null;
     images: string[];
     showcase: string[];
@@ -82,7 +85,10 @@ function mapListingReviewSubmission(
     listing: {
       title: asString(listing?.title),
       description: asString(listing?.description),
-      category: asString(listing?.category),
+      categoryId: asString(listing?.categoryId),
+      categoryName: asString(listing?.categoryName),
+      subcategoryId: asString(listing?.subcategoryId),
+      subcategoryName: asString(listing?.subcategoryName),
       rates: asRecord(listing?.rates),
       images: asStringList(listing?.images),
       showcase: asStringList(listing?.showcase),
@@ -105,7 +111,7 @@ export function buildListingReviewSearchText(review: ListingReviewSubmission) {
     review.ownerId,
     review.submissionType,
     review.listing.title,
-    review.listing.category,
+    review.listing.categoryName,
     review.aiReview.decision,
     review.aiReview.severity,
     ...review.aiReview.categories,

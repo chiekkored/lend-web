@@ -23,7 +23,10 @@ export type AdminListing = {
   owner: ListingOwner | null;
   title: string | null;
   description: string | null;
-  category: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  subcategoryId: string | null;
+  subcategoryName: string | null;
   rates: ListingRates;
   location: Record<string, unknown> | null;
   images: string[];
@@ -44,7 +47,10 @@ export type AdminListing = {
 export type ListingUpdateValues = {
   title: string;
   description: string;
-  category: string;
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string | null;
+  subcategoryName: string | null;
   status: string;
   rates: ListingRates;
   inclusions: string[];
@@ -52,17 +58,6 @@ export type ListingUpdateValues = {
   showcase: string[];
   suppressFromRecommendations: boolean;
 };
-
-export const listingCategories = [
-  "Cameras",
-  "Vehicles",
-  "Tools",
-  "Spaces",
-  "Outdoor Gear",
-  "Electronics",
-  "Drones",
-  "Party Supplies",
-] as const;
 
 export const listingStatuses = [
   "Available",
@@ -87,7 +82,10 @@ export function mapAdminListing(
     owner: mapListingOwner(data.owner),
     title: asString(data.title),
     description: asString(data.description),
-    category: asString(data.category),
+    categoryId: asString(data.categoryId),
+    categoryName: asString(data.categoryName),
+    subcategoryId: asString(data.subcategoryId),
+    subcategoryName: asString(data.subcategoryName),
     rates: {
       daily: asNumber(rates?.daily),
       weekly: asNumber(rates?.weekly),
@@ -186,7 +184,8 @@ export function buildListingSearchText(listing: AdminListing) {
   return [
     listing.id,
     listing.title,
-    listing.category,
+    listing.categoryName,
+    listing.subcategoryName,
     getListingOwnerName(listing),
     listing.ownerId,
     listing.status,

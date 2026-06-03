@@ -161,13 +161,16 @@ async function updateListingDocs({
   const batch = writeBatch(db);
 
   batch.update(assetRef, {
-    category: values.category,
+    categoryId: values.categoryId,
+    categoryName: values.categoryName,
     description: values.description,
     images: values.images,
     inclusions: values.inclusions,
     rates: values.rates,
     showcase: values.showcase,
     status: values.status,
+    subcategoryId: values.subcategoryId,
+    subcategoryName: values.subcategoryName,
     suppressFromRecommendations: values.suppressFromRecommendations,
     title: values.title,
     updatedAt: serverTimestamp(),
@@ -175,10 +178,13 @@ async function updateListingDocs({
   batch.set(
     ownerMirrorRef,
     {
-      category: values.category,
+      categoryId: values.categoryId,
+      categoryName: values.categoryName,
       images: values.images,
       isDeleted: false,
       status: values.status,
+      subcategoryId: values.subcategoryId,
+      subcategoryName: values.subcategoryName,
       title: values.title,
       updatedAt: serverTimestamp(),
     },
@@ -239,7 +245,12 @@ function buildEditAuditNotes(
   const changes = [
     compareField("Title", listing.title ?? "", values.title),
     compareField("Description", listing.description ?? "", values.description),
-    compareField("Category", listing.category ?? "", values.category),
+    compareField("Category", listing.categoryName ?? "", values.categoryName),
+    compareField(
+      "Subcategory",
+      listing.subcategoryName ?? "",
+      values.subcategoryName ?? "",
+    ),
     compareField("Status", listing.status ?? "", values.status),
     compareField("Daily rate", listing.rates.daily, values.rates.daily),
     compareField("Weekly rate", listing.rates.weekly, values.rates.weekly),

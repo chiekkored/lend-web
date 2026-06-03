@@ -89,7 +89,7 @@ export function ListingReviewSheet({
           <section className="grid gap-2">
             <h3 className="font-medium">Listing data</h3>
             <dl className="grid gap-2 rounded-md border p-3">
-              <InfoRow label="Category" value={review.listing.category} />
+              <InfoRow label="Category" value={review.listing.categoryName} />
               <InfoRow
                 label="Description"
                 value={review.listing.description}

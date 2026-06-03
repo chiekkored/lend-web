@@ -82,7 +82,7 @@ export type ListingDeactivationBookingSummary = {
 };
 
 export type ListingDeactivationListingSnapshot = {
-  category: string | null;
+  categoryName: string | null;
   images: string[];
   ownerId: string | null;
   showcase: string[];
@@ -295,7 +295,7 @@ export function buildListingDeactivationRequestSearchText(
     request.status,
     request.reason,
     request.listingSnapshot.title,
-    request.listingSnapshot.category,
+    request.listingSnapshot.categoryName,
   ]
     .filter(Boolean)
     .join(" ");
@@ -331,7 +331,7 @@ function mapListingDeactivationRequest(
     createdAt: toDate(data.createdAt),
     evidenceUrls: asStringList(data.evidenceUrls),
     listingSnapshot: {
-      category: asString(listingSnapshot?.category),
+      categoryName: asString(listingSnapshot?.categoryName),
       images: asStringList(listingSnapshot?.images),
       ownerId: asString(listingSnapshot?.ownerId),
       showcase: asStringList(listingSnapshot?.showcase),

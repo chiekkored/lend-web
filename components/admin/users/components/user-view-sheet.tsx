@@ -505,7 +505,7 @@ function ListingCard({ listing, onView }: { listing: AdminListing; onView: () =>
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <DetailRow label="Category" value={listing.category ?? "Not set"} />
+        <DetailRow label="Category" value={listing.categoryName ?? "Not set"} />
         <DetailRow label="Daily" value={formatListingPrice(listing.rates.daily)} />
         <DetailRow label="Created" value={formatListingDate(listing.createdAt)} />
         <DetailRow label="Pending" value={String(listing.pendingBookingCount)} />

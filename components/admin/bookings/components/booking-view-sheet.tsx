@@ -158,7 +158,7 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
             <Section title="Asset details">
               <DetailRow label="Asset" value={getBookingAssetTitle(booking)} />
               <DetailRow label="Asset ID" value={booking.assetId} />
-              <DetailRow label="Category" value={booking.asset?.category ?? "Not set"} />
+              <DetailRow label="Category" value={booking.asset?.categoryName ?? "Not set"} />
               <DetailRow
                 label="Status"
                 value={booking.status ? <StatusBadge value={booking.status} /> : "Not set"}

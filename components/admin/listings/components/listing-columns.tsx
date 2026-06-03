@@ -58,9 +58,9 @@ export function useListingColumns() {
       },
       {
         id: "category",
-        accessorFn: (listing) => listing.category ?? "",
+        accessorFn: (listing) => listing.categoryName ?? "",
         header: "Category",
-        cell: ({ row }) => row.original.category ?? "Not set",
+        cell: ({ row }) => row.original.categoryName ?? "Not set",
       },
       {
         id: "owner",

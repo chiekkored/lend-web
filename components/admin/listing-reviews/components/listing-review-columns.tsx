@@ -34,7 +34,7 @@ export function getListingReviewColumns({
             {row.original.listing.title ?? row.original.id}
           </p>
           <p className="text-xs text-muted-foreground">
-            {row.original.listing.category ?? "No category"}
+            {row.original.listing.categoryName ?? "No category"}
           </p>
         </div>
       ),

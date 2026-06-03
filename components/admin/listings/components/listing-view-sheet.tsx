@@ -99,7 +99,7 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
             >
               View owner
             </Button>
-            <DetailRow label="Category" value={listing.category ?? "Not set"} />
+            <DetailRow label="Category" value={listing.categoryName ?? "Not set"} />
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Status</span>
               {listing.status ? <StatusBadge value={listing.status} /> : <span>Not set</span>}

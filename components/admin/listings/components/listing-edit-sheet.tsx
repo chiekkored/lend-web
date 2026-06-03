@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import Image from "next/image";
 
@@ -25,7 +26,11 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  listingCategories,
+  categoryQueryKeys,
+  listAdminCategories,
+} from "@/components/admin/settings/categories/data/category-queries";
+import type { AdminCategory } from "@/lib/admin-categories";
+import {
   listingStatuses,
   type AdminListing,
   type ListingRates,
@@ -43,7 +48,8 @@ type ListingEditSheetProps = {
 type ListingFormState = {
   title: string;
   description: string;
-  category: string;
+  categoryId: string;
+  subcategoryId: string;
   status: string;
   daily: string;
   inclusions: string;
@@ -62,6 +68,17 @@ export function ListingEditSheet({
   );
   const { error, resetError, submitting, updateListing } =
     useListingMutation(listing);
+  const categoriesQuery = useQuery({
+    queryFn: listAdminCategories,
+    queryKey: categoryQueryKeys.list(),
+  });
+  const categories = categoriesQuery.data ?? [];
+  const parentCategories = categories.filter(
+    (category) => category.isActive && !category.parentId,
+  );
+  const subcategories = categories.filter(
+    (category) => category.isActive && category.parentId === form.categoryId,
+  );
 
   React.useEffect(() => {
     if (!open) {
@@ -74,7 +91,9 @@ export function ListingEditSheet({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const success = await updateListing(toListingUpdateValues(form, listing));
+    const success = await updateListing(
+      toListingUpdateValues(form, listing, categories),
+    );
     if (success) {
       onOpenChange(false);
     }
@@ -125,23 +144,51 @@ export function ListingEditSheet({
                   Category
                 </Label>
                 <Select
-                  onValueChange={(category) =>
-                    setForm((current) => ({ ...current, category }))
+                  onValueChange={(categoryId) =>
+                    setForm((current) => ({
+                      ...current,
+                      categoryId,
+                      subcategoryId: "",
+                    }))
                   }
-                  value={form.category}
+                  value={form.categoryId}
                 >
                   <SelectTrigger id={`listing-category-${listing.id}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {listingCategories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {parentCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              {subcategories.length ? (
+                <div className="grid gap-2">
+                  <Label htmlFor={`listing-subcategory-${listing.id}`}>
+                    Subcategory
+                  </Label>
+                  <Select
+                    onValueChange={(subcategoryId) =>
+                      setForm((current) => ({ ...current, subcategoryId }))
+                    }
+                    value={form.subcategoryId}
+                  >
+                    <SelectTrigger id={`listing-subcategory-${listing.id}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
               <div className="grid gap-2">
                 <Label htmlFor={`listing-status-${listing.id}`}>Status</Label>
                 <Select
@@ -328,7 +375,8 @@ function buildInitialForm(listing: AdminListing): ListingFormState {
   return {
     title: listing.title ?? "",
     description: listing.description ?? "",
-    category: listing.category ?? listingCategories[0],
+    categoryId: listing.categoryId ?? "",
+    subcategoryId: listing.subcategoryId ?? "",
     status: listing.status ?? listingStatuses[0],
     daily: formatNumberInput(listing.rates.daily),
     inclusions: listing.inclusions.join("\n"),
@@ -341,6 +389,7 @@ function buildInitialForm(listing: AdminListing): ListingFormState {
 function toListingUpdateValues(
   form: ListingFormState,
   listing: AdminListing,
+  categories: AdminCategory[],
 ): ListingUpdateValues {
   const rates: ListingRates = {
     daily: parseOptionalNumber(form.daily),
@@ -350,10 +399,16 @@ function toListingUpdateValues(
     notes: listing.rates.notes,
   };
 
+  const category = categories.find((item) => item.id === form.categoryId);
+  const subcategory = categories.find((item) => item.id === form.subcategoryId);
+
   return {
     title: form.title.trim(),
     description: form.description.trim(),
-    category: form.category,
+    categoryId: category?.id ?? form.categoryId,
+    categoryName: category?.name ?? listing.categoryName ?? "",
+    subcategoryId: subcategory?.id ?? null,
+    subcategoryName: subcategory?.name ?? null,
     status: form.status,
     rates,
     inclusions: form.inclusions
