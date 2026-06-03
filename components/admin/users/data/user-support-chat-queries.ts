@@ -1,23 +1,22 @@
 "use client";
 
 import {
-  collection,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
 import {
-  getFirebaseFirestore,
   getFirebaseFunctions,
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
+import {
+  fetchAdminChatMessagePage,
+  listenAdminChatMessagePage,
+  type AdminChatMessageCursor,
+  type AdminChatMessagePage,
+} from "@/lib/admin-chat-messages";
 
 export type UserSupportChatStatus = "Active" | "Archived" | string;
 
@@ -114,16 +113,25 @@ export async function updateUserSupportChatStatus({
 }
 
 export async function fetchUserSupportMessages(chatId: string) {
-  assertFirebaseConfig();
-  const snapshot = await getDocs(
-    query(
-      collection(getFirebaseFirestore(), "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-      limit(100),
-    ),
-  );
+  const page = await fetchUserSupportMessagesPage({ chatId });
+  return page.items;
+}
 
-  return snapshot.docs.map(mapSupportMessage);
+export function fetchUserSupportMessagesPage({
+  chatId,
+  cursor = null,
+  pageSize,
+}: {
+  chatId: string;
+  cursor?: AdminChatMessageCursor;
+  pageSize?: number;
+}): Promise<AdminChatMessagePage<AdminUserSupportMessage>> {
+  return fetchAdminChatMessagePage({
+    chatId,
+    cursor,
+    mapMessage: mapSupportMessage,
+    pageSize,
+  });
 }
 
 export function listenUserSupportMessages({
@@ -144,15 +152,31 @@ export function listenUserSupportMessages({
     return () => {};
   }
 
-  return onSnapshot(
-    query(
-      collection(getFirebaseFirestore(), "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-      limit(100),
-    ),
-    (snapshot) => onNext(snapshot.docs.map(mapSupportMessage)),
+  return listenUserSupportMessagesPage({
+    chatId,
     onError,
-  );
+    onNext: (page) => onNext(page.items),
+  });
+}
+
+export function listenUserSupportMessagesPage({
+  chatId,
+  onError,
+  onNext,
+  pageSize,
+}: {
+  chatId: string;
+  onError: (error: Error) => void;
+  onNext: (page: AdminChatMessagePage<AdminUserSupportMessage>) => void;
+  pageSize?: number;
+}) {
+  return listenAdminChatMessagePage({
+    chatId,
+    mapMessage: mapSupportMessage,
+    onError,
+    onNext,
+    pageSize,
+  });
 }
 
 function assertFirebaseConfig() {

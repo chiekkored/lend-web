@@ -1,11 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
 import { ExternalLink, MessageSquareText } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import type { AdminChatMessageCursor } from "@/lib/admin-chat-messages";
 import { cn } from "@/lib/utils";
+import { useAdminChatMessages } from "@/lib/helpers/use-admin-chat-messages";
 import {
   formatBookingDateTime,
   getBookingAssetTitle,
@@ -18,8 +21,8 @@ import {
 } from "@/lib/admin-bookings";
 
 import {
-  bookingQueryKeys,
-  fetchAdminBookingMessages,
+  fetchAdminBookingMessagesPage,
+  listenAdminBookingMessagesPage,
 } from "../data/booking-queries";
 
 type BookingChatSheetProps = {
@@ -34,19 +37,71 @@ export function BookingChatSheet({
   open,
 }: BookingChatSheetProps) {
   const chatId = booking.chatId;
-  const messagesQuery = useQuery({
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const didScrollToLatestRef = React.useRef(false);
+  const listenLatestPage = React.useCallback(
+    ({
+      onError,
+      onNext,
+    }: {
+      onError: (error: Error) => void;
+      onNext: Parameters<typeof listenAdminBookingMessagesPage>[0]["onNext"];
+    }) => {
+      if (!chatId) return () => {};
+      return listenAdminBookingMessagesPage({ chatId, onError, onNext });
+    },
+    [chatId],
+  );
+  const fetchOlderPage = React.useCallback(
+    (cursor: AdminChatMessageCursor) =>
+      fetchAdminBookingMessagesPage({ chatId: chatId ?? "", cursor }),
+    [chatId],
+  );
+  const {
+    error,
+    hasMore,
+    loadOlder,
+    loading,
+    loadingMore,
+    messages,
+  } = useAdminChatMessages<AdminBookingMessage>({
     enabled: open && Boolean(chatId),
-    queryFn: () => fetchAdminBookingMessages(chatId ?? ""),
-    queryKey: bookingQueryKeys.messages(chatId),
+    fetchOlderPage,
+    listenLatestPage,
   });
 
-  const messages = messagesQuery.data ?? [];
-  const error =
-    messagesQuery.error instanceof Error
-      ? messagesQuery.error.message
-      : messagesQuery.error
-        ? "Unable to load chat messages."
-        : null;
+  const loadOlderPreservingScroll = React.useCallback(async () => {
+    const scrollElement = scrollRef.current;
+    const previousHeight = scrollElement?.scrollHeight ?? 0;
+    const previousTop = scrollElement?.scrollTop ?? 0;
+    const loaded = await loadOlder();
+
+    if (!loaded || !scrollElement) return;
+    requestAnimationFrame(() => {
+      scrollElement.scrollTop =
+        scrollElement.scrollHeight - previousHeight + previousTop;
+    });
+  }, [loadOlder]);
+
+  const handleMessagesScroll = React.useCallback(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || scrollElement.scrollTop > 80) return;
+    void loadOlderPreservingScroll();
+  }, [loadOlderPreservingScroll]);
+
+  React.useEffect(() => {
+    didScrollToLatestRef.current = false;
+  }, [chatId, open]);
+
+  React.useEffect(() => {
+    if (!open || loading || didScrollToLatestRef.current || !messages.length) {
+      return;
+    }
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+    scrollElement.scrollTop = scrollElement.scrollHeight;
+    didScrollToLatestRef.current = true;
+  }, [loading, messages.length, open]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -58,7 +113,11 @@ export function BookingChatSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="grid flex-1 auto-rows-min gap-4 overflow-y-auto overflow-x-hidden px-4 pb-4">
+        <div
+          className="grid flex-1 auto-rows-min gap-4 overflow-y-auto overflow-x-hidden px-4 pb-4"
+          onScroll={handleMessagesScroll}
+          ref={scrollRef}
+        >
           <div className="grid min-w-0 gap-2 rounded-md border p-4 text-sm">
             <div className="flex min-w-0 items-center justify-between gap-3">
               <span className="shrink-0 text-muted-foreground">Owner</span>
@@ -76,12 +135,23 @@ export function BookingChatSheet({
 
           {!chatId ? (
             <EmptyChatState text="No chat is linked to this booking." />
-          ) : messagesQuery.isLoading ? (
+          ) : loading ? (
             <EmptyChatState text="Loading chat messages..." />
           ) : error ? (
             <EmptyChatState text={error} />
           ) : messages.length ? (
             <div className="grid min-w-0 gap-3">
+              {hasMore ? (
+                <Button
+                  disabled={loadingMore}
+                  onClick={loadOlderPreservingScroll}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  {loadingMore ? "Loading older messages..." : "Load older messages"}
+                </Button>
+              ) : null}
               {messages.map((message) => (
                 <MessageBubble
                   booking={booking}

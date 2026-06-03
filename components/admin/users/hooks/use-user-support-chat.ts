@@ -3,14 +3,17 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { AdminChatMessageCursor } from "@/lib/admin-chat-messages";
+import { useAdminChatMessages } from "@/lib/helpers/use-admin-chat-messages";
+
 import {
   createUserSupportChat,
+  fetchUserSupportMessagesPage,
   fetchUserSupportChat,
-  listenUserSupportMessages,
+  listenUserSupportMessagesPage,
   sendUserSupportMessage,
   updateUserSupportChatStatus,
   type AdminUserSupportChat,
-  type AdminUserSupportMessage,
   userSupportChatQueryKeys,
 } from "../data/user-support-chat-queries";
 
@@ -23,9 +26,6 @@ export function useUserSupportChat({
 }) {
   const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
-  const [messages, setMessages] = React.useState<AdminUserSupportMessage[]>([]);
-  const [messagesError, setMessagesError] = React.useState<string | null>(null);
-  const [messagesLoading, setMessagesLoading] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const chatQuery = useQuery({
     enabled: open,
@@ -33,34 +33,38 @@ export function useUserSupportChat({
     queryKey: userSupportChatQueryKeys.chat(userId),
   });
   const chatId = chatQuery.data?.chatId ?? null;
+  const listenLatestPage = React.useCallback(
+    ({
+      onError,
+      onNext,
+    }: {
+      onError: (error: Error) => void;
+      onNext: Parameters<typeof listenUserSupportMessagesPage>[0]["onNext"];
+    }) => {
+      if (!chatId) return () => {};
+      return listenUserSupportMessagesPage({ chatId, onError, onNext });
+    },
+    [chatId],
+  );
+  const fetchOlderPage = React.useCallback(
+    (cursor: AdminChatMessageCursor) =>
+      fetchUserSupportMessagesPage({ chatId: chatId ?? "", cursor }),
+    [chatId],
+  );
+  const {
+    error: messagesError,
+    hasMore,
+    loadOlder,
+    loading: messagesLoading,
+    loadingMore,
+    messages,
+  } = useAdminChatMessages({
+    enabled: open && Boolean(chatId),
+    fetchOlderPage,
+    listenLatestPage,
+  });
 
   const resetError = React.useCallback(() => setError(null), []);
-
-  React.useEffect(() => {
-    if (!open || !chatId) {
-      setMessages([]);
-      setMessagesError(null);
-      setMessagesLoading(false);
-      return;
-    }
-
-    setMessagesLoading(true);
-    setMessagesError(null);
-    const unsubscribe = listenUserSupportMessages({
-      chatId,
-      onError: (nextError) => {
-        console.error("[user-support-chat] live messages failed", nextError);
-        setMessagesError("Unable to load support messages.");
-        setMessagesLoading(false);
-      },
-      onNext: (nextMessages) => {
-        setMessages(nextMessages);
-        setMessagesLoading(false);
-      },
-    });
-
-    return unsubscribe;
-  }, [chatId, open]);
 
   async function createChat() {
     return runChatAction(async () => {
@@ -144,7 +148,10 @@ export function useUserSupportChat({
     chat: chatQuery.data ?? null,
     createChat,
     error: error ?? queryError,
+    hasMore,
+    loadOlder,
     loading: chatQuery.isLoading || messagesLoading,
+    loadingMore,
     messages,
     refetch: chatQuery.refetch,
     resetError,

@@ -35,6 +35,12 @@ import {
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
+import {
+  fetchAdminChatMessagePage,
+  listenAdminChatMessagePage,
+  type AdminChatMessageCursor,
+  type AdminChatMessagePage,
+} from "@/lib/admin-chat-messages";
 import type { AdminCursor, AdminCursorPage } from "@/lib/helpers/use-admin-cursor-pagination";
 
 export const reportQueryKeys = {
@@ -212,16 +218,45 @@ export async function fetchAdminReportChat(chatId: string) {
 export async function fetchAdminReportMessages(
   chatId: string,
 ): Promise<AdminBookingMessage[]> {
-  assertFirebaseConfig();
+  const page = await fetchAdminReportMessagesPage({ chatId });
+  return page.items;
+}
 
-  const snapshot = await getDocs(
-    query(
-      collection(getFirebaseFirestore(), "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-    ),
-  );
+export function fetchAdminReportMessagesPage({
+  chatId,
+  cursor = null,
+  pageSize,
+}: {
+  chatId: string;
+  cursor?: AdminChatMessageCursor;
+  pageSize?: number;
+}): Promise<AdminChatMessagePage<AdminBookingMessage>> {
+  return fetchAdminChatMessagePage({
+    chatId,
+    cursor,
+    mapMessage: mapAdminBookingMessage,
+    pageSize,
+  });
+}
 
-  return snapshot.docs.map(mapAdminBookingMessage);
+export function listenAdminReportMessagesPage({
+  chatId,
+  onError,
+  onNext,
+  pageSize,
+}: {
+  chatId: string;
+  onError: (error: Error) => void;
+  onNext: (page: AdminChatMessagePage<AdminBookingMessage>) => void;
+  pageSize?: number;
+}) {
+  return listenAdminChatMessagePage({
+    chatId,
+    mapMessage: mapAdminBookingMessage,
+    onError,
+    onNext,
+    pageSize,
+  });
 }
 
 function assertFirebaseConfig() {

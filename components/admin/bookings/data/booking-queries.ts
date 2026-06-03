@@ -27,6 +27,12 @@ import {
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
+import {
+  fetchAdminChatMessagePage,
+  listenAdminChatMessagePage,
+  type AdminChatMessageCursor,
+  type AdminChatMessagePage,
+} from "@/lib/admin-chat-messages";
 import type { AdminCursorPage, AdminCursor } from "@/lib/helpers/use-admin-cursor-pagination";
 
 export const bookingQueryKeys = {
@@ -149,21 +155,25 @@ export async function fetchAdminBooking({
 export async function fetchAdminBookingMessages(
   chatId: string,
 ): Promise<AdminBookingMessage[]> {
-  if (!hasFirebaseConfig) {
-    throw new Error(
-      `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
-    );
-  }
+  const page = await fetchAdminBookingMessagesPage({ chatId });
+  return page.items;
+}
 
-  const db = getFirebaseFirestore();
-  const messagesSnapshot = await getDocs(
-    query(
-      collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-    ),
-  );
-
-  return messagesSnapshot.docs.map(mapAdminBookingMessage);
+export function fetchAdminBookingMessagesPage({
+  chatId,
+  cursor = null,
+  pageSize,
+}: {
+  chatId: string;
+  cursor?: AdminChatMessageCursor;
+  pageSize?: number;
+}): Promise<AdminChatMessagePage<AdminBookingMessage>> {
+  return fetchAdminChatMessagePage({
+    chatId,
+    cursor,
+    mapMessage: mapAdminBookingMessage,
+    pageSize,
+  });
 }
 
 export function listenAdminBookingMessages({
@@ -184,15 +194,31 @@ export function listenAdminBookingMessages({
     return () => {};
   }
 
-  const db = getFirebaseFirestore();
-  return onSnapshot(
-    query(
-      collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc"),
-    ),
-    (snapshot) => onNext(snapshot.docs.map(mapAdminBookingMessage)),
+  return listenAdminBookingMessagesPage({
+    chatId,
     onError,
-  );
+    onNext: (page) => onNext(page.items),
+  });
+}
+
+export function listenAdminBookingMessagesPage({
+  chatId,
+  onError,
+  onNext,
+  pageSize,
+}: {
+  chatId: string;
+  onError: (error: Error) => void;
+  onNext: (page: AdminChatMessagePage<AdminBookingMessage>) => void;
+  pageSize?: number;
+}) {
+  return listenAdminChatMessagePage({
+    chatId,
+    mapMessage: mapAdminBookingMessage,
+    onError,
+    onNext,
+    pageSize,
+  });
 }
 
 export function listenCancellationBookings({

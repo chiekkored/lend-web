@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { DocumentData } from "firebase/firestore";
 import { ExternalLink, MessageSquareText } from "lucide-react";
+import * as React from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -11,6 +12,7 @@ import {
   CachedUserViewSheet,
 } from "@/components/admin/entity-detail-sheets";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -22,10 +24,13 @@ import {
   formatBookingDateTime,
   type AdminBookingMessage,
 } from "@/lib/admin-bookings";
+import type { AdminChatMessageCursor } from "@/lib/admin-chat-messages";
+import { useAdminChatMessages } from "@/lib/helpers/use-admin-chat-messages";
 
 import {
   fetchAdminReportChat,
-  fetchAdminReportMessages,
+  fetchAdminReportMessagesPage,
+  listenAdminReportMessagesPage,
   reportQueryKeys,
 } from "../data/report-queries";
 
@@ -71,20 +76,80 @@ export function ReportChatSheet({
   onOpenChange,
   open,
 }: SheetProps & { chatId: string | null }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const didScrollToLatestRef = React.useRef(false);
   const chatQuery = useQuery({
     enabled: open && Boolean(chatId),
     queryFn: () => fetchAdminReportChat(chatId ?? ""),
     queryKey: reportQueryKeys.chat(chatId),
   });
-  const messagesQuery = useQuery({
+  const listenLatestPage = React.useCallback(
+    ({
+      onError,
+      onNext,
+    }: {
+      onError: (error: Error) => void;
+      onNext: Parameters<typeof listenAdminReportMessagesPage>[0]["onNext"];
+    }) => {
+      if (!chatId) return () => {};
+      return listenAdminReportMessagesPage({ chatId, onError, onNext });
+    },
+    [chatId],
+  );
+  const fetchOlderPage = React.useCallback(
+    (cursor: AdminChatMessageCursor) =>
+      fetchAdminReportMessagesPage({ chatId: chatId ?? "", cursor }),
+    [chatId],
+  );
+  const {
+    error: messagesError,
+    hasMore,
+    loadOlder,
+    loading: messagesLoading,
+    loadingMore,
+    messages,
+  } = useAdminChatMessages<AdminBookingMessage>({
     enabled: open && Boolean(chatId),
-    queryFn: () => fetchAdminReportMessages(chatId ?? ""),
-    queryKey: reportQueryKeys.messages(chatId),
+    fetchOlderPage,
+    listenLatestPage,
   });
 
   const error =
     getQueryError(chatQuery.error, "Unable to load chat.") ??
-    getQueryError(messagesQuery.error, "Unable to load chat messages.");
+    messagesError;
+
+  const loadOlderPreservingScroll = React.useCallback(async () => {
+    const scrollElement = scrollRef.current;
+    const previousHeight = scrollElement?.scrollHeight ?? 0;
+    const previousTop = scrollElement?.scrollTop ?? 0;
+    const loaded = await loadOlder();
+
+    if (!loaded || !scrollElement) return;
+    requestAnimationFrame(() => {
+      scrollElement.scrollTop =
+        scrollElement.scrollHeight - previousHeight + previousTop;
+    });
+  }, [loadOlder]);
+
+  const handleMessagesScroll = React.useCallback(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || scrollElement.scrollTop > 80) return;
+    void loadOlderPreservingScroll();
+  }, [loadOlderPreservingScroll]);
+
+  React.useEffect(() => {
+    didScrollToLatestRef.current = false;
+  }, [chatId, open]);
+
+  React.useEffect(() => {
+    if (!open || messagesLoading || didScrollToLatestRef.current || !messages.length) {
+      return;
+    }
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+    scrollElement.scrollTop = scrollElement.scrollHeight;
+    didScrollToLatestRef.current = true;
+  }, [messages.length, messagesLoading, open]);
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -96,14 +161,19 @@ export function ReportChatSheet({
         <EntityBody
           emptyText="No chat is linked to this report."
           errorText={error}
-          loading={chatQuery.isLoading || messagesQuery.isLoading}
+          loading={chatQuery.isLoading || messagesLoading}
           missingText="Chat record was not found."
-          present={Boolean(chatQuery.data) || Boolean(messagesQuery.data?.length)}
+          onScroll={handleMessagesScroll}
+          present={Boolean(chatQuery.data) || Boolean(messages.length)}
+          bodyRef={scrollRef}
           requested={Boolean(chatId)}
         >
           <ChatDetails
             chat={chatQuery.data ?? null}
-            messages={messagesQuery.data ?? []}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            messages={messages}
+            onLoadOlder={loadOlderPreservingScroll}
           />
         </EntityBody>
       </SheetContent>
@@ -113,10 +183,16 @@ export function ReportChatSheet({
 
 function ChatDetails({
   chat,
+  hasMore,
+  loadingMore,
   messages,
+  onLoadOlder,
 }: {
   chat: DocumentData | null;
+  hasMore: boolean;
+  loadingMore: boolean;
   messages: AdminBookingMessage[];
+  onLoadOlder: () => void;
 }) {
   return (
     <div className="grid gap-4">
@@ -132,6 +208,17 @@ function ChatDetails({
 
       {messages.length ? (
         <div className="grid gap-3">
+          {hasMore ? (
+            <Button
+              disabled={loadingMore}
+              onClick={onLoadOlder}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {loadingMore ? "Loading older messages..." : "Load older messages"}
+            </Button>
+          ) : null}
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
@@ -190,6 +277,8 @@ function EntityBody({
   errorText,
   loading,
   missingText,
+  bodyRef,
+  onScroll,
   present,
   requested,
 }: {
@@ -198,11 +287,17 @@ function EntityBody({
   errorText: string | null;
   loading: boolean;
   missingText: string;
+  bodyRef?: React.Ref<HTMLDivElement>;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
   present: boolean;
   requested: boolean;
 }) {
   return (
-    <div className="grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4">
+    <div
+      className="grid flex-1 auto-rows-min gap-5 overflow-y-auto overflow-x-hidden px-4 pb-4"
+      onScroll={onScroll}
+      ref={bodyRef}
+    >
       {!requested ? (
         <EmptyState text={emptyText} />
       ) : loading ? (

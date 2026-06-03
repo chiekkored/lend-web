@@ -29,11 +29,16 @@ export function UserSupportChatSheet({
   user,
 }: UserSupportChatSheetProps) {
   const [message, setMessage] = React.useState("");
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const didScrollToLatestRef = React.useRef(false);
   const {
     chat,
     createChat,
     error,
+    hasMore,
+    loadOlder,
     loading,
+    loadingMore,
     messages,
     sendMessage,
     setClosed,
@@ -47,6 +52,39 @@ export function UserSupportChatSheet({
       setMessage("");
     }
   }, [open]);
+
+  React.useEffect(() => {
+    didScrollToLatestRef.current = false;
+  }, [chat?.chatId, open]);
+
+  React.useEffect(() => {
+    if (!open || loading || didScrollToLatestRef.current || !messages.length) {
+      return;
+    }
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+    scrollElement.scrollTop = scrollElement.scrollHeight;
+    didScrollToLatestRef.current = true;
+  }, [loading, messages.length, open]);
+
+  const loadOlderPreservingScroll = React.useCallback(async () => {
+    const scrollElement = scrollRef.current;
+    const previousHeight = scrollElement?.scrollHeight ?? 0;
+    const previousTop = scrollElement?.scrollTop ?? 0;
+    const loaded = await loadOlder();
+
+    if (!loaded || !scrollElement) return;
+    requestAnimationFrame(() => {
+      scrollElement.scrollTop =
+        scrollElement.scrollHeight - previousHeight + previousTop;
+    });
+  }, [loadOlder]);
+
+  const handleMessagesScroll = React.useCallback(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || scrollElement.scrollTop > 80) return;
+    void loadOlderPreservingScroll();
+  }, [loadOlderPreservingScroll]);
 
   async function handleSend(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,7 +134,11 @@ export function UserSupportChatSheet({
             </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto rounded-md border">
+          <div
+            className="min-h-0 overflow-y-auto rounded-md border"
+            onScroll={handleMessagesScroll}
+            ref={scrollRef}
+          >
             {loading ? (
               <EmptyChatState text="Loading support chat..." />
             ) : error ? (
@@ -120,6 +162,17 @@ export function UserSupportChatSheet({
               </div>
             ) : messages.length ? (
               <div className="grid gap-3 p-4">
+                {hasMore ? (
+                  <Button
+                    disabled={loadingMore}
+                    onClick={loadOlderPreservingScroll}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {loadingMore ? "Loading older messages..." : "Load older messages"}
+                  </Button>
+                ) : null}
                 {messages.map((item) => {
                   const fromSystem = item.type === "system" || !item.senderId;
                   const fromSupport = !fromSystem && item.senderId !== user.uid;
