@@ -1,5 +1,5 @@
-import { ListingReviewsPage } from "@/components/admin/listing-reviews";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <ListingReviewsPage />;
+  redirect("/admin/listings/ai-review-queue");
 }

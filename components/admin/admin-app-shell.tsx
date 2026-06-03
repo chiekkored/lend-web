@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useCancellationBookings } from "@/components/admin/bookings/hooks/use-cancellation-bookings";
 import { usePendingDamageNotification } from "@/components/admin/bookings/hooks/use-pending-damage-bookings";
+import { usePendingDeactivationRequestIndicator } from "@/components/admin/listings/deactivation-requests/hooks/use-pending-deactivation-request-indicator";
 import { useLiveReports } from "@/components/admin/reports/hooks/use-live-reports";
 import { useLiveVerifications } from "@/components/admin/users/hooks/use-live-verifications";
 import { useLiveAccountFeedback } from "@/components/admin/account-feedback/hooks/use-live-account-feedback";
@@ -243,6 +244,8 @@ function AdminSidebar() {
   const reports = useLiveReports();
   const verifications = useLiveVerifications();
   const accountFeedback = useLiveAccountFeedback();
+  const pendingDeactivationRequests =
+    usePendingDeactivationRequestIndicator();
   const { hasNewPendingDamage } = usePendingDamageNotification({
     isViewingPendingDamage: pathname === "/admin/bookings/pending-damage",
   });
@@ -261,6 +264,11 @@ function AdminSidebar() {
     isViewing: pathname === "/admin/account-feedback",
     storageKey: "lend:admin:account-feedback:seen-ids",
   });
+  const hasNewDeactivationRequests = useQueueNewItemIndicator({
+    ids: pendingDeactivationRequests.ids,
+    isViewing: pathname === "/admin/listings/deactivation-requests",
+    storageKey: "lend:admin:listing-deactivation-requests:seen-ids",
+  });
   const reportIndicators = useReportQueueIndicators({
     pathname,
     reports: reports.data,
@@ -268,6 +276,7 @@ function AdminSidebar() {
   const indicators = getAdminSidebarIndicators({
     hasNewAccountFeedback,
     hasNewCancellations,
+    hasNewDeactivationRequests,
     hasNewPendingDamage,
     hasNewVerifications,
     reportIndicators,
@@ -433,12 +442,14 @@ function SidebarNewItemDot({ collapsed }: { collapsed: boolean }) {
 function getAdminSidebarIndicators({
   hasNewAccountFeedback,
   hasNewCancellations,
+  hasNewDeactivationRequests,
   hasNewPendingDamage,
   hasNewVerifications,
   reportIndicators,
 }: {
   hasNewAccountFeedback: boolean;
   hasNewCancellations: boolean;
+  hasNewDeactivationRequests: boolean;
   hasNewPendingDamage: boolean;
   hasNewVerifications: boolean;
   reportIndicators: Record<string, boolean>;
@@ -448,6 +459,7 @@ function getAdminSidebarIndicators({
     "/admin/account-feedback": hasNewAccountFeedback,
     "/admin/bookings/cancellations": hasNewCancellations,
     "/admin/bookings/pending-damage": hasNewPendingDamage,
+    "/admin/listings/deactivation-requests": hasNewDeactivationRequests,
     "/admin/users/verifications": hasNewVerifications,
   };
 }

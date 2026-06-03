@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Flag,
+  ArchiveX,
   LayoutDashboard,
   ListChecks,
   MessageSquareText,
@@ -19,7 +20,7 @@ import {
 
 export const adminNavItems = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { title: "Listings", href: "/admin/listings", icon: ShoppingBag },
+  { title: "Listings", href: "/admin/listings/all", icon: ShoppingBag },
   { title: "Bookings", href: "/admin/bookings", icon: CalendarClock },
   { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { title: "Settings", href: "/admin/settings", icon: Settings },
@@ -52,14 +53,24 @@ const adminReportsNavGroup = {
   ],
 } as const;
 
-const adminListingReviewNavGroup = {
-  title: "Listing Reviews",
-  icon: ShieldCheck,
+const adminListingsNavGroup = {
+  title: "Listings",
+  icon: ShoppingBag,
   items: [
     {
       title: "AI Review Queue",
-      href: "/admin/listing-reviews",
+      href: "/admin/listings/ai-review-queue",
       icon: ShieldCheck,
+    },
+    {
+      title: "Deactivation Requests",
+      href: "/admin/listings/deactivation-requests",
+      icon: ArchiveX,
+    },
+    {
+      title: "All Listing",
+      href: "/admin/listings/all",
+      icon: ShoppingBag,
     },
   ],
 } as const;
@@ -123,12 +134,11 @@ export const adminSidebarGroups = [
   },
   {
     title: "Assets",
-    items: [{ title: "Listings", href: "/admin/listings", icon: ShoppingBag }],
-    groups: [adminBookingsNavGroup],
+    groups: [adminListingsNavGroup, adminBookingsNavGroup],
   },
   {
     title: "Moderation",
-    groups: [adminListingReviewNavGroup, adminReportsNavGroup],
+    groups: [adminReportsNavGroup],
   },
   {
     title: "Accounts",

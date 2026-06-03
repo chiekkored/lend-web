@@ -93,6 +93,18 @@ const questions: HelpQuestion[] = [
       "Owners should disclose the item condition, included accessories, usage limits, pickup or return expectations, safety issues, and anything that may affect the renter’s decision.",
   },
   {
+    topic: "listing",
+    question: "Can I delete a listing with upcoming bookings?",
+    answer:
+      "No. If a listing has upcoming booking requests or paid bookings, you cannot delete it. You can hide it or set it under maintenance so no new bookings are created, but paid upcoming bookings should still be honored unless you cancel them through the normal cancellation flow.",
+  },
+  {
+    topic: "listing",
+    question: "What if my listed item is permanently damaged?",
+    answer:
+      "If the item is genuinely unusable because of verified damage or force majeure, request a listing deactivation review from the delete prompt. Add details and required photos. If Lend Support approves the request, the listing is archived, upcoming bookings are cancelled, and refund handling starts for affected renters without owner cancellation penalties.",
+  },
+  {
     topic: "booking-changes",
     question: "Can I change booking dates?",
     answer:
