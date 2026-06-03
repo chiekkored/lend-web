@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { MessageSquareText } from "lucide-react";
 
@@ -36,6 +37,14 @@ import {
 import { useDeactivationRequestDetails } from "../hooks/use-deactivation-request-details";
 import { useDeactivationRequestReview } from "../hooks/use-deactivation-request-review";
 
+const UserViewSheet = dynamic(
+  () =>
+    import("@/components/admin/users/components/user-view-sheet").then(
+      (mod) => mod.UserViewSheet,
+    ),
+  { ssr: false },
+);
+
 type ReviewDecision = "approve" | "reject";
 
 type DeactivationRequestViewSheetProps = {
@@ -52,6 +61,7 @@ export function DeactivationRequestViewSheet({
   const [reviewDecision, setReviewDecision] =
     React.useState<ReviewDecision | null>(null);
   const [reviewNotes, setReviewNotes] = React.useState("");
+  const [ownerOpen, setOwnerOpen] = React.useState(false);
   const [supportChatOpen, setSupportChatOpen] = React.useState(false);
   const {
     bookings,
@@ -66,6 +76,7 @@ export function DeactivationRequestViewSheet({
   React.useEffect(() => {
     setReviewDecision(null);
     setReviewNotes("");
+    setOwnerOpen(false);
     setSupportChatOpen(false);
   }, [request?.id]);
 
@@ -91,7 +102,16 @@ export function DeactivationRequestViewSheet({
   const ownerLabel = ownerLoading
     ? "Loading..."
     : owner
-      ? getUserDisplayName(owner)
+      ? (
+          <Button
+            className="h-auto min-w-0 justify-start p-0 text-left font-medium"
+            onClick={() => setOwnerOpen(true)}
+            type="button"
+            variant="link"
+          >
+            <span className="truncate">{getUserDisplayName(owner)}</span>
+          </Button>
+        )
       : request?.ownerId ?? "Not set";
   const bookingCount = bookingsLoading
     ? (request?.bookingSummaries.length ?? 0)
@@ -259,6 +279,13 @@ export function DeactivationRequestViewSheet({
           user={owner}
         />
       ) : null}
+      {owner ? (
+        <UserViewSheet
+          onOpenChange={setOwnerOpen}
+          open={ownerOpen}
+          user={owner}
+        />
+      ) : null}
     </>
   );
 }
@@ -335,7 +362,13 @@ function DeactivationReviewDialog({
   );
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
+function SummaryItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="min-w-0">
       <div className="text-xs text-muted-foreground">{label}</div>

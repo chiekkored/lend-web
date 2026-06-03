@@ -240,7 +240,9 @@ function applyTheme(theme: ThemeMode) {
 function AdminSidebar() {
   const pathname = usePathname();
   const { open, setMobileOpen } = useSidebar();
-  const cancellations = useCancellationBookings();
+  const pendingCancellations = useCancellationBookings({
+    statusFilter: "Pending",
+  });
   const reports = useLiveReports();
   const verifications = useLiveVerifications();
   const accountFeedback = useLiveAccountFeedback();
@@ -250,7 +252,7 @@ function AdminSidebar() {
     isViewingPendingDamage: pathname === "/admin/bookings/pending-damage",
   });
   const hasNewCancellations = useQueueNewItemIndicator({
-    ids: cancellations.data.map((booking) => booking.id),
+    ids: pendingCancellations.data.map((booking) => booking.id),
     isViewing: pathname === "/admin/bookings/cancellations",
     storageKey: "lend:admin:cancellations:seen-ids",
   });
