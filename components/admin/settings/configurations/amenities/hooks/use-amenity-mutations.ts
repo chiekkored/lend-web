@@ -128,7 +128,16 @@ export function useAmenityMutations(amenities: AdminAmenity[]) {
       if (!current) return current;
       const next = { ...current, ...patch };
       if (patch.label !== undefined && current.mode === "add") {
-        next.id = normalizeAmenityId(patch.label);
+        const normalizedLabel = normalizeAmenityId(patch.label);
+        const previousGeneratedIconKey = normalizeAmenityId(current.label);
+        next.id = normalizedLabel;
+        if (
+          !current.iconKey.trim() ||
+          current.iconKey === "default" ||
+          current.iconKey === previousGeneratedIconKey
+        ) {
+          next.iconKey = normalizedLabel;
+        }
       }
       return next;
     });
