@@ -410,7 +410,10 @@ function AdminSidebarSubmenu({
                 <SidebarMenuSubButton
                   asChild
                   className={cn(!open && "lg:[&>span]:hidden")}
-                  isActive={pathname === item.href}
+                  isActive={
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`)
+                  }
                 >
                   <Link href={item.href} onClick={onNavigate}>
                     <item.icon className="mr-2 size-4 lg:hidden" />

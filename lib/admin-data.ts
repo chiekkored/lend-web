@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   SlidersHorizontal,
-  Tags,
   Users,
   UserCheck,
   UserCog,
@@ -131,9 +130,9 @@ const adminSettingsNavGroup = {
   icon: Settings,
   items: [
     {
-      title: "Categories",
-      href: "/admin/settings/categories",
-      icon: Tags,
+      title: "Configurations",
+      href: "/admin/settings/configurations",
+      icon: SlidersHorizontal,
     },
     {
       title: "Remote Configs",

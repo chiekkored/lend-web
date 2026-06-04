@@ -124,10 +124,9 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
     useBookingMutation(booking);
   const evidenceUrls = booking.damageDeductionRequest?.evidenceUrls ?? [];
   const stage = getDamageCaseStage(booking);
-  const primaryStatus =
-    isCompletedBooking(booking)
-      ? "Completed"
-      : stage === "admin_review"
+  const primaryStatus = isCompletedBooking(booking)
+    ? "Completed"
+    : stage === "admin_review"
       ? "admin_review_required"
       : stage === "support_handling"
         ? supportStatus
@@ -298,7 +297,10 @@ export function BookingPendingDamageViewSheet({ booking, onOpenChange, open }: B
                   icon={<UserRound className="size-4" />}
                   label="Renter"
                   value={
-                    <UserContextButton disabled={!getBookingRenterId(booking)} onClick={() => setRenterProfileOpen(true)}>
+                    <UserContextButton
+                      disabled={!getBookingRenterId(booking)}
+                      onClick={() => setRenterProfileOpen(true)}
+                    >
                       {getBookingRenterName(booking)}
                     </UserContextButton>
                   }
@@ -1091,7 +1093,7 @@ function SupportChatSheet({
                 ) : null}
               </div>
               <p className="text-xs text-muted-foreground">
-                Example: with a PHP 500 deposit and PHP 700 support-approved damage, request PHP 200. With no deposit,
+                e.g.,with a PHP 500 deposit and PHP 700 support-approved damage, request PHP 200. With no deposit,
                 request the full support-approved damage amount.
               </p>
             </div>
