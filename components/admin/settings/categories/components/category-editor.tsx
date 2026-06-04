@@ -51,6 +51,16 @@ export function CategoryEditor({
   const parentOptions = categories.filter(
     (category) => category.id !== editor.currentId && !category.parentId,
   );
+  const listingKindOptions = uniqueMetadataValues(
+    categories,
+    "listingKind",
+    editor.listingKind,
+  );
+  const detailSchemaKeyOptions = uniqueMetadataValues(
+    categories,
+    "detailSchemaKey",
+    editor.detailSchemaKey,
+  );
 
   return (
     <Sheet open onOpenChange={onOpenChange}>
@@ -94,6 +104,31 @@ export function CategoryEditor({
                 required
                 type="number"
                 value={editor.sortOrder}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4">
+            <Field
+              description="Broad listing/business type used for grouping, behavior, analytics, and future rules."
+              label="Listing kind"
+            >
+              <EditableMetadataSelect
+                onChange={(listingKind) => onUpdate({ listingKind })}
+                options={listingKindOptions}
+                placeholder="Choose or add a listing kind"
+                value={editor.listingKind}
+              />
+            </Field>
+            <Field
+              description="Exact mobile details form/schema used to render fields and interpret the listing details payload."
+              label="Detail schema key"
+            >
+              <EditableMetadataSelect
+                onChange={(detailSchemaKey) => onUpdate({ detailSchemaKey })}
+                options={detailSchemaKeyOptions}
+                placeholder="Choose or add a schema key"
+                value={editor.detailSchemaKey}
               />
             </Field>
           </div>
@@ -180,15 +215,80 @@ export function CategoryEditor({
 
 function Field({
   children,
+  description,
   label,
 }: {
   children: React.ReactNode;
+  description?: string;
   label: string;
 }) {
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <div className="grid gap-1">
+        <Label>{label}</Label>
+        {description ? (
+          <p className="text-xs leading-5 text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </div>
       {children}
     </div>
   );
+}
+
+function EditableMetadataSelect({
+  onChange,
+  options,
+  placeholder,
+  value,
+}: {
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+  value: string;
+}) {
+  const trimmedValue = value.trim();
+  return (
+    <Select onValueChange={onChange} value={trimmedValue || undefined}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent
+        className="max-h-80 w-[var(--radix-select-trigger-width)]"
+        position="item-aligned"
+      >
+        <div className="sticky top-0 z-10 bg-popover p-2">
+          <Input
+            autoComplete="off"
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => event.stopPropagation()}
+            placeholder="Type a new value"
+            value={value}
+          />
+        </div>
+        <div className="max-h-56 overflow-y-auto px-1 pb-1">
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </div>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function uniqueMetadataValues(
+  categories: AdminCategory[],
+  key: "listingKind" | "detailSchemaKey",
+  currentValue: string,
+) {
+  return Array.from(
+    new Set(
+      [...categories.map((category) => category[key]), currentValue]
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ).sort((left, right) => left.localeCompare(right));
 }

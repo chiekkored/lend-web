@@ -173,6 +173,8 @@ export function useCategoryMutations(categories: AdminCategory[]) {
       imageUrl: null,
       isActive: true,
       isFeatured: false,
+      listingKind: "generic_asset",
+      detailSchemaKey: "generic_asset",
       mode: "add",
       name: "",
       parentId: null,
@@ -189,6 +191,8 @@ export function useCategoryMutations(categories: AdminCategory[]) {
       imageUrl: category.imageUrl,
       isActive: category.isActive,
       isFeatured: category.isFeatured,
+      listingKind: category.listingKind,
+      detailSchemaKey: category.detailSchemaKey,
       mode: "edit",
       name: category.name,
       parentId: category.parentId,
@@ -229,6 +233,8 @@ export function useCategoryMutations(categories: AdminCategory[]) {
         imageUrl: editor.imageUrl?.trim() || null,
         isActive: editor.isActive,
         isFeatured: editor.isFeatured,
+        listingKind: editor.listingKind.trim(),
+        detailSchemaKey: editor.detailSchemaKey.trim(),
         name: editor.name.trim(),
         parentId: editor.parentId || null,
         slug: normalizeCategorySlug(editor.slug),
@@ -289,6 +295,8 @@ function validateCategoryEditor(
   if (!name) return "Category name is required.";
   if (!slug) return "Slug is required.";
   if (!editor.iconKey.trim()) return "Icon key is required.";
+  if (!editor.listingKind.trim()) return "Listing kind is required.";
+  if (!editor.detailSchemaKey.trim()) return "Detail schema key is required.";
   if (!Number.isFinite(Number(editor.sortOrder))) {
     return "Sort order must be a finite number.";
   }

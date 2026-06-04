@@ -10,6 +10,8 @@ export type AdminCategory = {
   isActive: boolean;
   isFeatured: boolean;
   parentId: string | null;
+  listingKind: string;
+  detailSchemaKey: string;
   level: number;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -24,6 +26,8 @@ export type CategoryWriteValues = {
   isActive: boolean;
   isFeatured: boolean;
   parentId: string | null;
+  listingKind: string;
+  detailSchemaKey: string;
 };
 
 export const seedAdminCategories: CategoryWriteValues[] = [
@@ -51,6 +55,10 @@ export function mapAdminCategory(
     isActive: data.isActive === true,
     isFeatured: data.isFeatured === true,
     parentId: asString(data.parentId),
+    listingKind:
+      asString(data.listingKind) ?? fallbackCategorySchema(snapshot.id),
+    detailSchemaKey:
+      asString(data.detailSchemaKey) ?? fallbackCategorySchema(snapshot.id),
     level: asNumber(data.level) ?? 1,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
@@ -110,6 +118,8 @@ function categorySeed(
     imageUrl: null,
     isActive: true,
     isFeatured: false,
+    listingKind: fallbackCategorySchema(slug),
+    detailSchemaKey: fallbackCategorySchema(slug),
     name,
     parentId: null,
     slug,
@@ -123,6 +133,18 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function fallbackCategorySchema(value: string) {
+  const text = value.trim().toLowerCase();
+  if (/stay|house|apartment|condo|room/.test(text)) return "stay";
+  if (/space|studio|parking|storage/.test(text)) return "space";
+  if (/vehicle|car/.test(text)) return "vehicle";
+  if (/tool/.test(text)) return "tool";
+  if (/electronics|camera|drone/.test(text)) return "electronics";
+  if (/party|event/.test(text)) return "party_event";
+  if (/clothing|apparel/.test(text)) return "clothing";
+  return "generic_asset";
 }
 
 function toDate(value: unknown): Date | null {

@@ -57,6 +57,8 @@ export async function saveAdminCategory({
     isActive: values.isActive,
     isFeatured: values.isFeatured,
     level,
+    listingKind: values.listingKind.trim(),
+    detailSchemaKey: values.detailSchemaKey.trim(),
     name: values.name.trim(),
     parentId,
     slug: values.slug.trim(),
