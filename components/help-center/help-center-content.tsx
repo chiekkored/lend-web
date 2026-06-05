@@ -70,6 +70,12 @@ const questions: HelpQuestion[] = [
   },
   {
     topic: "renting",
+    question: "Why can't I proceed with my selected dates?",
+    answer:
+      "Some stays require a minimum number of nights. When a listing has a minimum-stay requirement, select a date range that meets it before proceeding to payment.",
+  },
+  {
+    topic: "renting",
     question: "Can I ask the owner questions before booking?",
     answer:
       "Use app-supported messaging where available and keep rental coordination inside Lend so important records are available for support, reports, or dispute review.",
