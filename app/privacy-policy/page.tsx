@@ -70,6 +70,12 @@ const sections: LegalSection[] = [
         reviews, ratings, saved listings, and recommendation engagement events.
       </>,
       <>
+        <strong>Safety preferences:</strong> records of users you block and
+        reciprocal exclusion records used to limit discovery, bookings,
+        messaging, saved listings, and recommendations between affected
+        accounts.
+      </>,
+      <>
         <strong>Device and technical data:</strong> Firebase Cloud Messaging
         tokens, app or browser logs, IP-derived technical data, device and
         network information, crash or error data, and security audit metadata.
@@ -85,6 +91,7 @@ const sections: LegalSection[] = [
       "To process bookings, payment checkout, security deposits, owner payouts, deposit returns, refunds, QR handover or return checkpoints, and post-return settlement.",
       "To send operational notifications about bookings, chat, payment status, verification, reports, reminders, and account changes.",
       "To support users, respond to account feedback, investigate reports, moderate content, resolve disputes, and enforce our terms.",
+      "To apply user blocking preferences, limit unwanted future interactions, and preserve access needed to complete existing bookings or resolve disputes.",
       "To comply with legal, tax, accounting, consumer protection, anti-fraud, data protection, and lawful request obligations.",
       "To improve service reliability, pricing transparency, marketplace recommendations, abuse prevention, and product performance.",
     ],

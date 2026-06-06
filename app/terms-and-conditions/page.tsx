@@ -109,6 +109,7 @@ const sections: LegalSection[] = [
     items: [
       "QR handover and QR return checkpoints are compliance and status tools. Users must not share, forge, tamper with, or misuse QR tokens or booking checkpoints.",
       "Booking chats should be used for rental coordination, issue reporting, and booking-related communication. Users must not harass, threaten, spam, scam, or send unlawful or harmful content.",
+      "Blocking another user limits future discovery, bookings, and contact, but it does not cancel or remove existing booking, payment, handover, return, settlement, cancellation, report, or dispute obligations. Required booking chats may remain available until the booking reaches a final status.",
       "Lend may store chat messages, system messages, lifecycle events, timestamps, reports, evidence, and admin actions to operate the booking flow, resolve disputes, enforce terms, and comply with law.",
     ],
   },
@@ -117,6 +118,7 @@ const sections: LegalSection[] = [
     items: [
       "Reviews and ratings must reflect genuine experiences and must not be fraudulent, abusive, discriminatory, defamatory, retaliatory, or irrelevant.",
       "Users may report listings, chats, bookings, or other users. Reports should be truthful and supported by relevant details where possible.",
+      "Blocking and reporting are separate actions. Blocking does not automatically submit a report, and users should separately report conduct that Lend should review.",
       "Lend may moderate, remove, hide, archive, restrict, suspend, ban, or take account or listing action when content or conduct violates these terms, creates risk, or may violate law.",
       "Lend Support review decisions are based on available platform records, user submissions, provider status, and Lend policy. Users must cooperate and provide accurate information during review.",
     ],

@@ -214,6 +214,18 @@ const questions: HelpQuestion[] = [
   },
   {
     topic: "reviews",
+    question: "What happens when I block another user?",
+    answer:
+      "Blocking is separate from reporting. The user’s listings are hidden from your signed-in feeds, search, saved listings, and recently viewed items, and neither account can create new bookings or continue contact after current bookings end. Chats needed for pending or active bookings remain available until the booking is completed or canceled.",
+  },
+  {
+    topic: "reviews",
+    question: "How do I unblock someone?",
+    answer:
+      "Open Settings, choose Blocked users, and select Unblock. The user may appear in future discovery again, but listings removed from saved or recently viewed items are not restored automatically.",
+  },
+  {
+    topic: "reviews",
     question: "What can Lend moderate?",
     answer:
       "Lend may review, hide, remove, restrict, suspend, or take account or listing action when reports, content, or conduct create risk or may violate Lend terms or applicable law.",
