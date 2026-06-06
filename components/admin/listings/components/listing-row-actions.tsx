@@ -5,7 +5,6 @@ import {
   Eye,
   MoreVerticalIcon,
   Pencil,
-  ShieldX,
   Trash2,
 } from "lucide-react";
 
@@ -31,7 +30,6 @@ type ListingRowActionsProps = {
 export function ListingRowActions({ listing }: ListingRowActionsProps) {
   const [viewOpen, setViewOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
-  const [rejectOpen, setRejectOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
@@ -64,15 +62,6 @@ export function ListingRowActions({ listing }: ListingRowActionsProps) {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={(event) => {
-              event.preventDefault();
-              setRejectOpen(true);
-            }}
-          >
-            <ShieldX />
-            Reject
-          </DropdownMenuItem>
-          <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onSelect={(event) => {
               event.preventDefault();
@@ -95,13 +84,6 @@ export function ListingRowActions({ listing }: ListingRowActionsProps) {
         open={editOpen}
       />
       <ListingConfirmDialog
-        action="reject"
-        listing={listing}
-        onOpenChange={setRejectOpen}
-        open={rejectOpen}
-      />
-      <ListingConfirmDialog
-        action="delete"
         listing={listing}
         onOpenChange={setDeleteOpen}
         open={deleteOpen}

@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
 import type {
   AdminListing,
@@ -16,14 +17,15 @@ import type {
 import {
   getFirebaseAuth,
   getFirebaseFirestore,
+  getFirebaseFunctions,
   hasFirebaseConfig,
   missingFirebaseConfig,
 } from "@/lib/firebase";
 
 import { listingQueryKeys } from "../data/listing-queries";
 
-type MutationAction = "delete" | "reject" | "update";
-type AuditType = "Approved" | "Deleted" | "Edited" | "Rejected";
+type MutationAction = "delete" | "update";
+type AuditType = "Approved" | "Deleted" | "Edited";
 
 type ListingAuditInput = {
   notes: string;
@@ -69,47 +71,11 @@ export function useListingMutation(listing: AdminListing) {
       );
 
       if (action === "delete") {
-        const batch = writeBatch(db);
-        batch.update(assetRef, {
-          isDeleted: true,
-          updatedAt: serverTimestamp(),
-        });
-        batch.set(
-          ownerMirrorRef,
-          {
-            isDeleted: true,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
-        addAuditToBatch(batch, {
+        const callable = httpsCallable(getFirebaseFunctions(), "adminDeleteListing");
+        await callable({
           assetId: listing.id,
-          createdBy,
-          notes: audit?.notes ?? "",
-          type: "Deleted",
+          reason: audit?.notes ?? "",
         });
-        await batch.commit();
-      } else if (action === "reject") {
-        const batch = writeBatch(db);
-        batch.update(assetRef, {
-          status: "Rejected",
-          updatedAt: serverTimestamp(),
-        });
-        batch.set(
-          ownerMirrorRef,
-          {
-            status: "Rejected",
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
-        addAuditToBatch(batch, {
-          assetId: listing.id,
-          createdBy,
-          notes: audit?.notes ?? "",
-          type: "Rejected",
-        });
-        await batch.commit();
       } else if (values) {
         await updateListingDocs({
           assetRef,
@@ -136,8 +102,6 @@ export function useListingMutation(listing: AdminListing) {
     deleteListing: (notes: string) =>
       run("delete", undefined, { notes, type: "Deleted" }),
     error,
-    rejectListing: (notes: string) =>
-      run("reject", undefined, { notes, type: "Rejected" }),
     resetError,
     submitting,
     updateListing: (values: ListingUpdateValues) => run("update", values),

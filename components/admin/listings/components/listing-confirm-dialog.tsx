@@ -27,13 +27,12 @@ import { getListingOwnerName, type AdminListing } from "@/lib/admin-listings";
 import { useListingMutation } from "../hooks/use-listing-mutations";
 
 type ListingConfirmDialogProps = {
-  action: "delete" | "reject";
   listing: AdminListing;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-const rejectionReasons = [
+const deletionReasons = [
   "Prohibited or unsupported item",
   "Unclear or insufficient photos",
   "Incomplete listing details",
@@ -44,10 +43,9 @@ const rejectionReasons = [
   "Other",
 ];
 
-export function ListingConfirmDialog({ action, listing, onOpenChange, open }: ListingConfirmDialogProps) {
-  const { deleteListing, error, rejectListing, resetError, submitting } = useListingMutation(listing);
-  const isReject = action === "reject";
-  const [reason, setReason] = React.useState(rejectionReasons[0]);
+export function ListingConfirmDialog({ listing, onOpenChange, open }: ListingConfirmDialogProps) {
+  const { deleteListing, error, resetError, submitting } = useListingMutation(listing);
+  const [reason, setReason] = React.useState(deletionReasons[0]);
   const [otherReason, setOtherReason] = React.useState("");
   const notes = reason === "Other" ? otherReason.trim() : reason;
   const reasonMissing = !notes;
@@ -55,7 +53,7 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
   React.useEffect(() => {
     if (open) {
       resetError();
-      setReason(rejectionReasons[0]);
+      setReason(deletionReasons[0]);
       setOtherReason("");
     }
   }, [open, resetError]);
@@ -65,7 +63,7 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
       return;
     }
 
-    const success = isReject ? await rejectListing(notes) : await deleteListing(notes);
+    const success = await deleteListing(notes);
     if (success) {
       onOpenChange(false);
     }
@@ -75,11 +73,9 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isReject ? "Reject listing" : "Delete listing"}</DialogTitle>
+          <DialogTitle>Delete listing</DialogTitle>
           <DialogDescription>
-            {isReject
-              ? "This sets the listing status to Rejected for the asset and owner mirror."
-              : "This soft deletes the listing from the asset and owner mirror records."}
+            This soft deletes the listing and notifies the owner that it was removed due to a policy violation.
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-md border p-4 text-sm">
@@ -89,13 +85,13 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
         </div>
         <div className="grid gap-3">
           <div className="grid gap-2">
-            <Label htmlFor={`${action}-listing-reason-${listing.id}`}>Reason</Label>
+            <Label htmlFor={`delete-listing-reason-${listing.id}`}>Reason</Label>
             <Select onValueChange={setReason} value={reason}>
-              <SelectTrigger id={`${action}-listing-reason-${listing.id}`}>
+              <SelectTrigger id={`delete-listing-reason-${listing.id}`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {rejectionReasons.map((item) => (
+                {deletionReasons.map((item) => (
                   <SelectItem key={item} value={item}>
                     {item}
                   </SelectItem>
@@ -105,9 +101,9 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
           </div>
           {reason === "Other" ? (
             <div className="grid gap-2">
-              <Label htmlFor={`${action}-listing-other-reason-${listing.id}`}>Notes</Label>
+              <Label htmlFor={`delete-listing-other-reason-${listing.id}`}>Notes</Label>
               <Textarea
-                id={`${action}-listing-other-reason-${listing.id}`}
+                id={`delete-listing-other-reason-${listing.id}`}
                 onChange={(event) => setOtherReason(event.target.value)}
                 placeholder="Enter the reason"
                 required
@@ -133,7 +129,7 @@ export function ListingConfirmDialog({ action, listing, onOpenChange, open }: Li
           </DialogClose>
           <Button disabled={submitting || reasonMissing} onClick={onConfirm} type="button" variant="destructive">
             {submitting ? <Loader2 className="animate-spin" /> : null}
-            {isReject ? "Reject listing" : "Delete listing"}
+            Delete listing
           </Button>
         </DialogFooter>
       </DialogContent>

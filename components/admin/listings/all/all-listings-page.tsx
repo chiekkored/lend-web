@@ -4,7 +4,14 @@ import { AllListingTable } from "./components/all-listing-table";
 import { useAllListings } from "./hooks/use-all-listings";
 
 export function AllListingsPage() {
-  const { data, error, loading, pagination } = useAllListings();
+  const {
+    data,
+    error,
+    loading,
+    onStatusFilterChange,
+    pagination,
+    statusFilter,
+  } = useAllListings();
 
   return (
     <div className="space-y-6">
@@ -20,7 +27,9 @@ export function AllListingsPage() {
       <AllListingTable
         data={data}
         error={error}
+        filterValue={statusFilter}
         loading={loading}
+        onFilterChange={onStatusFilterChange}
         pagination={pagination}
       />
     </div>

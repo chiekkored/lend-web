@@ -1,5 +1,7 @@
 "use client";
 
+import type * as React from "react";
+
 import {
   AdminDataTable,
   type AdminDataTablePaginationProps,
@@ -13,9 +15,16 @@ type ListingTableProps = {
   error: string | null;
   loading: boolean;
   pagination?: AdminDataTablePaginationProps;
+  toolbarFilter?: React.ReactNode;
 };
 
-export function ListingTable({ data, error, loading, pagination }: ListingTableProps) {
+export function ListingTable({
+  data,
+  error,
+  loading,
+  pagination,
+  toolbarFilter,
+}: ListingTableProps) {
   const columns = useListingColumns();
 
   return (
@@ -29,6 +38,7 @@ export function ListingTable({ data, error, loading, pagination }: ListingTableP
       primaryColumnId="asset"
       searchPlaceholder="Search listings"
       storageKey="admin:listings:column-visibility"
+      toolbarFilter={toolbarFilter}
     />
   );
 }

@@ -7,11 +7,14 @@ import {
   orderBy,
   query,
   startAfter,
+  where,
   type DocumentData,
+  type QueryConstraint,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 import {
+  listingStatuses,
   mapAdminListing,
   type AdminListing,
 } from "@/lib/admin-listings";
@@ -26,6 +29,14 @@ export const listingQueryKeys = {
   root: ["admin", "listings"] as const,
   detail: (assetId: string | null | undefined) =>
     ["admin", "listings", assetId ?? "missing"] as const,
+};
+
+export type ListingStatusFilter = "all" | (typeof listingStatuses)[number];
+
+type FetchAdminListingsPageInput = {
+  cursor: AdminCursor;
+  pageSize: number;
+  statusFilter?: ListingStatusFilter;
 };
 
 export async function fetchAdminListings(): Promise<AdminListing[]> {
@@ -44,30 +55,27 @@ export async function fetchAdminListings(): Promise<AdminListing[]> {
 export async function fetchAdminListingsPage({
   cursor,
   pageSize,
-}: {
-  cursor: AdminCursor;
-  pageSize: number;
-}): Promise<AdminCursorPage<AdminListing>> {
+  statusFilter = "all",
+}: FetchAdminListingsPageInput): Promise<AdminCursorPage<AdminListing>> {
   if (!hasFirebaseConfig) {
     throw new Error(
       `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
     );
   }
 
-  const listingsQuery = cursor
-    ? query(
-        collection(getFirebaseFirestore(), "assets"),
-        orderBy("createdAt", "desc"),
-        startAfter(cursor),
-        limit(pageSize),
-      )
-    : query(
-        collection(getFirebaseFirestore(), "assets"),
-        orderBy("createdAt", "desc"),
-        limit(pageSize),
-      );
+  const constraints: QueryConstraint[] = [
+    where("isDeleted", "==", false),
+    ...(statusFilter === "all" ? [] : [where("status", "==", statusFilter)]),
+    orderBy("createdAt", "desc"),
+    ...(cursor ? [startAfter(cursor)] : []),
+    limit(pageSize),
+  ];
+  const listingsQuery = query(
+    collection(getFirebaseFirestore(), "assets"),
+    ...constraints,
+  );
   const snapshot = await getDocs(listingsQuery);
-  const listings = snapshot.docs.map(mapAdminListing).filter((listing) => !listing.isDeleted);
+  const listings = snapshot.docs.map(mapAdminListing);
 
   return {
     hasMore: snapshot.docs.length === pageSize,
