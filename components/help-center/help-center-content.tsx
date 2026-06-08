@@ -84,7 +84,13 @@ const questions: HelpQuestion[] = [
     topic: "listing",
     question: "What do I need before publishing a listing?",
     answer:
-      "You need accurate item details, photos, pricing, availability, a pinned listing location, required payout details, and any security deposit settings that apply. New listings and listing edits may be reviewed by AI-assisted moderation and Lend admins before they become public.",
+      "You need accurate item details, photos, pricing, availability, a pinned listing location, required payout details, and any security deposit settings that apply. Owners must legally own or be authorized to rent the item or property, and must comply with applicable taxes, permits, licenses, insurance, building rules, subdivision or condo rules, transport rules, LGU requirements, and other legal obligations. New listings and listing edits may be reviewed by AI-assisted moderation and Lend admins before they become public, and Lend may request additional documents depending on category, transaction volume, earnings, risk level, or applicable requirements.",
+  },
+  {
+    topic: "listing",
+    question: "Where do I submit business registration or compliance documents?",
+    answer:
+      "If Lend requests compliance documents for a pending listing, open Owner Center > Business Registration and submit your DTI registration, BIR registration, Mayor or Business Permit if applicable, and the tax or invoice compliance acknowledgement. Business Registration appears after Lend requests it from a listing review or after you mark yourself as a rental business owner in the verification flow.",
   },
   {
     topic: "listing",

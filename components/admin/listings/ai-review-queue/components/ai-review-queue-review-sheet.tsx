@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, X } from "lucide-react";
+import { Check, FileText, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,23 +16,29 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { getFirebaseStorage } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
 
-import type { ListingReviewSubmission } from "../data/listing-review-queries";
-import { useListingReviewMutation } from "../hooks/use-listing-review-mutation";
+import type { AiReviewQueueItem } from "../data/ai-review-queue-queries";
+import { useAiReviewQueueMutation } from "../hooks/use-ai-review-queue-mutation";
 
-type ListingReviewSheetProps = {
+type AiReviewQueueReviewSheetProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  review: ListingReviewSubmission | null;
+  review: AiReviewQueueItem | null;
 };
 
-export function ListingReviewSheet({
+export function AiReviewQueueReviewSheet({
   onOpenChange,
   open,
   review,
-}: ListingReviewSheetProps) {
+}: AiReviewQueueReviewSheetProps) {
   const [notes, setNotes] = React.useState("");
-  const { approve, error, reject, resetError, submitting } =
-    useListingReviewMutation();
+  const {
+    approve,
+    error,
+    reject,
+    requestComplianceDocuments,
+    resetError,
+    submitting,
+  } = useAiReviewQueueMutation();
 
   React.useEffect(() => {
     if (open) {
@@ -44,7 +50,6 @@ export function ListingReviewSheet({
   if (!review) return null;
 
   async function submit(decision: "approve" | "reject") {
-    if (!review) return;
     const success =
       decision === "approve"
         ? await approve(review.id, notes)
@@ -52,7 +57,16 @@ export function ListingReviewSheet({
     if (success) onOpenChange(false);
   }
 
+  async function requestDocuments() {
+    await requestComplianceDocuments(review.id);
+  }
+
   const images = [...review.listing.images, ...review.listing.showcase];
+  const complianceRequestStatus =
+    review.businessRegistrationRequest?.status ?? "Not requested";
+  const complianceRequestSent =
+    review.businessRegistrationRequest?.status === "Required" ||
+    review.businessRegistrationRequest?.status === "Submitted";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -85,6 +99,59 @@ export function ListingReviewSheet({
               <p className="text-muted-foreground">No reasons provided.</p>
             )}
           </section>
+
+          {review.ownerComplianceRisk?.triggered ? (
+            <section className="grid gap-2">
+              <h3 className="font-medium">Owner compliance risk</h3>
+              <div className="grid gap-3 rounded-md border p-3">
+                {review.ownerComplianceRisk.reasons.length ? (
+                  <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                    {review.ownerComplianceRisk.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">
+                    This owner may need permit, tax, licensing, insurance,
+                    property, transport, LGU, or other compliance document
+                    review.
+                  </p>
+                )}
+                <dl className="grid gap-2 sm:grid-cols-2">
+                  {Object.entries(review.ownerComplianceRisk.metrics).map(
+                    ([key, value]) => (
+                      <InfoRow
+                        key={key}
+                        label={formatMetricLabel(key)}
+                        value={formatMetricValue(value)}
+                      />
+                    ),
+                  )}
+                </dl>
+                <div className="grid gap-2 border-t pt-3">
+                  <InfoRow
+                    label="Business registration request"
+                    value={
+                      review.businessRegistrationRequest?.requestedAt
+                        ? `${complianceRequestStatus} on ${formatRequestDate(
+                            review.businessRegistrationRequest.requestedAt,
+                          )}`
+                        : complianceRequestStatus
+                    }
+                  />
+                  <Button
+                    disabled={submitting || complianceRequestSent}
+                    onClick={requestDocuments}
+                    type="button"
+                    variant="default"
+                  >
+                    <FileText className="mr-2 size-4" />
+                    Request compliance documents
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <section className="grid gap-2">
             <h3 className="font-medium">Listing data</h3>
@@ -123,9 +190,7 @@ export function ListingReviewSheet({
               placeholder="Add admin decision notes"
               value={notes}
             />
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </section>
 
           <div className="flex flex-wrap gap-2">
@@ -170,6 +235,34 @@ function formatRate(rates: Record<string, unknown> | null) {
   return typeof daily === "number" ? `${currency} ${daily}` : null;
 }
 
+function formatMetricLabel(value: string) {
+  return value
+    .replace(/30d/g, "30d")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function formatMetricValue(value: unknown) {
+  if (typeof value === "number") {
+    return new Intl.NumberFormat("en-PH", {
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+  if (typeof value === "string") return value;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return "Not set";
+}
+
+function formatRequestDate(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(value);
+}
+
 function ReviewImage({ src }: { src: string }) {
   const [url, setUrl] = React.useState(() =>
     src.startsWith("https://") ? src : null,
@@ -201,10 +294,6 @@ function ReviewImage({ src }: { src: string }) {
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      alt=""
-      className="aspect-square rounded-md border object-cover"
-      src={url}
-    />
+    <img alt="" className="aspect-square rounded-md border object-cover" src={url} />
   );
 }

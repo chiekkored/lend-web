@@ -6,20 +6,20 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/admin/status-badge";
 
 import {
-  buildListingReviewSearchText,
-  formatReviewDate,
-  type ListingReviewSubmission,
-} from "../data/listing-review-queries";
+  buildAiReviewQueueSearchText,
+  formatAiReviewQueueDate,
+  type AiReviewQueueItem,
+} from "../data/ai-review-queue-queries";
 
-export function getListingReviewColumns({
+export function getAiReviewQueueColumns({
   onOpen,
 }: {
-  onOpen: (review: ListingReviewSubmission) => void;
-}): ColumnDef<ListingReviewSubmission>[] {
+  onOpen: (review: AiReviewQueueItem) => void;
+}): ColumnDef<AiReviewQueueItem>[] {
   return [
     {
       id: "search",
-      accessorFn: buildListingReviewSearchText,
+      accessorFn: buildAiReviewQueueSearchText,
       enableHiding: true,
       header: "Search",
       cell: () => null,
@@ -61,7 +61,7 @@ export function getListingReviewColumns({
     {
       accessorKey: "submittedAt",
       header: "Submitted",
-      cell: ({ row }) => formatReviewDate(row.original.submittedAt),
+      cell: ({ row }) => formatAiReviewQueueDate(row.original.submittedAt),
     },
     {
       id: "actions",

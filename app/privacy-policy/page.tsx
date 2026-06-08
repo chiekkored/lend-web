@@ -42,7 +42,9 @@ const sections: LegalSection[] = [
         <strong>Verification and safety data:</strong> identity and KYC
         submission details, face or selfie verification status, verification
         provider session identifiers, review status, submitted documents or
-        photos where applicable, and admin review notes or decisions.
+        photos where applicable, business registration or compliance documents
+        such as DTI, BIR, permits, and tax or invoice acknowledgements where
+        requested, and admin review notes or decisions.
       </>,
       <>
         <strong>Location data:</strong> approximate or selected locations used

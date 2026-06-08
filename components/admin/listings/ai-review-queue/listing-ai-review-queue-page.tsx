@@ -2,19 +2,17 @@
 
 import * as React from "react";
 
-import { getListingReviewColumns } from "@/components/admin/listing-reviews/components/listing-review-columns";
-import { ListingReviewSheet } from "@/components/admin/listing-reviews/components/listing-review-sheet";
-import type { ListingReviewSubmission } from "@/components/admin/listing-reviews/data/listing-review-queries";
-
+import { getAiReviewQueueColumns } from "./components/ai-review-queue-columns";
+import { AiReviewQueueReviewSheet } from "./components/ai-review-queue-review-sheet";
 import { AiReviewQueueTable } from "./components/ai-review-queue-table";
+import type { AiReviewQueueItem } from "./data/ai-review-queue-queries";
 import { useAiReviewQueue } from "./hooks/use-ai-review-queue";
 
 export function ListingAiReviewQueuePage() {
-  const { data, error, loading } = useAiReviewQueue();
-  const [selected, setSelected] =
-    React.useState<ListingReviewSubmission | null>(null);
+  const { data, error, loading, pagination } = useAiReviewQueue();
+  const [selected, setSelected] = React.useState<AiReviewQueueItem | null>(null);
   const columns = React.useMemo(
-    () => getListingReviewColumns({ onOpen: setSelected }),
+    () => getAiReviewQueueColumns({ onOpen: setSelected }),
     [],
   );
 
@@ -34,8 +32,9 @@ export function ListingAiReviewQueuePage() {
         data={data}
         error={error}
         loading={loading}
+        pagination={pagination}
       />
-      <ListingReviewSheet
+      <AiReviewQueueReviewSheet
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}

@@ -57,6 +57,7 @@ const sections: LegalSection[] = [
       "Owners authorize Lend to use and show listing information, including the pinned listing location, as needed to operate discovery, booking, handover, return, support, safety, report, and dispute workflows.",
       "Listings must not be misleading, unsafe, unlawful, counterfeit, stolen, restricted, or otherwise prohibited by Lend policy or applicable law.",
       "Owners are responsible for asset condition, cleanliness, safety, lawful use, required permits or licenses, and accurate disclosure of material limitations or risks.",
+      "Owners are responsible for ensuring that they legally own or are authorized to rent the item/property, and for complying with all applicable taxes, permits, licenses, insurance, building rules, subdivision/condo rules, transport rules, LGU requirements, and other legal obligations. Lend may request additional documents depending on the listing category, transaction volume, earnings, risk level, or applicable requirements.",
       "Owners must honor confirmed bookings unless cancellation is allowed by Lend policy or required for safety, legal, or exceptional reasons.",
       "New listings and listing content edits may be reviewed by automated tools, AI-assisted moderation, and Lend admins before they become publicly visible.",
       "Lend may review, edit, reject, hide, archive, delete, rank, suppress from recommendations, or moderate listings to protect users, comply with law, or improve marketplace quality.",
@@ -230,7 +231,7 @@ export default function TermsAndConditionsPage() {
     <LegalDocument
       description="These Terms and Conditions explain the rules for accounts, listings, bookings, payments, security deposits, handover and return, dispute review, moderation, and use of Lend."
       effectiveDate="[EFFECTIVE_DATE]"
-      lastUpdated="May 24, 2026"
+      lastUpdated="June 9, 2026"
       sections={sections}
       title="Terms and Conditions"
     />
