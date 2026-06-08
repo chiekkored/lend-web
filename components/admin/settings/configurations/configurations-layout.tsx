@@ -3,12 +3,17 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListChecks, Tags } from "lucide-react";
+import { ListChecks, ShieldAlert, Tags } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const configurationNavItems = [
+  {
+    title: "Maintenance",
+    href: "/admin/settings/configurations/maintenance",
+    icon: ShieldAlert,
+  },
   {
     title: "Categories",
     href: "/admin/settings/configurations/categories",
