@@ -35,6 +35,7 @@ import { usePendingDamageNotification } from "@/components/admin/bookings/hooks/
 import { usePendingAiReviewQueueIndicator } from "@/components/admin/listings/ai-review-queue/hooks/use-ai-review-queue";
 import { usePendingDeactivationRequestIndicator } from "@/components/admin/listings/deactivation-requests/hooks/use-pending-deactivation-request-indicator";
 import { useLiveReports } from "@/components/admin/reports/hooks/use-live-reports";
+import { usePendingBusinessSubmissionIndicator } from "@/components/admin/business/hooks/use-business-submissions";
 import { useLiveVerifications } from "@/components/admin/users/hooks/use-live-verifications";
 import { useLiveAccountFeedback } from "@/components/admin/account-feedback/hooks/use-live-account-feedback";
 import { adminSidebarGroups } from "@/lib/admin-data";
@@ -248,6 +249,7 @@ function AdminSidebar() {
   const verifications = useLiveVerifications();
   const accountFeedback = useLiveAccountFeedback();
   const pendingAiReviewQueue = usePendingAiReviewQueueIndicator();
+  const pendingBusinessSubmissions = usePendingBusinessSubmissionIndicator();
   const pendingDeactivationRequests =
     usePendingDeactivationRequestIndicator();
   const { hasNewPendingDamage } = usePendingDamageNotification({
@@ -278,6 +280,11 @@ function AdminSidebar() {
     isViewing: pathname === "/admin/listings/ai-review-queue",
     storageKey: "lend:admin:ai-review-queue:seen-ids",
   });
+  const hasNewBusinessSubmissions = useQueueNewItemIndicator({
+    ids: pendingBusinessSubmissions.ids,
+    isViewing: pathname === "/admin/business/submissions",
+    storageKey: "lend:admin:business-submissions:seen-ids",
+  });
   const reportIndicators = useReportQueueIndicators({
     pathname,
     reports: reports.data,
@@ -285,6 +292,7 @@ function AdminSidebar() {
   const indicators = getAdminSidebarIndicators({
     hasNewAccountFeedback,
     hasNewAiReviewQueueItems,
+    hasNewBusinessSubmissions,
     hasNewCancellations,
     hasNewDeactivationRequests,
     hasNewPendingDamage,
@@ -455,6 +463,7 @@ function SidebarNewItemDot({ collapsed }: { collapsed: boolean }) {
 function getAdminSidebarIndicators({
   hasNewAccountFeedback,
   hasNewAiReviewQueueItems,
+  hasNewBusinessSubmissions,
   hasNewCancellations,
   hasNewDeactivationRequests,
   hasNewPendingDamage,
@@ -463,6 +472,7 @@ function getAdminSidebarIndicators({
 }: {
   hasNewAccountFeedback: boolean;
   hasNewAiReviewQueueItems: boolean;
+  hasNewBusinessSubmissions: boolean;
   hasNewCancellations: boolean;
   hasNewDeactivationRequests: boolean;
   hasNewPendingDamage: boolean;
@@ -472,6 +482,7 @@ function getAdminSidebarIndicators({
   return {
     ...reportIndicators,
     "/admin/account-feedback": hasNewAccountFeedback,
+    "/admin/business/submissions": hasNewBusinessSubmissions,
     "/admin/bookings/cancellations": hasNewCancellations,
     "/admin/bookings/pending-damage": hasNewPendingDamage,
     "/admin/listings/ai-review-queue": hasNewAiReviewQueueItems,

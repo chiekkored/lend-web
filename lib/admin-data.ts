@@ -1,10 +1,12 @@
 import {
   AlertTriangle,
   BarChart3,
+  Building2,
   CalendarClock,
   CalendarX,
   CircleDollarSign,
   ClipboardList,
+  FileText,
   Flag,
   ArchiveX,
   LayoutDashboard,
@@ -103,6 +105,18 @@ const adminUsersNavGroup = {
   ],
 } as const;
 
+const adminBusinessNavGroup = {
+  title: "Business",
+  icon: Building2,
+  items: [
+    {
+      title: "Submissions",
+      href: "/admin/business/submissions",
+      icon: FileText,
+    },
+  ],
+} as const;
+
 const adminBookingsNavGroup = {
   title: "Bookings",
   icon: CalendarClock,
@@ -160,7 +174,7 @@ export const adminSidebarGroups = [
   },
   {
     title: "Accounts",
-    groups: [adminUsersNavGroup],
+    groups: [adminUsersNavGroup, adminBusinessNavGroup],
   },
   {
     title: "System",

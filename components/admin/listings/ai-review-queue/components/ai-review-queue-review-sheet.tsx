@@ -48,50 +48,51 @@ export function AiReviewQueueReviewSheet({
   }, [open, resetError]);
 
   if (!review) return null;
+  const currentReview = review;
 
   async function submit(decision: "approve" | "reject") {
     const success =
       decision === "approve"
-        ? await approve(review.id, notes)
-        : await reject(review.id, notes);
+        ? await approve(currentReview.id, notes)
+        : await reject(currentReview.id, notes);
     if (success) onOpenChange(false);
   }
 
   async function requestDocuments() {
-    await requestComplianceDocuments(review.id);
+    await requestComplianceDocuments(currentReview.id);
   }
 
-  const images = [...review.listing.images, ...review.listing.showcase];
+  const images = [...currentReview.listing.images, ...currentReview.listing.showcase];
   const complianceRequestStatus =
-    review.businessRegistrationRequest?.status ?? "Not requested";
+    currentReview.businessRegistrationRequest?.status ?? "Not requested";
   const complianceRequestSent =
-    review.businessRegistrationRequest?.status === "Required" ||
-    review.businessRegistrationRequest?.status === "Submitted";
+    currentReview.businessRegistrationRequest?.status === "Required" ||
+    currentReview.businessRegistrationRequest?.status === "Submitted";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>{review.listing.title ?? review.id}</SheetTitle>
+          <SheetTitle>{currentReview.listing.title ?? currentReview.id}</SheetTitle>
           <SheetDescription>
-            {review.submissionType} submission from {review.ownerId}
+            {currentReview.submissionType} submission from {currentReview.ownerId}
           </SheetDescription>
         </SheetHeader>
 
         <div className="grid flex-1 auto-rows-min gap-5 overflow-y-auto px-4 pb-4 text-sm">
           <div className="flex flex-wrap gap-2">
-            <StatusBadge value={review.aiReview.decision ?? "manual_review"} />
-            <StatusBadge value={review.aiReview.severity ?? "unknown"} />
-            {review.aiReview.categories.map((category) => (
+            <StatusBadge value={currentReview.aiReview.decision ?? "manual_review"} />
+            <StatusBadge value={currentReview.aiReview.severity ?? "unknown"} />
+            {currentReview.aiReview.categories.map((category) => (
               <StatusBadge key={category} value={category} />
             ))}
           </div>
 
           <section className="grid gap-2">
             <h3 className="font-medium">AI reasons</h3>
-            {review.aiReview.reasons.length ? (
+            {currentReview.aiReview.reasons.length ? (
               <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                {review.aiReview.reasons.map((reason) => (
+                {currentReview.aiReview.reasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}
               </ul>
@@ -100,13 +101,13 @@ export function AiReviewQueueReviewSheet({
             )}
           </section>
 
-          {review.ownerComplianceRisk?.triggered ? (
+          {currentReview.ownerComplianceRisk?.triggered ? (
             <section className="grid gap-2">
               <h3 className="font-medium">Owner compliance risk</h3>
               <div className="grid gap-3 rounded-md border p-3">
-                {review.ownerComplianceRisk.reasons.length ? (
+                {currentReview.ownerComplianceRisk.reasons.length ? (
                   <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                    {review.ownerComplianceRisk.reasons.map((reason) => (
+                    {currentReview.ownerComplianceRisk.reasons.map((reason) => (
                       <li key={reason}>{reason}</li>
                     ))}
                   </ul>
@@ -118,7 +119,7 @@ export function AiReviewQueueReviewSheet({
                   </p>
                 )}
                 <dl className="grid gap-2 sm:grid-cols-2">
-                  {Object.entries(review.ownerComplianceRisk.metrics).map(
+                  {Object.entries(currentReview.ownerComplianceRisk.metrics).map(
                     ([key, value]) => (
                       <InfoRow
                         key={key}
@@ -132,9 +133,9 @@ export function AiReviewQueueReviewSheet({
                   <InfoRow
                     label="Business registration request"
                     value={
-                      review.businessRegistrationRequest?.requestedAt
+                      currentReview.businessRegistrationRequest?.requestedAt
                         ? `${complianceRequestStatus} on ${formatRequestDate(
-                            review.businessRegistrationRequest.requestedAt,
+                            currentReview.businessRegistrationRequest.requestedAt,
                           )}`
                         : complianceRequestStatus
                     }
@@ -156,18 +157,18 @@ export function AiReviewQueueReviewSheet({
           <section className="grid gap-2">
             <h3 className="font-medium">Listing data</h3>
             <dl className="grid gap-2 rounded-md border p-3">
-              <InfoRow label="Category" value={review.listing.categoryName} />
+              <InfoRow label="Category" value={currentReview.listing.categoryName} />
               <InfoRow
                 label="Description"
-                value={review.listing.description}
+                value={currentReview.listing.description}
               />
               <InfoRow
                 label="Daily rate"
-                value={formatRate(review.listing.rates)}
+                value={formatRate(currentReview.listing.rates)}
               />
               <InfoRow
                 label="Inclusions"
-                value={review.listing.inclusions.join(", ") || null}
+                value={currentReview.listing.inclusions.join(", ") || null}
               />
             </dl>
           </section>

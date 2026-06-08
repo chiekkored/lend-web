@@ -90,7 +90,7 @@ const questions: HelpQuestion[] = [
     topic: "listing",
     question: "Where do I submit business registration or compliance documents?",
     answer:
-      "If Lend requests compliance documents for a pending listing, open Owner Center > Business Registration and submit your DTI registration, BIR registration, Mayor or Business Permit if applicable, and the tax or invoice compliance acknowledgement. Business Registration appears after Lend requests it from a listing review or after you mark yourself as a rental business owner in the verification flow.",
+      "If Lend requests compliance documents for a pending listing, open Owner Center > Business Registration and submit your DTI registration, BIR registration, Mayor or Business Permit if applicable, and the tax or invoice compliance acknowledgement. Business Registration appears after Lend requests it from a listing review or after you mark yourself as a rental business owner in the verification flow. After approval, the page shows your approved business name, business type, and business address, and a linked listing review may also be approved from that submission.",
   },
   {
     topic: "listing",
