@@ -11,6 +11,7 @@ import {
 import { httpsCallable } from "firebase/functions";
 
 import type {
+  AdminListingStatusUpdate,
   AdminListing,
   ListingUpdateValues,
 } from "@/lib/admin-listings";
@@ -104,8 +105,60 @@ export function useListingMutation(listing: AdminListing) {
     error,
     resetError,
     submitting,
+    updateListingStatus: (status: AdminListingStatusUpdate, reason?: string) =>
+      updateListingStatus({
+        assetId: listing.id,
+        reason,
+        status,
+      }),
     updateListing: (values: ListingUpdateValues) => run("update", values),
   };
+
+  async function updateListingStatus({
+    assetId,
+    reason,
+    status,
+  }: {
+    assetId: string;
+    reason?: string;
+    status: AdminListingStatusUpdate;
+  }) {
+    setError(null);
+
+    if (!hasFirebaseConfig) {
+      setError(
+        `Missing Firebase configuration: ${missingFirebaseConfig.join(", ")}.`,
+      );
+      return false;
+    }
+
+    if (!listing.ownerId) {
+      setError("Listing is missing an owner ID.");
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const callable = httpsCallable(
+        getFirebaseFunctions(),
+        "adminUpdateListingStatus",
+      );
+      await callable({
+        assetId,
+        reason: reason ?? "",
+        status,
+      });
+      await queryClient.invalidateQueries({ queryKey: listingQueryKeys.root });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to update listing status.",
+      );
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
 }
 
 async function updateListingDocs({

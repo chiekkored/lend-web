@@ -70,6 +70,16 @@ export const listingStatuses = [
   "Approved",
 ] as const;
 
+export const adminListingStatusUpdateValues = [
+  "Available",
+  "Under Maintenance",
+  "Hidden",
+  "Archived",
+] as const;
+
+export type AdminListingStatusUpdate =
+  (typeof adminListingStatusUpdateValues)[number];
+
 export function mapAdminListing(
   snapshot: QueryDocumentSnapshot<DocumentData>,
 ): AdminListing {

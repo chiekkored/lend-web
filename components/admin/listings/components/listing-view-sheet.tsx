@@ -24,6 +24,7 @@ import {
 import type { AdminUser } from "@/lib/admin-users";
 
 import { ListingAuditHistorySheet } from "./listing-audit-history-sheet";
+import { ListingStatusDialog } from "./listing-status-dialog";
 
 const UserViewSheet = dynamic(
   () => import("@/components/admin/users/components/user-view-sheet").then((mod) => mod.UserViewSheet),
@@ -39,6 +40,7 @@ type ListingViewSheetProps = {
 export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewSheetProps) {
   const [auditOpen, setAuditOpen] = React.useState(false);
   const [ownerOpen, setOwnerOpen] = React.useState(false);
+  const [statusOpen, setStatusOpen] = React.useState(false);
   const queryClient = useQueryClient();
   const ownerUid = listing.ownerId ?? listing.owner?.uid ?? null;
   const ownerQuery = useQuery({
@@ -104,6 +106,14 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
               <span className="text-muted-foreground">Status</span>
               {listing.status ? <StatusBadge value={listing.status} /> : <span>Not set</span>}
             </div>
+            <Button
+              className="w-full justify-center"
+              onClick={() => setStatusOpen(true)}
+              type="button"
+              variant="outline"
+            >
+              Update status
+            </Button>
             <DetailRow label="Created" value={formatListingDate(listing.createdAt)} />
             <DetailRow label="Location" value={formatLocation(listing.location)} />
           </div>
@@ -160,6 +170,11 @@ export function ListingViewSheet({ listing, onOpenChange, open }: ListingViewShe
         </div>
       </SheetContent>
       <ListingAuditHistorySheet listing={listing} onOpenChange={setAuditOpen} open={auditOpen} />
+      <ListingStatusDialog
+        listing={listing}
+        onOpenChange={setStatusOpen}
+        open={statusOpen}
+      />
       {ownerQuery.data ? (
         <UserViewSheet
           onOpenChange={setOwnerOpen}
