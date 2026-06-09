@@ -78,6 +78,9 @@ export type AdminBooking = {
   } | null;
   priceBreakdown: {
     rentalSubtotal: number | null;
+    dueNowRentalSubtotal: number | null;
+    scheduledRentalSubtotal: number | null;
+    chargeableRentalSubtotal: number | null;
     securityDepositAmount: number | null;
     renterPlatformFee: number | null;
     renterProcessingFee: number | null;
@@ -89,6 +92,7 @@ export type AdminBooking = {
     securityDepositCollectionProcessingFee: number | null;
     currency: string | null;
   };
+  billingPlan: Record<string, unknown> | null;
   depositFlow: {
     amount: number;
     approvedDeductionAmount: number | null;
@@ -341,6 +345,7 @@ export function mapAdminBooking({
       : null,
     paymentFlow: mappedPaymentFlow,
     priceBreakdown: mappedPriceBreakdown,
+    billingPlan: asRecord(data.billingPlan),
     cancellationRequest: cancellationRequest
       ? {
           status: asString(cancellationRequest.status),
@@ -474,6 +479,9 @@ function mapPriceBreakdown(
   return {
     rentalSubtotal:
       asNumber(data?.rentalSubtotal) ?? asNumber(legacyPayment?.rentalSubtotal),
+    dueNowRentalSubtotal: asNumber(data?.dueNowRentalSubtotal),
+    scheduledRentalSubtotal: asNumber(data?.scheduledRentalSubtotal),
+    chargeableRentalSubtotal: asNumber(data?.chargeableRentalSubtotal),
     securityDepositAmount: asNumber(data?.securityDepositAmount),
     renterPlatformFee: asNumber(data?.renterPlatformFee),
     renterProcessingFee: asNumber(data?.renterProcessingFee),

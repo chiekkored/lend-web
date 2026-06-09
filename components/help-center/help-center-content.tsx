@@ -202,6 +202,12 @@ const questions: HelpQuestion[] = [
   },
   {
     topic: "payments",
+    question: "How do recurring booking payments work?",
+    answer:
+      "Some longer bookings may collect an upfront amount first, then use subscription billing for future cycles where supported. The upfront amount can include the first recurring cycle, smaller rental remainders, daily remainder, security deposit, fees, and other non-subscription charges. Lend uses one recurring cadence per booking when possible, and PayMongo may ask you to complete subscription authorization after the upfront payment. The booking is confirmed only after the upfront payment and required authorization succeed.",
+  },
+  {
+    topic: "payments",
     question: "When do owners receive payouts?",
     answer:
       "Owner funds are not released at payment time. Payout occurs after the relevant completion, admin review, auto-completion, or settlement step is satisfied.",
@@ -210,7 +216,7 @@ const questions: HelpQuestion[] = [
     topic: "payments",
     question: "My payment failed. What should I do?",
     answer:
-      "Check your payment method, provider status, internet connection, and booking dates. If money was deducted but the booking did not update, contact support with the booking and payment details.",
+      "Check your payment method, provider status, internet connection, booking dates, and any required subscription authorization step. If money was deducted but the booking did not update, contact support with the booking and payment details.",
   },
   {
     topic: "reviews",

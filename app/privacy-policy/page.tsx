@@ -63,8 +63,9 @@ const sections: LegalSection[] = [
         <strong>Booking and transaction data:</strong> selected dates, booking
         status, lifecycle events, QR handover and return checkpoints, payment
         method category, payment provider identifiers, checkout records, payout
-        destination records, settlement status, refund or payout status, and
-        security deposit or damage deduction details.
+        destination records, subscription or invoice identifiers, billing
+        schedule status, settlement status, refund or payout status, and security
+        deposit or damage deduction details.
       </>,
       <>
         <strong>Communications and user content:</strong> chat messages, media
@@ -132,9 +133,10 @@ const sections: LegalSection[] = [
         support for nearby browsing and pickup or listing locations.
       </>,
       <>
-        <strong>PayMongo:</strong> payment intents, cards, e-wallets, QR Ph,
-        online banking channels, checkout status, wallet payouts, refund or
-        payout references, and payment webhook processing.
+        <strong>PayMongo:</strong> payment intents, subscriptions, invoices,
+        cards, e-wallets, QR Ph, online banking channels, checkout status,
+        wallet payouts, refund or payout references, and payment webhook
+        processing.
       </>,
       <>
         <strong>Didit or other verification providers:</strong> identity, face
@@ -178,8 +180,9 @@ const sections: LegalSection[] = [
         the payment provider and not stored by Lend unless a supported provider
         feature explicitly returns limited, tokenized, or masked payment data.
         We may store provider identifiers, checkout IDs, payment intent IDs,
-        payout destination metadata, transaction status, amounts, fees, refund
-        status, and settlement records to operate bookings and resolve disputes.
+        subscription IDs, invoice or billing schedule identifiers, payout
+        destination metadata, transaction status, amounts, fees, refund status,
+        and settlement records to operate bookings and resolve disputes.
       </p>
     ),
   },

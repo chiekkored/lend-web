@@ -77,6 +77,15 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
     queryKey: userDirectoryQueryKeys.user(renterUid),
   });
   const paymentAmount = booking.priceBreakdown.paymentAmount ?? booking.paymentFlow?.amount;
+  const billingPlanStatus = asString(booking.billingPlan?.status);
+  const recurringSubtotal = asNumber(booking.billingPlan?.recurringSubtotal);
+  const scheduledRecurringAmount = asNumber(booking.billingPlan?.scheduledRecurringAmount);
+  const collectedRecurringAmount = asNumber(booking.billingPlan?.collectedRecurringAmount);
+  const dueNowRentalSubtotal =
+    booking.priceBreakdown.dueNowRentalSubtotal ?? booking.priceBreakdown.chargeableRentalSubtotal;
+  const scheduledRentalSubtotal =
+    booking.priceBreakdown.scheduledRentalSubtotal ?? scheduledRecurringAmount;
+  const hasRecurringBilling = booking.billingPlan?.isRecurring === true;
   const hasPaymentFlow =
     Boolean(booking.paymentFlow) ||
     hasMoney(booking.priceBreakdown.rentalSubtotal) ||
@@ -182,6 +191,25 @@ export function BookingViewSheet({ booking, onOpenChange, open }: BookingViewShe
                   label="Rental subtotal"
                   value={formatBookingMoney(booking.priceBreakdown.rentalSubtotal ?? booking.totalPrice)}
                 />
+                {hasRecurringBilling ? (
+                  <>
+                    {billingPlanStatus ? (
+                      <DetailRow label="Billing status" value={<StatusBadge value={billingPlanStatus} />} />
+                    ) : null}
+                    {hasMoney(dueNowRentalSubtotal) ? (
+                      <DetailRow label="Due today rental" value={formatBookingMoney(dueNowRentalSubtotal)} />
+                    ) : null}
+                    {hasMoney(scheduledRentalSubtotal) ? (
+                      <DetailRow label="Scheduled later" value={formatBookingMoney(scheduledRentalSubtotal)} />
+                    ) : null}
+                    {hasMoney(recurringSubtotal) ? (
+                      <DetailRow label="Recurring subtotal" value={formatBookingMoney(recurringSubtotal)} />
+                    ) : null}
+                    {hasMoney(collectedRecurringAmount) ? (
+                      <DetailRow label="Collected recurring" value={formatBookingMoney(collectedRecurringAmount)} />
+                    ) : null}
+                  </>
+                ) : null}
                 {booking.securityDeposit.enabled ? (
                   <DetailRow label="Security deposit" value={formatBookingMoney(booking.securityDeposit.amount)} />
                 ) : null}
@@ -428,6 +456,14 @@ function DetailRow({
 
 function hasMoney(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function asNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function findCachedUser(
