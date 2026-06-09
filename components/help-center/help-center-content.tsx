@@ -196,6 +196,12 @@ const questions: HelpQuestion[] = [
   },
   {
     topic: "payments",
+    question: "Can I save a card for future payments?",
+    answer:
+      "Yes. When card saving is available, choose Save card before completing a card payment. PayMongo stores the tokenized card record for your Lend account, and future payments may ask only for the card CVC. Lend does not store your full card number or CVC.",
+  },
+  {
+    topic: "payments",
     question: "When do owners receive payouts?",
     answer:
       "Owner funds are not released at payment time. Payout occurs after the relevant completion, admin review, auto-completion, or settlement step is satisfied.",

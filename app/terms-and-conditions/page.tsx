@@ -78,6 +78,7 @@ const sections: LegalSection[] = [
     title: "Payments, fees, payouts, and refunds",
     items: [
       "Payments are processed through supported providers such as PayMongo. Supported methods may include cards, GCash, Maya, GrabPay, ShopeePay, QR Ph, direct online banking, and other channels made available in the app.",
+      "If you choose to save a card, Lend may ask the payment provider to store a tokenized or masked card record for your account so you can reuse it for future Lend payments. Lend does not store full card numbers or CVCs.",
       "Lend may create temporary date locks during checkout. A lock does not guarantee a booking unless payment succeeds and the booking is confirmed.",
       "Prices, platform fees, payment method fees, wallet transfer fees, taxes, security deposits, refunds, and payout amounts may be calculated according to Lend policy, provider rules, and remote pricing configuration shown or applied at checkout.",
       "Owner funds are not released at payment time. Owner payout occurs only after the relevant completion, admin review, auto-completion, or settlement step is satisfied.",
