@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListChecks, ShieldAlert, Tags } from "lucide-react";
+import { CreditCard, ListChecks, ShieldAlert, Tags } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,11 @@ const configurationNavItems = [
     title: "Amenities",
     href: "/admin/settings/configurations/amenities",
     icon: ListChecks,
+  },
+  {
+    title: "Payment Methods",
+    href: "/admin/settings/configurations/payment-methods",
+    icon: CreditCard,
   },
 ] as const;
 
