@@ -33,6 +33,11 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+            <span className="rounded-full border border-orange-300/30 bg-orange-400/10 px-5 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-orange-200 shadow-[0_0_28px_rgba(249,115,22,0.16)]">
+              Coming soon
+            </span>
+
+            {/*
             <Link
               href="#"
               target="_blank"
@@ -66,6 +71,7 @@ export default function LandingPage() {
                 priority
               />
             </Link>
+            */}
           </div>
         </div>
       </div>
